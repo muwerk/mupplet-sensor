@@ -1,0 +1,10 @@
+# Apple junk
+.DS_Store
+
+# IDE stuff
+.vs_code/
+lsp.log
+
+# binaries
+*.a
+*.lib
