@@ -1,6 +1,10 @@
 {
     "name": "mupplet-sensor",
-    "keywords": "hardware muwerk sensors",
+    "keywords": [
+        "hardware",
+        "sensors",
+        "muwerk"
+    ],
     "description": "A collection of sensor applets for the muwerk scheduler",
     "repository": {
         "type": "git",
@@ -28,8 +32,21 @@
             "name": "muwerk",
             "authors": "Dominik Schlösser, Leo Moll",
             "frameworks": "arduino"
+        },
+        {
+            "name": "mupplet-core",
+            "authors": "Dominik Schlösser, Leo Moll",
+            "frameworks": "arduino"
         }
     ],
+    "export": {
+        "exclude": [
+            ".github/*",
+            ".clang-format",
+            ".gitignore",
+            "extras/ci/*"
+        ]
+    },
     "version": "0.1.0",
     "frameworks": "arduino",
     "platforms": "*"
