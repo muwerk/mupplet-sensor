@@ -1,5 +1,8 @@
 # Apple junk
 .DS_Store
+.ccls-cache/
+
+*~
 
 # IDE stuff
 .vs_code/
