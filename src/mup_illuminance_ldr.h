@@ -173,7 +173,7 @@ class IlluminanceLdr {
             publishIlluminance();
         }
         if (topic == name + "/sensor/mode/get") {
-            publishIlluminance();
+            publishFilterMode();
         }
         if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
