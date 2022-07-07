@@ -14,8 +14,10 @@ namespace ustd {
 
 #define USTD_DHT_MAX_PIRQS (10)
 
-enum DhtProtState {NONE, START_PULSE_START, START_PULSE_END, REPL_PULSE_START, DATA_ACQUISITION_INTRO_START, DATA_ACQUISITION_INTRO_END, DATA_ACQUISITION, DATA_ABORT, DATA_OK };
-enum DhtFailureCode {OK, BAD_START_PULSE_LEVEL, BAD_REPLY_PULSE_LENGTH, BAD_START_PULSE_END_LEVEL, BAD_DATA_INTRO_PULSE_LENGTH, BAD_DATA_BIT_LENGTH};
+enum DhtProtState {NONE, START_PULSE_START, START_PULSE_END, REPL_PULSE_START, REPL_PULSE_START_H, DATA_ACQUISITION_INTRO_START, DATA_ACQUISITION_INTRO_END, 
+                   DATA_ACQUISITION, DATA_ABORT, DATA_OK };
+enum DhtFailureCode {OK=0, BAD_START_PULSE_LEVEL=1, BAD_REPLY_PULSE_LENGTH=2, BAD_START_PULSE_END_LEVEL=3, BAD_REPLY_PULSE_LENGTH2=4, BAD_START_PULSE_END_LEVEL2=5, 
+                     BAD_DATA_INTRO_PULSE_LENGTH=6, BAD_DATA_BIT_LENGTH=7};
 
 volatile DhtProtState pDhtState[USTD_DHT_MAX_PIRQS] = {DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,
     DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE};
@@ -28,7 +30,9 @@ volatile DhtFailureCode pDhtFailureCode[USTD_DHT_MAX_PIRQS] = {DhtFailureCode::O
 volatile int pDhtFailureData[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t sensorDataBytes[USTD_DHT_MAX_PIRQS*5];
 
-int signalDelta=10;  // uS count for max signal length deviation
+int signalInitDelta=20;
+int signalIntroDelta=20;
+int signalDelta=5;  // uS count for max signal length deviation
 
 void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     long dt;
@@ -52,8 +56,9 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
         case DhtProtState::REPL_PULSE_START:
             if (digitalRead(pDhtPortIrq[irqno])==HIGH) {
                 dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
-                if (dt>80-signalDelta && dt < 80+signalDelta) { // First alive signal of 80us LOW +- signalDelta uS.
-                    pDhtState[irqno]=DhtProtState::DATA_ACQUISITION_INTRO_START;
+                if (dt>80-signalInitDelta && dt < 80+signalInitDelta) { // First alive signal of 80us LOW +- signalDelta uS.
+                    pDhtBeginIrqTimer[irqno]=micros();
+                    pDhtState[irqno]=DhtProtState::REPL_PULSE_START_H;
                     return;
                 } else {
                     pDhtFailureCode[irqno] = DhtFailureCode::BAD_REPLY_PULSE_LENGTH;
@@ -65,6 +70,24 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
                 pDhtState[irqno] = DhtProtState::DATA_ABORT;
             }
             break;
+        case DhtProtState::REPL_PULSE_START_H:
+            if (digitalRead(pDhtPortIrq[irqno])==LOW) {
+                dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
+                if (dt>80-signalInitDelta && dt < 80+signalInitDelta) { // Sec alive signal of 80us HIGH +- signalDelta uS.
+                    pDhtBeginIrqTimer[irqno]=micros();
+                    pDhtState[irqno]=DhtProtState::DATA_ACQUISITION_INTRO_END;
+                    return;
+                } else {
+                    pDhtFailureCode[irqno] = DhtFailureCode::BAD_REPLY_PULSE_LENGTH2;
+                    pDhtFailureData[irqno] = dt;
+                    pDhtState[irqno] = DhtProtState::DATA_ABORT;
+                }
+            } else {
+                pDhtFailureCode[irqno] = DhtFailureCode::BAD_START_PULSE_END_LEVEL2;
+                pDhtState[irqno] = DhtProtState::DATA_ABORT;
+            }
+            break;
+
         case DhtProtState::DATA_ACQUISITION_INTRO_START:
             if (digitalRead(pDhtPortIrq[irqno])==LOW) {
                 pDhtBeginIrqTimer[irqno]=micros();
@@ -73,7 +96,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
         case DhtProtState::DATA_ACQUISITION_INTRO_END:
             if (digitalRead(pDhtPortIrq[irqno])==HIGH) {
                 dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
-                if (dt>50-signalDelta && dt < 50+signalDelta) { // Intro-marker 50us LOW +- signalDelta uS.
+                if (dt>50-signalIntroDelta && dt < 50+signalIntroDelta) { // Intro-marker 50us LOW +- signalDelta uS.
                     pDhtBeginIrqTimer[irqno]=micros();
                     pDhtState[irqno]=DhtProtState::DATA_ACQUISITION;
                     return;
@@ -93,7 +116,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
                     if (dt>70-signalDelta && dt < 70+signalDelta) { // One-bit 70uS
                         uint8_t byte=pDhtBitCounter[irqno]/8;
                         uint8_t bit=pDhtBitCounter[irqno]%8;
-                        sensorDataBytes[irqno*5+byte] |= 1<<bit;
+                        sensorDataBytes[irqno*5+byte] |= 1<<(7-bit);
                     } else {
                         pDhtFailureCode[irqno] = DhtFailureCode::BAD_DATA_BIT_LENGTH;
                         pDhtFailureData[irqno] = dt;
@@ -332,11 +355,11 @@ class TempHumDHT {
         case MEDIUM:
             filterMode = MEDIUM;
             temperatureSensor.smoothInterval = 4;
-            temperatureSensor.pollTimeSec = 300;
+            temperatureSensor.pollTimeSec = 30;
             temperatureSensor.eps = 0.1;
             temperatureSensor.reset();
             humiditySensor.smoothInterval = 4;
-            humiditySensor.pollTimeSec = 300;
+            humiditySensor.pollTimeSec = 30;
             humiditySensor.eps = 0.5;
             humiditySensor.reset();
             break;
@@ -401,7 +424,7 @@ class TempHumDHT {
                 pDhtFailureData[interruptIndex]=0;
                 break;
             case DhtProtState::START_PULSE_START:
-                if (timeDiff(startPulseStartUs, micros()) > 80) {
+                if (timeDiff(startPulseStartUs, micros()) > 18000) {
                     digitalWrite(port,HIGH);
                     startPulseStartUs=0;
                     pDhtState[interruptIndex]=DhtProtState::START_PULSE_END;
@@ -419,9 +442,9 @@ class TempHumDHT {
         int crc=0;
         char msg[128];
         for (unsigned int i=0; i<4; i++) crc+=sensorDataBytes[interruptIndex*5+i];
-        if (crc!=sensorDataBytes[interruptIndex*5+4]) {
+        if (crc%256!=sensorDataBytes[interruptIndex*5+4]) {
             ++errs;
-            sprintf(msg,"CRC_ERROR! Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]",errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
+            sprintf(msg,"CRC_ERROR! (%d) Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]",(crc%256), errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
                         sensorDataBytes[interruptIndex*5+0],sensorDataBytes[interruptIndex*5+1],sensorDataBytes[interruptIndex*5+2],sensorDataBytes[interruptIndex*5+3],sensorDataBytes[interruptIndex*5+4]);
             publishError(msg);
             noInterrupts();
@@ -433,6 +456,9 @@ class TempHumDHT {
                 ++oks;
                 sprintf(msg,"OK! Oks: %ld Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]",oks, errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
                             sensorDataBytes[interruptIndex*5+0],sensorDataBytes[interruptIndex*5+1],sensorDataBytes[interruptIndex*5+2],sensorDataBytes[interruptIndex*5+3],sensorDataBytes[interruptIndex*5+4]);
+                publishError(msg);
+                *tempVal=(double)sensorDataBytes[interruptIndex*5+2]+(double)sensorDataBytes[interruptIndex*5+3]/100.0;
+                *humiVal=(double)sensorDataBytes[interruptIndex*5+0]+(double)sensorDataBytes[interruptIndex*5+1]/100.0;
                 return true;
         }
     }
