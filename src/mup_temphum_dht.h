@@ -30,10 +30,10 @@ volatile DhtFailureCode pDhtFailureCode[USTD_DHT_MAX_PIRQS] = {DhtFailureCode::O
 volatile int pDhtFailureData[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t sensorDataBytes[USTD_DHT_MAX_PIRQS*5];
 
-int initialDelay=10;
-int signalInitDelta=20;
-int signalIntroDelta=20;
-int signalDelta=10;  // uS count for max signal length deviation
+int initialDelay=20;
+int signalInitDelta=25;
+int signalIntroDelta=25;
+int signalDelta=15;  // uS count for max signal length deviation
 
 void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     long dt;
@@ -57,7 +57,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
         case DhtProtState::REPL_PULSE_START:
             if (digitalRead(pDhtPortIrq[irqno])==HIGH) {
                 dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
-                if (dt>80-initialDelay-signalInitDelta && dt < 80-initialDelay+signalInitDelta) { // First alive signal of 80us LOW +- signalDelta uS.
+                if (dt>80-initialDelay-signalInitDelta && dt < 80+signalInitDelta) { // First alive signal of 80us LOW +- signalDelta uS.
                     pDhtBeginIrqTimer[irqno]=micros();
                     pDhtState[irqno]=DhtProtState::REPL_PULSE_START_H;
                     return;
@@ -367,7 +367,7 @@ class TempHumDHT {
         case LONGTERM:
         default:
             filterMode = LONGTERM;
-            temperatureSensor.smoothInterval = 50;
+            temperatureSensor.smoothInterval = 10;
             temperatureSensor.pollTimeSec = 600;
             temperatureSensor.eps = 0.1;
             temperatureSensor.reset();
@@ -458,7 +458,7 @@ class TempHumDHT {
                 ++oks;
                 sprintf(msg,"OK! Oks: %ld Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]",oks, errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
                             sensorDataBytes[interruptIndex*5+0],sensorDataBytes[interruptIndex*5+1],sensorDataBytes[interruptIndex*5+2],sensorDataBytes[interruptIndex*5+3],sensorDataBytes[interruptIndex*5+4]);
-                publishError(msg);
+                //publishError(msg);
                 int t=((sensorDataBytes[interruptIndex*5+2]&0x7f)<<8) | sensorDataBytes[interruptIndex*5+3];
                 if (sensorDataBytes[interruptIndex*5+2] & 0x80) t = t * (-1);
                 *tempVal=(double)t/10.0;
@@ -470,6 +470,7 @@ class TempHumDHT {
 
     void loop() {
         double tempVal, humiVal;
+        double errratio;
         DhtProtState curState;
         if (bActive) {
             noInterrupts();
@@ -504,8 +505,9 @@ class TempHumDHT {
                 case DhtProtState::DATA_ABORT:
                     // State machine error!
                     char msg[128];
+                    errratio=(double)errs/(errs+oks)*100.0;
                     ++errs;
-                    sprintf(msg,"Errs: %ld, Code: %d, Data %d",errs, pDhtFailureCode[interruptIndex], pDhtFailureData[interruptIndex]);
+                    sprintf(msg,"Errs: %ld, err-rate: %6.2f Code: %d, Data %d",errs, errratio, pDhtFailureCode[interruptIndex], pDhtFailureData[interruptIndex]);
                     publishError(msg);
                     noInterrupts();
                     pDhtState[interruptIndex]=DhtProtState::NONE;
