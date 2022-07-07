@@ -251,6 +251,7 @@ class TempHumDHT {
     unsigned long errs = 0;
     unsigned long oks = 0;
     unsigned long sensorPollRate = 3;
+    uint8_t iPin=255;
 
   public:
     enum DHTType { DHT11, DHT22 };
@@ -270,8 +271,8 @@ class TempHumDHT {
         */
 
         if (interruptIndex >= 0 && interruptIndex < USTD_DHT_MAX_PIRQS) {
-            uint8_t ipin = digitalPinToInterrupt(port);
-            attachInterrupt(ipin, ustd_dht_irq_table[interruptIndex], CHANGE);
+            iPin = digitalPinToInterrupt(port);
+            attachInterrupt(iPin, ustd_dht_irq_table[interruptIndex], CHANGE);
             pDhtPortIrq[interruptIndex] = port;
             pDhtState[interruptIndex] = DhtProtState::NONE;
             setFilterMode(filterMode, true);
@@ -279,6 +280,8 @@ class TempHumDHT {
     }
 
     ~TempHumDHT() {
+        if (iPin!=255)
+            detachInterrupt(iPin);
     }
 
     double getTemperature() {
@@ -307,8 +310,10 @@ class TempHumDHT {
             this->subsMsg(topic, msg, originator);
         };
         pSched->subscribe(tID, name + "/sensor/#", fnall);
-        pDhtState[interruptIndex] = DhtProtState::NONE;
-        bActive = true;
+        if (iPin!=255) {
+            pDhtState[interruptIndex] = DhtProtState::NONE;
+            bActive = true;
+        }
     }
 
     void setFilterMode(FilterMode mode, bool silent = false) {
@@ -365,6 +370,10 @@ class TempHumDHT {
         pSched->publish(name + "/sensor/humidity", buf);
     }
 
+    void publishError(String errMsg) {
+        pSched->publish(name + "/sensor/error", errMsg);
+    }
+
     void publishFilterMode() {
         switch (filterMode) {
         case FilterMode::FAST:
@@ -407,8 +416,25 @@ class TempHumDHT {
     }
 
     bool measurementChanged(double *tempVal, double *humiVal) {
-        // XXX
-        return false;
+        int crc=0;
+        char msg[128];
+        for (unsigned int i=0; i<4; i++) crc+=sensorDataBytes[interruptIndex*5+i];
+        if (crc!=sensorDataBytes[interruptIndex*5+4]) {
+            ++errs;
+            sprintf(msg,"CRC_ERROR! Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]",errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
+                        sensorDataBytes[interruptIndex*5+0],sensorDataBytes[interruptIndex*5+1],sensorDataBytes[interruptIndex*5+2],sensorDataBytes[interruptIndex*5+3],sensorDataBytes[interruptIndex*5+4]);
+            publishError(msg);
+            noInterrupts();
+            pDhtState[interruptIndex]=DhtProtState::NONE;
+            interrupts();
+            return false;
+
+        } else {
+                ++oks;
+                sprintf(msg,"OK! Oks: %ld Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]",oks, errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
+                            sensorDataBytes[interruptIndex*5+0],sensorDataBytes[interruptIndex*5+1],sensorDataBytes[interruptIndex*5+2],sensorDataBytes[interruptIndex*5+3],sensorDataBytes[interruptIndex*5+4]);
+                return true;
+        }
     }
 
     void loop() {
@@ -446,8 +472,10 @@ class TempHumDHT {
                     break;
                 case DhtProtState::DATA_ABORT:
                     // State machine error!
-                    // pDhtFailureCode[interruptIndex], pDhtFailureData[interruptIndex]
+                    char msg[128];
                     ++errs;
+                    sprintf(msg,"Errs: %ld, Code: %d, Data %d",errs, pDhtFailureCode[interruptIndex], pDhtFailureData[interruptIndex]);
+                    publishError(msg);
                     noInterrupts();
                     pDhtState[interruptIndex]=DhtProtState::NONE;
                     interrupts();
@@ -457,6 +485,8 @@ class TempHumDHT {
             }
         }
     }
+
+
 
     void subsMsg(String topic, String msg, String originator) {
         if (topic == name + "/sensor/temperature/get") {
