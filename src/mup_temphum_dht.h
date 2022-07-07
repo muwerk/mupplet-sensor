@@ -20,35 +20,49 @@ namespace ustd {
 
 enum DhtProtState {NONE, START_PULSE_START, START_PULSE_END, REPL_PULSE_START, REPL_PULSE_END, DATA_ACQUISITION, DATA_ABORT, DATA_OK };
 
-volatile DhtProtState dhtState = DhtProtState::NONE;
+volatile DhtProtState pDhtState[USTD_DHT_MAX_PIRQS] = {DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,
+    DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE};
 
-volatile unsigned long pDhtIrqCounter[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-volatile unsigned long pDhtLastIrqTimer[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//volatile unsigned long pDhtIrqCounter[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//volatile unsigned long pDhtLastIrqTimer[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile unsigned long pDhtBeginIrqTimer[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t pDhtPortIrq[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+volatile uint8_t pDhtBitCounter[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+volatile uint8_t sensorDataBytes[USTD_DHT_MAX_PIRQS*5];
+
+int signalDelta=30;  // uS count for max signal length deviation
 
 void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
-    switch (dhtState) {
+    unsigned long dt;
+    switch (pDhtState[irqno]) {
         case DhtProtState::NONE:
             return;
         case DhtProtState::START_PULSE_START:
-            pDhtBeginIrqTimer[irqno]=0;
             return;
         case DhtProtState::START_PULSE_END:
-            pDhtBeginIrqTimer[irqno]=micros();
-            digitalWrite(pDhtPortIrq[irqno],LOW);
-            dhtState=DhtProtState::REPL_PULSE_START;
-            return;
+            if (digitalRead(pDhtPortIrq[irqno])==LOW) {
+                pDhtBeginIrqTimer[irqno]=micros();
+                pDhtState[irqno]=DhtProtState::REPL_PULSE_START;
+                pDhtBitCounter[irqno]=0;
+                for (int i=0; i<5; i++) sensorDataBytes[USTD_DHT_MAX_PIRQS*5+i]=0;
+                return;
+            }
+            // XXX This should never occure.
+            break;
         case DhtProtState::REPL_PULSE_START:
+            if (digitalRead(pDhtPortIrq[irqno])==HIGH) {
+                dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
+                if (dt>80-signalDelta && dt < 80+signalDelta) { // First alive signal of 80us LOW +- signalDelta uS.
+                    pDhtState[irqno]=DhtProtState::REPL_PULSE_END;
+                    return;
+                }
+                // XXX bad signal pulse
+            }
+            // bad port state
+            break;
             
 
     }
-    unsigned long curr = micros();
-    if (pDhtBeginIrqTimer[irqno] == 0)
-        pDhtBeginIrqTimer[irqno] = curr;
-    else
-        ++pDhtIrqCounter[irqno];
-    pDhtLastIrqTimer[irqno] = curr;
 }
 
 void G_INT_ATTR ustd_dht_pirq0() {
@@ -86,6 +100,7 @@ void (*ustd_dht_pirq_table[USTD_DHT_MAX_PIRQS])() = {ustd_dht_pirq0, ustd_dht_pi
                                              ustd_dht_pirq4, ustd_dht_pirq5, ustd_dht_pirq6, ustd_dht_pirq7,
                                              ustd_dht_pirq8, ustd_dht_pirq9};
 
+/*
 unsigned long getDhtResetpIrqCount(uint8_t irqno) {
     unsigned long count = (unsigned long)-1;
     noInterrupts();
@@ -115,7 +130,7 @@ double getDhtResetpIrqFrequency(uint8_t irqno, unsigned long minDtUs = 50) {
     interrupts();
     return frequency;
 }
-
+*/
 
 // clang - format off
 /*! \brief mupplet-sensor temperature and humidity with DHT11/22
@@ -177,12 +192,15 @@ class TempHumDHT {
     int tID;
     String name;
     uint8_t port;
+    uint8_t interruptIndex;
     double temperatureValue, humidityValue;
     bool bActive=false;
     unsigned long stateMachineTimeout=0;
     unsigned long lastPoll = 0;
     unsigned long startPulseStartUs = 0;
     unsigned long errs = 0;
+    unsigned long oks = 0;
+    unsigned long sensorPollRate = 3;
 
   public:
     enum FilterMode { FAST, MEDIUM, LONGTERM };
@@ -192,16 +210,22 @@ class TempHumDHT {
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor humiditySensor = ustd::sensorprocessor(4, 600, 0.005);
 
-    TempHumDHT(String name, uint8_t port, DHTType dhtType=DHTType::DHT22, FilterMode filterMode = FilterMode::MEDIUM)
-        : name(name), port(port),dhtType(dhtType), filterMode(filterMode) {
+    TempHumDHT(String name, uint8_t port, uint8_t interruptIndex, DHTType dhtType=DHTType::DHT22, FilterMode filterMode = FilterMode::MEDIUM)
+        : name(name), port(port), interruptIndex(interruptIndex), dhtType(dhtType), filterMode(filterMode) {
         /*! Instantiate an DHT sensor mupplet
         @param name Name used for pub/sub messages
         @param port GPIO port with A/D converter capabilities.
         @param dhtType DHT11, DHT22
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
         */
-       dhtState = DhtProtState::NONE;
-       setFilterMode(filterMode, true);
+
+        if (interruptIndex >= 0 && interruptIndex < USTD_SW_MAX_IRQS) {
+            ipin = digitalPinToInterrupt(port);
+            attachInterrupt(ipin, ustd_sw_irq_table[interruptIndex], CHANGE);
+            pDhtPortIrq[interruptIndex] = port;
+            pDhtState[interruptIndex] = DhtProtState::NONE;
+            setFilterMode(filterMode, true);
+        }
     }
 
     ~TempHumDHT() {
@@ -233,7 +257,7 @@ class TempHumDHT {
             this->subsMsg(topic, msg, originator);
         };
         pSched->subscribe(tID, name + "/sensor/#", fnall);
-        dhtState = DhtProtState::NONE;
+        pDhtState[interruptIndex] = DhtProtState::NONE;
         bActive = true;
     }
 
@@ -308,17 +332,18 @@ class TempHumDHT {
     void generateStartMeasurementPulse() {
         // generate a 80us low-pulse to initiate DHT sensor measurement
         NoInterrupts();
-        switch (dhtState) {
+        switch (pDhtState[interruptIndex]) {
             case DhtProtState::NONE:
                 pinMode(port, OUTPUT);
                 digitalWrite(port,LOW);
                 startPulseStartUs=micros();
-                dhtState=DhtProtState::START_PULSE_START;
+                pDhtState[interruptIndex]=DhtProtState::START_PULSE_START;
                 break;
             case DhtProtState::START_PULSE_START:
                 if timeDiff(startPulseStartUs, micros()) > 80 {
+                    digitalWrite(port,HIGH);
                     startPulseStartUs=0;
-                    dhtState=DhtProtState::START_PULSE_END;
+                    pDhtState[interruptIndex]=DhtProtState::START_PULSE_END;
                     lastPoll=time();
                     pinMode(port, INPUT_PULLUP);
                 }
@@ -330,36 +355,52 @@ class TempHumDHT {
     }
 
     bool measurementChange(&tempVal, &humiVal) {
+        // XXX
         return False;
     }
 
     void loop() {
         double tempVal, humiVal;
+        DhtProtState curState;
         if (bActive) {
-            unsigned long dt=time()-lastPoll;
-            if (dt>temperatureSensor.pollTimeSec || dt>humiditySensor.pollTimeSec)) {
-                
-                // Check if state-machine is in non-default state:
-                noInterrupts();
-                if (dhtState!=DhtProtState::NONE && dhtState!=DhtProtState::START_PULSE_START) {
+            noInterrupts();
+            curState=pDhtState[interruptIndex];
+            interrupts();
+            switch (curState) {
+                case DhtProtState::NONE:
+                    if (time()-lastPoll>sensorPollRate) {
+                        generateStartMeasurementPulse();
+                        lastPoll=time();
+                    }
+                    break;
+                case DhtProtState::START_PULSE_START:
+                    generateStartMeasurementPulse();
+                    break;
+                case DhtProtState::DATA_OK:
+                    if (measurementChanged(&tempVal, &humiVal)) {
+                        if (temperatureSensor.filter(&tempVal)) {
+                            temperatureValue = tempVal;
+                            publishTemperature();
+                        }
+                        if (humiditySensor.filter(&humiVal)) {
+                            humidityValue = humiVal;
+                            publishHumidity();
+                        }
+                    }
+                    ++oks;
+                    noInterrupts();
+                    pDhtState[interruptIndex]=DhtProtState::NONE;
+                    Interrupts();
+                    break;
+                case DhtProtState::DATA_ABORT:
                     // State machine did not terminate!
                     ++errs;
-                    dhtState=DhtProtState::NONE;
-                }
-                Interrupts();
-                generateStartMeasurementPulse();
-            }
-            if (measurementChanged(&tempVal, &humiVal)) {
-                // XXX get temperature
-                if (temperatureSensor.filter(&tempVal)) {
-                    temperatureValue = tempVal;
-                    publishTemperature();
-                }
-                // XXX get humidity
-                if (humiditySensor.filter(&humiVal)) {
-                    humidityValue = humiVal;
-                    publishHumidity();
-                }
+                    noInterrupts();
+                    pDhtState[interruptIndex]=DhtProtState::NONE;
+                    Interrupts();
+                    break;
+                default:
+                   return;            
             }
         }
     }
