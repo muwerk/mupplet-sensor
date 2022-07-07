@@ -30,8 +30,10 @@ volatile uint8_t pDhtPortIrq[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     switch (dhtState) {
         case DhtProtState::NONE:
+            return;
         case DhtProtState::START_PULSE_START:
-        return;
+            pDhtBeginIrqTimer[irqno]=0;
+            return;
         case DhtProtState::START_PULSE_END:
             pDhtBeginIrqTimer[irqno]=micros();
             digitalWrite(pDhtPortIrq[irqno],LOW);
@@ -138,6 +140,9 @@ The temphum_dht mupplet measures temperature and humidity using a DHT11 or DHT22
 | `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set integration time for illuminance values |
 
 #### Sample code
+
+For a complete examples see the `muwerk/examples` project.
+
 ```cpp
 #define __ESP__ 1
 #include "scheduler.h"
@@ -154,7 +159,12 @@ void task0(String topic, String msg, String originator) {
 }
 
 void setup() {
-   dht.begin(&sched);
+    dht.begin(&sched);
+    String name="myDHT";
+    auto fnall = [=](String topic, String msg, String originator) {
+        this->subsMsg(topic, msg, originator);
+    };
+    pSched->subscribe(tID, name + "/sensor/#", fnall);
 }
 ```
 */
@@ -169,6 +179,10 @@ class TempHumDHT {
     uint8_t port;
     double temperatureValue, humidityValue;
     bool bActive=false;
+    unsigned long stateMachineTimeout=0;
+    unsigned long lastPoll = 0;
+    unsigned long startPulseStartUs = 0;
+    unsigned long errs = 0;
 
   public:
     enum FilterMode { FAST, MEDIUM, LONGTERM };
@@ -211,6 +225,7 @@ class TempHumDHT {
         /*! Start processing of A/D input from LDR */
         pSched = _pSched;
 
+        lastPoll = 0;
         auto ft = [=]() { this->loop(); };
         tID = pSched->add(ft, name, 500);  // 500us
 
@@ -290,17 +305,61 @@ class TempHumDHT {
         }
     }
 
+    void generateStartMeasurementPulse() {
+        // generate a 80us low-pulse to initiate DHT sensor measurement
+        NoInterrupts();
+        switch (dhtState) {
+            case DhtProtState::NONE:
+                pinMode(port, OUTPUT);
+                digitalWrite(port,LOW);
+                startPulseStartUs=micros();
+                dhtState=DhtProtState::START_PULSE_START;
+                break;
+            case DhtProtState::START_PULSE_START:
+                if timeDiff(startPulseStartUs, micros()) > 80 {
+                    startPulseStartUs=0;
+                    dhtState=DhtProtState::START_PULSE_END;
+                    lastPoll=time();
+                    pinMode(port, INPUT_PULLUP);
+                }
+                break;
+            default:
+                break;
+        }
+        Interrupts():
+    }
+
+    bool measurementChange(&tempVal, &humiVal) {
+        return False;
+    }
+
     void loop() {
+        double tempVal, humiVal;
         if (bActive) {
-            // XXX get temperature
-            if (temperatureSensor.filter(&val)) {
-                temperatureValue = val;
-                publishTemperature();
+            unsigned long dt=time()-lastPoll;
+            if (dt>temperatureSensor.pollTimeSec || dt>humiditySensor.pollTimeSec)) {
+                
+                // Check if state-machine is in non-default state:
+                noInterrupts();
+                if (dhtState!=DhtProtState::NONE && dhtState!=DhtProtState::START_PULSE_START) {
+                    // State machine did not terminate!
+                    ++errs;
+                    dhtState=DhtProtState::NONE;
+                }
+                Interrupts();
+                generateStartMeasurementPulse();
             }
-            // XXX get humidity
-            if (humiditySensor.filter(&val)) {
-                humidityValue = val;
-                publishHumidity();
+            if (measurementChanged(&tempVal, &humiVal)) {
+                // XXX get temperature
+                if (temperatureSensor.filter(&tempVal)) {
+                    temperatureValue = tempVal;
+                    publishTemperature();
+                }
+                // XXX get humidity
+                if (humiditySensor.filter(&humiVal)) {
+                    humidityValue = humiVal;
+                    publishHumidity();
+                }
             }
         }
     }
