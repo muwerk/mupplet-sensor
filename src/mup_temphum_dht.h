@@ -30,9 +30,10 @@ volatile DhtFailureCode pDhtFailureCode[USTD_DHT_MAX_PIRQS] = {DhtFailureCode::O
 volatile int pDhtFailureData[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t sensorDataBytes[USTD_DHT_MAX_PIRQS*5];
 
+int initialDelay=10;
 int signalInitDelta=20;
 int signalIntroDelta=20;
-int signalDelta=5;  // uS count for max signal length deviation
+int signalDelta=10;  // uS count for max signal length deviation
 
 void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     long dt;
@@ -56,7 +57,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
         case DhtProtState::REPL_PULSE_START:
             if (digitalRead(pDhtPortIrq[irqno])==HIGH) {
                 dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
-                if (dt>80-signalInitDelta && dt < 80+signalInitDelta) { // First alive signal of 80us LOW +- signalDelta uS.
+                if (dt>80-initialDelay-signalInitDelta && dt < 80-initialDelay+signalInitDelta) { // First alive signal of 80us LOW +- signalDelta uS.
                     pDhtBeginIrqTimer[irqno]=micros();
                     pDhtState[irqno]=DhtProtState::REPL_PULSE_START_H;
                     return;
@@ -424,8 +425,9 @@ class TempHumDHT {
                 pDhtFailureData[interruptIndex]=0;
                 break;
             case DhtProtState::START_PULSE_START:
-                if (timeDiff(startPulseStartUs, micros()) > 18000) {
+                if (timeDiff(startPulseStartUs, micros()) > 25000) {
                     digitalWrite(port,HIGH);
+                    delayMicroseconds(initialDelay);
                     startPulseStartUs=0;
                     pDhtState[interruptIndex]=DhtProtState::START_PULSE_END;
                     lastPoll=time(nullptr);
@@ -457,8 +459,11 @@ class TempHumDHT {
                 sprintf(msg,"OK! Oks: %ld Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]",oks, errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
                             sensorDataBytes[interruptIndex*5+0],sensorDataBytes[interruptIndex*5+1],sensorDataBytes[interruptIndex*5+2],sensorDataBytes[interruptIndex*5+3],sensorDataBytes[interruptIndex*5+4]);
                 publishError(msg);
-                *tempVal=(double)sensorDataBytes[interruptIndex*5+2]+(double)sensorDataBytes[interruptIndex*5+3]/100.0;
-                *humiVal=(double)sensorDataBytes[interruptIndex*5+0]+(double)sensorDataBytes[interruptIndex*5+1]/100.0;
+                int t=((sensorDataBytes[interruptIndex*5+2]&0x7f)<<8) | sensorDataBytes[interruptIndex*5+3];
+                if (sensorDataBytes[interruptIndex*5+2] & 0x80) t = t * (-1);
+                *tempVal=(double)t/10.0;
+                int h=((sensorDataBytes[interruptIndex*5+0]) << 8) | sensorDataBytes[interruptIndex*5+1];
+                *humiVal=(double)h/10.0;
                 return true;
         }
     }
