@@ -30,10 +30,23 @@ volatile DhtFailureCode pDhtFailureCode[USTD_DHT_MAX_PIRQS] = {DhtFailureCode::O
 volatile int pDhtFailureData[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t sensorDataBytes[USTD_DHT_MAX_PIRQS*5];
 
-int initialDelay=20;
-int signalInitDelta=25;
-int signalIntroDelta=25;
-int signalDelta=15;  // uS count for max signal length deviation
+
+// ..........MCU awakens DHT...............||.........DHT preamble..........|......data bit 1...........|......data bit 2...........| -> 40 data bis.
+// ...........MCU writes...................||..............MCU reads, DHT writes.......................................................
+//  - - - -+                      +--------||- - -+            +--- 80us ---+         +- 27us or 70 us -+         +- 27us or 70 us -+
+//         |                      |               |            |            |         |  0bit    1bit   |         |  0bit    1bit   |
+//         |                      |               |            |            |         |                 |         |                 |
+//         |                      |               |            |            |         |                 |         |                 |
+//         |                      |               |            |            |         |                 |         |                 |
+//         +--------// 22ms // ---+               +--- 80us ---+            +--50 us -+                 +--50 us -+                 + . . . 38 more bits
+//                  (1)              (2)    |          (3.1)        (3.2)       (4)           (5)        
+
+
+int dhtWakeUpPulse=22000;   // (1) The intial low-pulse of 22ms that awakens the DHT  
+int dhtInitialDelay=20;     // (2) after about 20ms(!) low by mcpu, at least dhtInitialDelay uS high is set by mcu before switching to input.
+int dhtSignalInitDelta=25;  // (3.1, 3.2) deviation for initial 80us low + high by dht, initialDeals uS get substracted from this.
+int dhtSignalIntroDelta=25; // (4)deviation for initial 50us low by dht
+int dhtSignalDelta=15;      // uS count for max signal length deviation, 27+-dhtSignalDelta is low, 70+-dhtSignalDelta is high-bit
 
 void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     long dt;
@@ -42,7 +55,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
             return;
         case DhtProtState::START_PULSE_START:
             return;
-        case DhtProtState::START_PULSE_END:
+        case DhtProtState::START_PULSE_END:  // start of (3.1)
             if (digitalRead(pDhtPortIrq[irqno])==LOW) {
                 pDhtBeginIrqTimer[irqno]=micros();
                 pDhtState[irqno]=DhtProtState::REPL_PULSE_START;
@@ -54,10 +67,10 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
                 pDhtState[irqno] = DhtProtState::DATA_ABORT;
             }
             break;
-        case DhtProtState::REPL_PULSE_START:
+        case DhtProtState::REPL_PULSE_START: // start of (3.2)
             if (digitalRead(pDhtPortIrq[irqno])==HIGH) {
                 dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
-                if (dt>80-initialDelay-signalInitDelta && dt < 80+signalInitDelta) { // First alive signal of 80us LOW +- signalDelta uS.
+                if (dt>80-dhtInitialDelay-dhtSignalInitDelta && dt < 80+dhtSignalInitDelta) { // First alive signal of 80us LOW +- dhtSignalInitDelta uS.
                     pDhtBeginIrqTimer[irqno]=micros();
                     pDhtState[irqno]=DhtProtState::REPL_PULSE_START_H;
                     return;
@@ -71,10 +84,10 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
                 pDhtState[irqno] = DhtProtState::DATA_ABORT;
             }
             break;
-        case DhtProtState::REPL_PULSE_START_H:
+        case DhtProtState::REPL_PULSE_START_H: // end of (3.2), start of data transmission (4)
             if (digitalRead(pDhtPortIrq[irqno])==LOW) {
                 dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
-                if (dt>80-signalInitDelta && dt < 80+signalInitDelta) { // Sec alive signal of 80us HIGH +- signalDelta uS.
+                if (dt>80-dhtSignalInitDelta && dt < 80+dhtSignalInitDelta) { // Sec alive signal of 80us HIGH +- dhtSignalInitDelta uS.
                     pDhtBeginIrqTimer[irqno]=micros();
                     pDhtState[irqno]=DhtProtState::DATA_ACQUISITION_INTRO_END;
                     return;
@@ -89,15 +102,15 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
             }
             break;
 
-        case DhtProtState::DATA_ACQUISITION_INTRO_START:
+        case DhtProtState::DATA_ACQUISITION_INTRO_START: // start of (4)
             if (digitalRead(pDhtPortIrq[irqno])==LOW) {
                 pDhtBeginIrqTimer[irqno]=micros();
                 pDhtState[irqno]=DhtProtState::DATA_ACQUISITION_INTRO_END;
             } 
-        case DhtProtState::DATA_ACQUISITION_INTRO_END:
+        case DhtProtState::DATA_ACQUISITION_INTRO_END: // end of (4)
             if (digitalRead(pDhtPortIrq[irqno])==HIGH) {
                 dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
-                if (dt>50-signalIntroDelta && dt < 50+signalIntroDelta) { // Intro-marker 50us LOW +- signalDelta uS.
+                if (dt>50-dhtSignalIntroDelta && dt < 50+dhtSignalIntroDelta) { // Intro-marker 50us LOW +- dhtSignalIntroDelta uS.
                     pDhtBeginIrqTimer[irqno]=micros();
                     pDhtState[irqno]=DhtProtState::DATA_ACQUISITION;
                     return;
@@ -108,13 +121,13 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
                 }
             }
             break;
-        case DhtProtState::DATA_ACQUISITION:
+        case DhtProtState::DATA_ACQUISITION: // end of (5), data bit of either 27us (0bit) or 70us (1bit) received.
             if (digitalRead(pDhtPortIrq[irqno])==LOW) {
                 dt=timeDiff(pDhtBeginIrqTimer[irqno], micros());
-                if (dt>27-signalDelta && dt < 27+signalDelta) { // Zero-bit 26-28uS 
+                if (dt>27-dhtSignalDelta && dt < 27+dhtSignalDelta) { // Zero-bit 26-28uS 
                    // nothing
                 } else {
-                    if (dt>70-signalDelta && dt < 70+signalDelta) { // One-bit 70uS
+                    if (dt>70-dhtSignalDelta && dt < 70+dhtSignalDelta) { // One-bit 70uS
                         uint8_t byte=pDhtBitCounter[irqno]/8;
                         uint8_t bit=pDhtBitCounter[irqno]%8;
                         sensorDataBytes[irqno*5+byte] |= 1<<(7-bit);
@@ -126,7 +139,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
                     }
                 }
                 ++pDhtBitCounter[irqno];
-                if (pDhtBitCounter[irqno]==40) {
+                if (pDhtBitCounter[irqno]==40) {  // after 40 bit received, data (2byte humidity, 2byte temperature, 1byte crc) complete.
                     pDhtState[irqno]=DhtProtState::DATA_OK;
                 } else {
                     pDhtBeginIrqTimer[irqno]=micros();
@@ -425,9 +438,9 @@ class TempHumDHT {
                 pDhtFailureData[interruptIndex]=0;
                 break;
             case DhtProtState::START_PULSE_START:
-                if (timeDiff(startPulseStartUs, micros()) > 25000) {
+                if (timeDiff(startPulseStartUs, micros()) > dhtWakeUpPulse) {  // should be >18ms (Note: original manufacturer doc is WRONG, says 2ms)
                     digitalWrite(port,HIGH);
-                    delayMicroseconds(initialDelay);
+                    delayMicroseconds(dhtInitialDelay);
                     startPulseStartUs=0;
                     pDhtState[interruptIndex]=DhtProtState::START_PULSE_END;
                     lastPoll=time(nullptr);
