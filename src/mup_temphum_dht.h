@@ -14,8 +14,19 @@ namespace ustd {
 
 #define USTD_DHT_MAX_PIRQS (10)
 
-enum DhtProtState {NONE, START_PULSE_START, START_PULSE_END, REPL_PULSE_START, REPL_PULSE_START_H, DATA_ACQUISITION_INTRO_START, DATA_ACQUISITION_INTRO_END, 
-                   DATA_ACQUISITION, DATA_ABORT, DATA_OK };
+/*! States of the interrupt handler protocol automat */
+enum DhtProtState {NONE,                           /*!< idle, no operation */ 
+                   START_PULSE_START,              /*!< start of (1) [see state diagram below], mcu starts write +-20ms low-pulse */
+                   START_PULSE_END,                /*!< end of (1), a short high pulse is sent by MCU before switching to input and activating IRQ handler */
+                   REPL_PULSE_START,               /*!< start of (3.1), preamble, dht writes 80us low pulse */
+                   REPL_PULSE_START_H,             /*!< start of (3.2), preamble, dht writes 80us high pulse */
+                   DATA_ACQUISITION_INTRO_START,   /*!< start of (4), lead-in for data-bit */
+                   DATA_ACQUISITION_INTRO_END,     /*!< end of (4), starting to receive data bit */
+                   DATA_ACQUISITION,               /*!< end of (5), either 0bit(27us) or 1bit(70us) received */
+                   DATA_ABORT,                     /*!< error condition, timeout, or illegal state, state machine aborted, no valid result */
+                   DATA_OK                         /*!< five data bits have been received and can be decoded */
+                   };
+
 enum DhtFailureCode {OK=0, BAD_START_PULSE_LEVEL=1, BAD_REPLY_PULSE_LENGTH=2, BAD_START_PULSE_END_LEVEL=3, BAD_REPLY_PULSE_LENGTH2=4, BAD_START_PULSE_END_LEVEL2=5, 
                      BAD_DATA_INTRO_PULSE_LENGTH=6, BAD_DATA_BIT_LENGTH=7};
 
@@ -31,22 +42,25 @@ volatile int pDhtFailureData[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 volatile uint8_t sensorDataBytes[USTD_DHT_MAX_PIRQS*5];
 
 
-// ..........MCU awakens DHT...............||.........DHT preamble..........|......data bit 1...........|......data bit 2...........| -> 40 data bis.
-// ...........MCU writes...................||..............MCU reads, DHT writes.......................................................
-//  - - - -+                      +--------||- - -+            +--- 80us ---+         +- 27us or 70 us -+         +- 27us or 70 us -+
-//         |                      |               |            |            |         |  0bit    1bit   |         |  0bit    1bit   |
-//         |                      |               |            |            |         |                 |         |                 |
-//         |                      |               |            |            |         |                 |         |                 |
-//         |                      |               |            |            |         |                 |         |                 |
-//         +--------// 22ms // ---+               +--- 80us ---+            +--50 us -+                 +--50 us -+                 + . . . 38 more bits
-//                  (1)              (2)    |          (3.1)        (3.2)       (4)           (5)        
+// clang - format off
+/*! DHT protocol state diagram
+..........MCU awakens DHT...............||.........DHT preamble..........|......data bit 1...........|......data bit 2...........| -> 40 data bis.
+...........MCU writes...................||..............MCU reads, DHT writes.......................................................
+ - - - -+                      +--------||- - -+            +--- 80us ---+         +- 27us or 70 us -+         +- 27us or 70 us -+
+        |                      |               |            |            |         |  0bit    1bit   |         |  0bit    1bit   |
+        |                      |               |            |            |         |                 |         |                 |
+        |                      |               |            |            |         |                 |         |                 |
+        |                      |               |            |            |         |                 |         |                 |
+        +--------// 22ms // ---+               +--- 80us ---+            +--50 us -+                 +--50 us -+                 + . . . 38 more bits
+                 (1)              (2)    |          (3.1)        (3.2)       (4)           (5)        
+*/
+// clang - format on
 
-
-int dhtWakeUpPulse=22000;   // (1) The intial low-pulse of 22ms that awakens the DHT  
+int dhtWakeUpPulse=22000;   // (1) The intial low-pulse of 22ms that awakens the DHT. Note: manufacturer doc is wrong! Says 2ms.  
 int dhtInitialDelay=20;     // (2) after about 20ms(!) low by mcpu, at least dhtInitialDelay uS high is set by mcu before switching to input.
 int dhtSignalInitDelta=25;  // (3.1, 3.2) deviation for initial 80us low + high by dht, initialDeals uS get substracted from this.
-int dhtSignalIntroDelta=25; // (4)deviation for initial 50us low by dht
-int dhtSignalDelta=15;      // uS count for max signal length deviation, 27+-dhtSignalDelta is low, 70+-dhtSignalDelta is high-bit
+int dhtSignalIntroDelta=25; // (4) deviation for initial 50us low by dht
+int dhtSignalDelta=15;      // (5) uS count for max signal length deviation, 27+-dhtSignalDelta is low, 70+-dhtSignalDelta is high-bit
 
 void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     long dt;
@@ -187,37 +201,7 @@ void (*ustd_dht_irq_table[USTD_DHT_MAX_PIRQS])() = {ustd_dht_pirq0, ustd_dht_pir
                                              ustd_dht_pirq4, ustd_dht_pirq5, ustd_dht_pirq6, ustd_dht_pirq7,
                                              ustd_dht_pirq8, ustd_dht_pirq9};
 
-/*
-unsigned long getDhtResetpIrqCount(uint8_t irqno) {
-    unsigned long count = (unsigned long)-1;
-    noInterrupts();
-    if (irqno < USTD_DHT_MAX_PIRQS) {
-        count = pDhtIrqCounter[irqno];
-        pDhtIrqCounter[irqno] = 0;
-    }
-    interrupts();
-    return count;
-}
 
-double frequencyMultiplicator = 1000000.0;
-double getDhtResetpIrqFrequency(uint8_t irqno, unsigned long minDtUs = 50) {
-    double frequency = 0.0;
-    noInterrupts();
-    if (irqno < USTD_DHT_MAX_PIRQS) {
-        unsigned long count = pDhtIrqCounter[irqno];
-        unsigned long dt = timeDiff(pDhtBeginIrqTimer[irqno], pDhtLastIrqTimer[irqno]);
-        if (dt > minDtUs) {                                     // Ignore small Irq flukes
-            frequency = (count * frequencyMultiplicator) / dt;  // = count/2.0*1000.0000 uS / dt;
-                                                                // no. of waves (count/2) / dt.
-        }
-        pDhtBeginIrqTimer[irqno] = 0;
-        pDhtIrqCounter[irqno] = 0;
-        pDhtLastIrqTimer[irqno] = 0;
-    }
-    interrupts();
-    return frequency;
-}
-*/
 
 // clang - format off
 /*! \brief mupplet-sensor temperature and humidity with DHT11/22
