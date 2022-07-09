@@ -77,7 +77,9 @@ class PressTempBMP180 {
     double temperatureValue, pressureValue;
     unsigned long stateMachineClock;
     uint16_t rawTemperature;
+    double calibratedTemperature;
     uint32_t rawPressure;
+    double calibratedPressure;
     uint16_t oversampleMode=3; // 0..3
 
     // BMP Sensor calibration data
@@ -96,7 +98,7 @@ class PressTempBMP180 {
     BMPSensorState sensorState;
     unsigned long errs=0;
     unsigned long oks=0;
-    long pollRateUs = 2000000;
+    unsigned long pollRateUs = 2000000;
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     FilterMode filterMode;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
@@ -373,6 +375,8 @@ class PressTempBMP180 {
     bool sensorStateMachine() {
         bool newData=false;
         switch (sensorState) {
+            case BMPSensorState::UNAVAILABLE:
+                break;
             case BMPSensorState::IDLE:
                 if (!i2c_writeRegisterByte(0xf4,0x2e)) {
                     ++errs;
@@ -426,11 +430,43 @@ class PressTempBMP180 {
         return newData;
     }
 
+    bool calibrateRawData() {
+        // Temperature
+        long x1=((rawTemperature-(long)CD_AC6)*(long)CD_AC5) >> 15;
+        long x2=((long)CD_MC << 11)/(x1+(long)CD_MD);
+        long b5 = x1+x2;
+        calibratedTemperature = ((double)b5+8.0)/160.0;
+        // Pressure
+        long b6=b5-4000;
+        x1=(CD_B2*((b6*b6) >> 12)) >> 11;
+        x2=(CD_AC2*b6) >> 11;
+        long x3 = x1+x2;
+        long b3 = ((CD_AC1*4+x3) << (oversampleMode + 2))/4;
+        x1=(CD_AC3*b6) >> 13;
+        x2=(CD_B1*((b6*b6) >> 12)) >> 16;
+        x3=((x1+x2)+2) >> 2;
+        unsigned long b4=(CD_AC4*(unsigned long)(x3+32768)) >> 15;
+        long b7=((unsigned long)rawPressure-b3)*(50000>>oversampleMode);
+        long p;
+        if ((unsigned long)b7>0x80000000) {
+            p=(b7*2)/b4;
+        } else {
+            p=(b7/b4)*2;
+        }
+        x1=(p >> 8) * (p >> 8);
+        x1=(x1*3038)>>16;
+        x2=(-7357*p) >> 16;
+        calibratedPressure=(p+(x1+x2+3791)/16.0)/100.0; // hPa;
+        return true;
+    }
+
     void loop() {
         double tempVal, pressVal;
         if (bActive) {
             if (!sensorStateMachine()) return; // no new data
-            tempVal=(double)rawTemperature; pressVal=(double)rawPressure;
+            calibrateRawData();
+            tempVal=(double)calibratedTemperature; 
+            pressVal=(double)calibratedPressure;
             if (temperatureSensor.filter(&tempVal)) {
                 temperatureValue = tempVal;
                 publishTemperature();
