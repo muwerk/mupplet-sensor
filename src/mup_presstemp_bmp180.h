@@ -75,21 +75,20 @@ class PressTempBMP180 {
     String name;
     uint8_t i2c_address;
     double temperatureValue, pressureValue;
-    bool bActive=false;
 
   public:
     enum BMPType { BMP085, BMP180 };
-    enum BMPError { UNDEFINED, OK, I2C_HW_ERROR, I2C_DEVICE_NOT_AT_ADDRESS, I2C_REGISTER_WRITE_ERROR,
+    enum BMPError { UNDEFINED, OK, I2C_HW_ERROR, I2C_WRONG_HARDWARE_AT_ADDRESS, I2C_DEVICE_NOT_AT_ADDRESS, I2C_REGISTER_WRITE_ERROR,
                     I2C_VALUE_WRITE_ERROR, I2C_WRITE_DATA_TOO_LONG, I2C_WRITE_NACK_ON_ADDRESS, 
                     I2C_WRITE_NACK_ON_DATA, I2C_WRITE_ERR_OTHER, I2C_WRITE_TIMEOUT, I2C_WRITE_INVALID_CODE,
                     I2C_READ_REQUEST_FAILED};
     BMPType bmp180Type;
-    BMPError lastsError;
+    BMPError lastError;
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     FilterMode filterMode;
-    BMPError lastError;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
+    bool bActive=false;
 
     PressTempBMP180(String name, uint8_t i2c_address=0x77, BMPType bmp180Type=BMPType::BMP180, FilterMode filterMode = FilterMode::MEDIUM)
         : name(name), i2c_address(i2c_address), bmp180Type(bmp180Type), filterMode(filterMode) {
@@ -123,6 +122,7 @@ class PressTempBMP180 {
     void begin(Scheduler *_pSched, TwoWire* _pWire=&Wire) {
         pSched = _pSched;
         pWire=_pWire;
+        uint8_t data;
 
         auto ft = [=]() { this->loop(); };
         tID = pSched->add(ft, name, 2000000);  // 2s
@@ -134,7 +134,17 @@ class PressTempBMP180 {
 
         lastError=i2c_checkAddress(i2c_address);
         if (lastError==BMPError::OK) {
-            bActive = true;
+            if (!i2c_readRegisterByte(0xd0, &data)) { // 0xd0: chip-id register
+                bActive=false;
+            } else {
+                if (data==0x55) { // 0x55: signature of BMP180
+                    bActive=true;
+                } else {
+
+                    lastError=BMPError::I2C_WRONG_HARDWARE_AT_ADDRESS;
+                    bActive = false;
+                }
+            }
         } else {
             bActive = false;
         }
