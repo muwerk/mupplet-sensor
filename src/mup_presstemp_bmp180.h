@@ -80,7 +80,6 @@ class PressTempBMP180 {
     double calibratedTemperature;
     uint32_t rawPressure;
     double calibratedPressure;
-    uint16_t oversampleMode=3; // 0..3
 
     // BMP Sensor calibration data
     int16_t CD_AC1, CD_AC2, CD_AC3, CD_B1, CD_B2, CD_MB, CD_MC, CD_MD;
@@ -99,6 +98,7 @@ class PressTempBMP180 {
     unsigned long errs=0;
     unsigned long oks=0;
     unsigned long pollRateUs = 2000000;
+    uint16_t oversampleMode=0; // 0..3
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     FilterMode filterMode;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
@@ -374,6 +374,7 @@ class PressTempBMP180 {
 
     bool sensorStateMachine() {
         bool newData=false;
+        unsigned long convTimeOversampling[4]={4500, 7500, 13500, 25500}; // sample time dependent on oversample-mode for pressure.
         switch (sensorState) {
             case BMPSensorState::UNAVAILABLE:
                 break;
@@ -391,7 +392,7 @@ class PressTempBMP180 {
             case BMPSensorState::TEMPERATURE_WAIT:
                 if (timeDiff(stateMachineClock,micros()) > 4500) { // 4.5ms for temp meas.
                     if (i2c_readRegisterWord(0xf6,&rawTemperature)) {
-                        uint8_t cmd=0x34+(oversampleMode<<6);
+                        uint8_t cmd=0x34 | (oversampleMode<<6);
                         if (!i2c_writeRegisterByte(0xf4,cmd)) {
                             ++errs;
                             sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
@@ -408,7 +409,7 @@ class PressTempBMP180 {
                 }
                 break;
             case BMPSensorState::PRESSURE_WAIT:
-                if (timeDiff(stateMachineClock,micros()) > 4500) { // 4.5ms for press meas.
+                if (timeDiff(stateMachineClock,micros()) > convTimeOversampling[oversampleMode]) { // Oversamp. dep. for press meas.
                     if (i2c_readRegisterTripple(0xf6,&rawPressure)) {
                         ++oks;
                         newData=true;
@@ -432,31 +433,31 @@ class PressTempBMP180 {
 
     bool calibrateRawData() {
         // Temperature
-        long x1=((rawTemperature-(long)CD_AC6)*(long)CD_AC5) >> 15;
+        long x1=(((unsigned long)rawTemperature-(unsigned long)CD_AC6)*(unsigned long)CD_AC5) >> 15;
         long x2=((long)CD_MC << 11)/(x1+(long)CD_MD);
         long b5 = x1+x2;
         calibratedTemperature = ((double)b5+8.0)/160.0;
         // Pressure
         long b6=b5-4000;
-        x1=(CD_B2*((b6*b6) >> 12)) >> 11;
-        x2=(CD_AC2*b6) >> 11;
+        x1=((long)CD_B2*((b6*b6) >> 12)) >> 11;
+        x2=((long)CD_AC2*b6) >> 11;
         long x3 = x1+x2;
-        long b3 = ((CD_AC1*4+x3) << (oversampleMode + 2))/4;
-        x1=(CD_AC3*b6) >> 13;
-        x2=(CD_B1*((b6*b6) >> 12)) >> 16;
+        long b3 = ((((long)CD_AC1*4L+x3) << oversampleMode) + 2L)/4;
+        x1=((long)CD_AC3*b6) >> 13;
+        x2=((long)CD_B1*((b6*b6) >> 12)) >> 16;
         x3=((x1+x2)+2) >> 2;
-        unsigned long b4=(CD_AC4*(unsigned long)(x3+32768)) >> 15;
-        long b7=((unsigned long)rawPressure-b3)*(50000>>oversampleMode);
+        unsigned long b4=((unsigned long)CD_AC4*(unsigned long)(x3+32768L)) >> 15;
+        unsigned long b7=((unsigned long)rawPressure-b3)*(50000UL>>oversampleMode);
         long p;
-        if ((unsigned long)b7>0x80000000) {
+        if (b7<0x80000000UL) {
             p=(b7*2)/b4;
         } else {
             p=(b7/b4)*2;
         }
         x1=(p >> 8) * (p >> 8);
-        x1=(x1*3038)>>16;
-        x2=(-7357*p) >> 16;
-        calibratedPressure=(p+(x1+x2+3791)/16.0)/100.0; // hPa;
+        x1=(x1*3038L)>>16;
+        x2=(-7357L*p) >> 16;
+        calibratedPressure=(p+((x1+x2+3791L) >> 4))/100.0; // hPa;
         return true;
     }
 
