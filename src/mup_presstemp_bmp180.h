@@ -79,7 +79,10 @@ class PressTempBMP180 {
 
   public:
     enum BMPType { BMP085, BMP180 };
-    enum BMPError { UNDEFINED, OK, I2C_HW_ERROR, I2C_DEVICE_NOT_AT_ADDRESS};
+    enum BMPError { UNDEFINED, OK, I2C_HW_ERROR, I2C_DEVICE_NOT_AT_ADDRESS, I2C_REGISTER_WRITE_ERROR,
+                    I2C_VALUE_WRITE_ERROR, I2C_WRITE_DATA_TOO_LONG, I2C_WRITE_NACK_ON_ADDRESS, 
+                    I2C_WRITE_NACK_ON_DATA, I2C_WRITE_ERR_OTHER, I2C_WRITE_TIMEOUT, I2C_WRITE_INVALID_CODE,
+                    I2C_READ_REQUEST_FAILED};
     BMPType bmp180Type;
     BMPError lastsError;
     enum FilterMode { FAST, MEDIUM, LONGTERM };
@@ -191,6 +194,82 @@ class PressTempBMP180 {
         }
         lastError=I2C_DEVICE_NOT_AT_ADDRESS;
         return lastError;
+    }
+
+    bool i2c_endTransmission(bool releaseBus) {
+        uint8_t retCode=pWire->endTransmission(releaseBus); // true: release bus, send stop
+        switch (retCode) {
+            case 0:
+                lastError=BMPError::OK;
+                return true;
+            case 1:
+                lastError=BMPError::I2C_WRITE_DATA_TOO_LONG;
+                return false;
+            case 2:
+                lastError=BMPError::I2C_WRITE_NACK_ON_ADDRESS;
+                return false;
+            case 3:
+                lastError=BMPError::I2C_WRITE_NACK_ON_DATA;
+                return false;
+            case 4:
+                lastError=BMPError::I2C_WRITE_ERR_OTHER;
+                return false;
+            case 5:
+                lastError=BMPError::I2C_WRITE_TIMEOUT;
+                return false;
+            default:
+                lastError=BMPError::I2C_WRITE_INVALID_CODE;
+                return false;
+        }
+        return false;
+    }
+
+    bool i2c_readRegisterByte(uint8_t reg, uint8_t* pData) {
+        pWire->beginTransmission(i2c_address);
+        if (pWire->write(&reg,1)!=1) {
+            lastError=BMPError::I2C_REGISTER_WRITE_ERROR;
+            return false;
+        }
+        if (i2c_endTransmission(true)==false) return false;
+        uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)1,(uint8_t)true);
+        if (read_cnt!=1) {
+            lastError=I2C_READ_REQUEST_FAILED;
+            return false;
+        }
+        *pData=pWire->read();
+        return true;
+    }
+
+    bool i2c_readRegisterWord(uint8_t reg, uint16_t* pData) {
+        pWire->beginTransmission(i2c_address);
+        if (pWire->write(&reg,1)!=1) {
+            lastError=BMPError::I2C_REGISTER_WRITE_ERROR;
+            return false;
+        }
+        if (i2c_endTransmission(true)==false) return false;
+        uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)2,(uint8_t)true);
+        if (read_cnt!=2) {
+            lastError=I2C_READ_REQUEST_FAILED;
+            return false;
+        }
+        uint8_t hb=pWire->read();
+        uint8_t lb=pWire->read();
+        uint16_t data=(hb<<8) | lb;
+        *pData=data;
+        return true;
+    }
+    
+    bool i2c_writeRegisterByte(uint8_t reg, uint8_t val, bool releaseBus=true) {
+        pWire->beginTransmission(i2c_address);
+        if (pWire->write(&reg,1)!=1) {
+            lastError=BMPError::I2C_REGISTER_WRITE_ERROR;
+            return false;
+        }
+        if (pWire->write(&val,1)!=1) {
+            lastError=BMPError::I2C_VALUE_WRITE_ERROR;
+            return false;
+        }
+        return i2c_endTransmission(releaseBus);
     }
 
     void publishTemperature() {
