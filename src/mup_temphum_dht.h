@@ -258,7 +258,7 @@ void setup() {
 // clang-format on
 class TempHumDHT {
   private:
-    String LDR_VERSION = "0.1.0";
+    String DHT_VERSION = "0.1.0";
     Scheduler *pSched;
     int tID;
     String name;
@@ -320,7 +320,6 @@ class TempHumDHT {
     }
 
     void begin(Scheduler *_pSched) {
-        /*! Start processing of A/D input from LDR */
         pSched = _pSched;
 
         lastPoll = 0;
