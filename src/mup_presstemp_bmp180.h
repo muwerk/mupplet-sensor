@@ -75,15 +75,28 @@ class PressTempBMP180 {
     String name;
     uint8_t i2c_address;
     double temperatureValue, pressureValue;
+    unsigned long stateMachineClock;
+    uint16_t rawTemperature;
+    uint32_t rawPressure;
+    uint16_t oversampleMode=3; // 0..3
+
+    // BMP Sensor calibration data
+    int16_t CD_AC1, CD_AC2, CD_AC3, CD_B1, CD_B2, CD_MB, CD_MC, CD_MD;
+    uint16_t CD_AC4, CD_AC5, CD_AC6;
 
   public:
     enum BMPType { BMP085, BMP180 };
     enum BMPError { UNDEFINED, OK, I2C_HW_ERROR, I2C_WRONG_HARDWARE_AT_ADDRESS, I2C_DEVICE_NOT_AT_ADDRESS, I2C_REGISTER_WRITE_ERROR,
                     I2C_VALUE_WRITE_ERROR, I2C_WRITE_DATA_TOO_LONG, I2C_WRITE_NACK_ON_ADDRESS, 
                     I2C_WRITE_NACK_ON_DATA, I2C_WRITE_ERR_OTHER, I2C_WRITE_TIMEOUT, I2C_WRITE_INVALID_CODE,
-                    I2C_READ_REQUEST_FAILED};
+                    I2C_READ_REQUEST_FAILED,I2C_CALIBRATION_READ_FAILURE};
+    enum BMPSensorState {UNAVAILABLE, IDLE, TEMPERATURE_WAIT, PRESSURE_WAIT, WAIT_NEXT_MEASUREMENT};
     BMPType bmp180Type;
     BMPError lastError;
+    BMPSensorState sensorState;
+    unsigned long errs=0;
+    unsigned long oks=0;
+    long pollRateUs = 2000000;
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     FilterMode filterMode;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
@@ -94,11 +107,12 @@ class PressTempBMP180 {
         : name(name), i2c_address(i2c_address), bmp180Type(bmp180Type), filterMode(filterMode) {
         /*! Instantiate an BMP sensor mupplet
         @param name Name used for pub/sub messages
-        @param port GPIO port with A/D converter capabilities.
+        @param i2c_address Should always be 0x77 for BMP180, cannot be changed.
         @param bmp180Type BMP085, BMP180
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
         */
         lastError=BMPError::UNDEFINED;
+        sensorState=BMPSensorState::UNAVAILABLE;
         setFilterMode(filterMode, true);
     }
 
@@ -119,13 +133,28 @@ class PressTempBMP180 {
         return pressureValue;
     }
 
+    bool initBmpSensorConstants() {
+        if (!i2c_readRegisterWord(0xaa,(uint16_t*)&CD_AC1)) return false;
+        if (!i2c_readRegisterWord(0xac,(uint16_t*)&CD_AC2)) return false;
+        if (!i2c_readRegisterWord(0xae,(uint16_t*)&CD_AC3)) return false;
+        if (!i2c_readRegisterWord(0xb0,(uint16_t*)&CD_AC4)) return false;
+        if (!i2c_readRegisterWord(0xb2,(uint16_t*)&CD_AC5)) return false;
+        if (!i2c_readRegisterWord(0xb4,(uint16_t*)&CD_AC6)) return false;
+        if (!i2c_readRegisterWord(0xb6,(uint16_t*)&CD_B1)) return false;
+        if (!i2c_readRegisterWord(0xb8,(uint16_t*)&CD_B2)) return false;
+        if (!i2c_readRegisterWord(0xba,(uint16_t*)&CD_MB)) return false;
+        if (!i2c_readRegisterWord(0xbc,(uint16_t*)&CD_MC)) return false;
+        if (!i2c_readRegisterWord(0xbe,(uint16_t*)&CD_MD)) return false;
+        return true;
+    }
+
     void begin(Scheduler *_pSched, TwoWire* _pWire=&Wire) {
         pSched = _pSched;
         pWire=_pWire;
         uint8_t data;
 
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 2000000);  // 2s
+        tID = pSched->add(ft, name, 500);  // 500us
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -138,7 +167,13 @@ class PressTempBMP180 {
                 bActive=false;
             } else {
                 if (data==0x55) { // 0x55: signature of BMP180
-                    bActive=true;
+                    if (!initBmpSensorConstants()) {
+                        lastError=BMPError::I2C_CALIBRATION_READ_FAILURE;
+                        bActive = false;
+                    } else {
+                        sensorState=BMPSensorState::IDLE;
+                        bActive=true;
+                    }
                 } else {
 
                     lastError=BMPError::I2C_WRONG_HARDWARE_AT_ADDRESS;
@@ -235,6 +270,7 @@ class PressTempBMP180 {
     }
 
     bool i2c_readRegisterByte(uint8_t reg, uint8_t* pData) {
+        *pData=(uint8_t)-1;
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg,1)!=1) {
             lastError=BMPError::I2C_REGISTER_WRITE_ERROR;
@@ -251,6 +287,7 @@ class PressTempBMP180 {
     }
 
     bool i2c_readRegisterWord(uint8_t reg, uint16_t* pData) {
+        *pData=(uint16_t)-1;
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg,1)!=1) {
             lastError=BMPError::I2C_REGISTER_WRITE_ERROR;
@@ -265,6 +302,27 @@ class PressTempBMP180 {
         uint8_t hb=pWire->read();
         uint8_t lb=pWire->read();
         uint16_t data=(hb<<8) | lb;
+        *pData=data;
+        return true;
+    }
+    
+    bool i2c_readRegisterTripple(uint8_t reg, uint32_t* pData) {
+        *pData=(uint32_t)-1;
+        pWire->beginTransmission(i2c_address);
+        if (pWire->write(&reg,1)!=1) {
+            lastError=BMPError::I2C_REGISTER_WRITE_ERROR;
+            return false;
+        }
+        if (i2c_endTransmission(true)==false) return false;
+        uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)3,(uint8_t)true);
+        if (read_cnt!=3) {
+            lastError=I2C_READ_REQUEST_FAILED;
+            return false;
+        }
+        uint8_t hb=pWire->read();
+        uint8_t lb=pWire->read();
+        uint8_t xlb=pWire->read();
+        uint32_t data=(hb<<16) | (lb<<8) | xlb;
         *pData=data;
         return true;
     }
@@ -312,11 +370,67 @@ class PressTempBMP180 {
         }
     }
 
+    bool sensorStateMachine() {
+        bool newData=false;
+        switch (sensorState) {
+            case BMPSensorState::IDLE:
+                if (!i2c_writeRegisterByte(0xf4,0x2e)) {
+                    ++errs;
+                    sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
+                    stateMachineClock=micros();
+                    break;
+                } else {  // Start temperature read
+                    sensorState=BMPSensorState::TEMPERATURE_WAIT;
+                    stateMachineClock=micros();
+                }
+                break;
+            case BMPSensorState::TEMPERATURE_WAIT:
+                if (timeDiff(stateMachineClock,micros()) > 4500) { // 4.5ms for temp meas.
+                    if (i2c_readRegisterWord(0xf6,&rawTemperature)) {
+                        uint8_t cmd=0x34+(oversampleMode<<6);
+                        if (!i2c_writeRegisterByte(0xf4,cmd)) {
+                            ++errs;
+                            sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
+                            stateMachineClock=micros();
+                        } else {
+                            sensorState=BMPSensorState::PRESSURE_WAIT;
+                            stateMachineClock=micros();
+                        }
+                    } else {
+                        ++errs;
+                        sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
+                        stateMachineClock=micros();
+                    }
+                }
+                break;
+            case BMPSensorState::PRESSURE_WAIT:
+                if (timeDiff(stateMachineClock,micros()) > 4500) { // 4.5ms for press meas.
+                    if (i2c_readRegisterTripple(0xf6,&rawPressure)) {
+                        ++oks;
+                        newData=true;
+                        sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
+                        stateMachineClock=micros();
+                    } else {
+                        ++errs;
+                        sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
+                        stateMachineClock=micros();
+                    }
+                }
+                break;
+            case BMPSensorState::WAIT_NEXT_MEASUREMENT:
+                if (timeDiff(stateMachineClock,micros()) > pollRateUs) {
+                    sensorState=BMPSensorState::IDLE; // Start next cycle.
+                }
+                break;
+        }
+        return newData;
+    }
+
     void loop() {
         double tempVal, pressVal;
         if (bActive) {
-            // XXX measure 
-            tempVal=0.0; pressVal=0.0;
+            if (!sensorStateMachine()) return; // no new data
+            tempVal=(double)rawTemperature; pressVal=(double)rawPressure;
             if (temperatureSensor.filter(&tempVal)) {
                 temperatureValue = tempVal;
                 publishTemperature();
@@ -325,6 +439,9 @@ class PressTempBMP180 {
                 pressureValue = pressVal;
                 publishPressure();
             }
+            //char msg[256];
+            //sprintf(msg,"AC1=%d, AC2=%d, AC3=%d, AC4=%u, AC5=%u, AC6=%u, B1=%d, B2=%d, MB=%d, MC=%d, MD=%d",CD_AC1, CD_AC2, CD_AC3, CD_AC4, CD_AC5, CD_AC6, CD_B1, CD_B2, CD_MB, CD_MC, CD_MD);
+            //pSched->publish("myBMP180/cali",msg);
         }
     }
 
@@ -349,7 +466,7 @@ class PressTempBMP180 {
                 }
             }
         }
-    };
+    }
 };  // PressTempBMP
 
 }  // namespace ustd
