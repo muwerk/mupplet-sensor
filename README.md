@@ -31,6 +31,7 @@ Note: third-party libraries may be subject to different licensing conditions.
 | --------------------------- | -------- | -------- | --------------- |
 | `mup_illuminance_ldr.h`     | Illuminance | LDR connected to analog port | none |
 | `mup_presstemp_bmp180.h` | Pressure, temperature | [Bosch BMP180][1] | Wire |
+| `mup_temphum_dht` | Temperature, humidity | DHT22 | none |
 
 History
 -------
