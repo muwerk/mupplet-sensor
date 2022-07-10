@@ -47,17 +47,18 @@ The illuminance_ldr mupplet measures illuminance using a simple analog LDR
 
 #### Messages sent by illuminance_ldr mupplet:
 
-| topic | message body | comment
-| ----- | ------------ | -------
-| `<mupplet-name>/sensor/unitilluminance` | normalized illuminance [0.0-1.0] | Float value encoded as string | `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for illuminance values
+| topic | message body | comment |
+| ----- | ------------ | ------- |
+| `<mupplet-name>/sensor/unitilluminance` | normalized illuminance [0.0-1.0] | Float value encoded as string |
+|  `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for illuminance values |
 
 #### Messages received by illuminance_ldr mupplet:
 
-| topic | message body | comment
-| ----- | ------------ | -------
-| `<mupplet-name>/sensor/unitilluminance/get` | - | Causes current value to be sent with.
-| `<mupplet-name>/sensor/mode/get` | - | Returns filterMode: `FAST`, `MEDIUM`, or `LONGTERM`
-| `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set integration time for illuminance values
+| topic | message body | comment |
+| ----- | ------------ | ------- |
+| `<mupplet-name>/sensor/unitilluminance/get` | - | Causes current value to be sent with. |
+| `<mupplet-name>/sensor/mode/get` | - | Returns filterMode: `FAST`, `MEDIUM`, or `LONGTERM` |
+| `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set integration time for illuminance values |
 
 <img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/ldr.png" width="30%"
 height="30%"> Hardware: LDR, 10kΩ resistor
