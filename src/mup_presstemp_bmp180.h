@@ -76,9 +76,9 @@ class PressTempBMP180 {
     uint8_t i2c_address;
     double temperatureValue, pressureValue;
     unsigned long stateMachineClock;
-    uint16_t rawTemperature;
+    int32_t rawTemperature;
     double calibratedTemperature;
-    uint32_t rawPressure;
+    int32_t rawPressure;
     double calibratedPressure;
 
     // BMP Sensor calibration data
@@ -98,7 +98,7 @@ class PressTempBMP180 {
     unsigned long errs=0;
     unsigned long oks=0;
     unsigned long pollRateUs = 2000000;
-    uint16_t oversampleMode=0; // 0..3
+    uint16_t oversampleMode=1; // 0..3
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     FilterMode filterMode;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
@@ -374,6 +374,8 @@ class PressTempBMP180 {
 
     bool sensorStateMachine() {
         bool newData=false;
+        uint16_t rt;
+        uint32_t rp;
         unsigned long convTimeOversampling[4]={4500, 7500, 13500, 25500}; // sample time dependent on oversample-mode for pressure.
         switch (sensorState) {
             case BMPSensorState::UNAVAILABLE:
@@ -391,7 +393,9 @@ class PressTempBMP180 {
                 break;
             case BMPSensorState::TEMPERATURE_WAIT:
                 if (timeDiff(stateMachineClock,micros()) > 4500) { // 4.5ms for temp meas.
-                    if (i2c_readRegisterWord(0xf6,&rawTemperature)) {
+                    rt=0;
+                    if (i2c_readRegisterWord(0xf6,&rt)) {
+                        rawTemperature=rt;
                         uint8_t cmd=0x34 | (oversampleMode<<6);
                         if (!i2c_writeRegisterByte(0xf4,cmd)) {
                             ++errs;
@@ -410,7 +414,9 @@ class PressTempBMP180 {
                 break;
             case BMPSensorState::PRESSURE_WAIT:
                 if (timeDiff(stateMachineClock,micros()) > convTimeOversampling[oversampleMode]) { // Oversamp. dep. for press meas.
-                    if (i2c_readRegisterTripple(0xf6,&rawPressure)) {
+                    rp=0;
+                    if (i2c_readRegisterTripple(0xf6,&rp)) {
+                        rawPressure=rp >> (8-oversampleMode);
                         ++oks;
                         newData=true;
                         sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
@@ -433,31 +439,46 @@ class PressTempBMP180 {
 
     bool calibrateRawData() {
         // Temperature
-        long x1=(((unsigned long)rawTemperature-(unsigned long)CD_AC6)*(unsigned long)CD_AC5) >> 15;
-        long x2=((long)CD_MC << 11)/(x1+(long)CD_MD);
-        long b5 = x1+x2;
+        int32_t x1=(((uint32_t)rawTemperature-(uint32_t)CD_AC6)*(uint32_t)CD_AC5) >> 15;
+        int32_t x2=((int32_t)CD_MC << 11)/(x1+(int32_t)CD_MD);
+        int32_t b5 = x1+x2;
         calibratedTemperature = ((double)b5+8.0)/160.0;
         // Pressure
-        long b6=b5-4000;
-        x1=((long)CD_B2*((b6*b6) >> 12)) >> 11;
-        x2=((long)CD_AC2*b6) >> 11;
-        long x3 = x1+x2;
-        long b3 = ((((long)CD_AC1*4L+x3) << oversampleMode) + 2L)/4;
-        x1=((long)CD_AC3*b6) >> 13;
-        x2=((long)CD_B1*((b6*b6) >> 12)) >> 16;
+        int32_t b6=b5-(int32_t)4000;
+        x1=((int32_t)CD_B2*((b6*b6) >> 12)) >> 11;
+        x2=((int32_t)CD_AC2*b6) >> 11;
+        int32_t x3 = x1+x2;
+        int32_t b3 = ((((int32_t)CD_AC1*4L+x3) << oversampleMode) + 2L)/4;
+        
+        char msg[128];
+        sprintf(msg,"x1=%d,x2=%d, x3=%d,b3=%d,rt=%d,rp=%d",x1,x2,x3,b3,rawTemperature,rawPressure);
+        pSched->publish("myBMP180/sensor/debug1",msg);
+
+        x1=((int32_t)CD_AC3*b6) >> 13;
+        x2=((int32_t)CD_B1*((b6*b6) >> 12)) >> 16;
         x3=((x1+x2)+2) >> 2;
-        unsigned long b4=((unsigned long)CD_AC4*(unsigned long)(x3+32768L)) >> 15;
-        unsigned long b7=((unsigned long)rawPressure-b3)*(50000UL>>oversampleMode);
-        long p;
-        if (b7<0x80000000UL) {
+        uint32_t b4=((uint32_t)CD_AC4*(uint32_t)(x3+(uint32_t) 32768)) >> 15;
+        uint32_t b7=((uint32_t)rawPressure-b3)*((uint32_t)50000>>oversampleMode);
+        
+        sprintf(msg,"x1=%d,x2=%d, x3=%d,b4=%u,b7=%u",x1,x2,x3,b4,b7);
+        pSched->publish("myBMP180/sensor/debug2",msg);
+
+        int32_t p;
+        if (b7<(uint32_t)0x80000000) {
             p=(b7*2)/b4;
         } else {
             p=(b7/b4)*2;
         }
         x1=(p >> 8) * (p >> 8);
-        x1=(x1*3038L)>>16;
-        x2=(-7357L*p) >> 16;
-        calibratedPressure=(p+((x1+x2+3791L) >> 4))/100.0; // hPa;
+        x1=(x1*(int32_t)3038)>>16;
+        x2=(((int32_t)-7357)*p) >> 16;
+
+        int32_t cp=p+ ((x1+x2+(int32_t)3791) >> 4);
+        
+        sprintf(msg,"x1=%d,x2=%d,p=%d,cp=%d",x1,x2,p,cp);
+        pSched->publish("myBMP180/sensor/debug3",msg);
+
+        calibratedPressure=cp/100.0; // hPa;
         return true;
     }
 
