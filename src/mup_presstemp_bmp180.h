@@ -137,10 +137,10 @@ class PressTempBMP180 {
     
     /*! Hardware accuracy modes of BMP180 */
     enum BMPSampleMode {
-                        ULTRA_LOW_POWER=0,      //!> 1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec, 0.06 RMS noise typ. [hPA]
-                        STANDARD=1,             //!> 2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS noise typ. [hPA]
-                        HIGH_RESOLUTION=2,      //!> 4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec, 0.04 RMS noise typ. [hPA]
-                        ULTRA_HIGH_RESOLUTION=3 //!> 8 samples, 25.5ms conversion time, 12uA current at 1 sample/sec, 0.03 RMS noise typ. [hPA]
+                        ULTRA_LOW_POWER=0,      ///< 1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec, 0.06 RMS noise typ. [hPA]
+                        STANDARD=1,             ///< 2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS noise typ. [hPA]
+                        HIGH_RESOLUTION=2,      ///< 4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec, 0.04 RMS noise typ. [hPA]
+                        ULTRA_HIGH_RESOLUTION=3 ///< 8 samples, 25.5ms conversion time, 12uA current at 1 sample/sec, 0.03 RMS noise typ. [hPA]
                         };
     BMPError lastError;
     BMPSensorState sensorState;
@@ -176,10 +176,18 @@ class PressTempBMP180 {
     }
 
     void setReferenceAltitude(double _referenceAltitudeMeters) {
+        /*! Set the altitude at current sensor location as reference
+        @param _referenceAltitudeMeters The current altitude above sea level in meters
+        */
         referenceAltitudeMeters=_referenceAltitudeMeters;
     }
 
     void startRelativeAltitude() {
+        /*! Store current pressure for a reference altitude to start relative altitude measurement
+
+        Once a reference altitude is defined (see \ref setReferenceAltitude()), measurement of relative
+        altitude can be started by calling this function.
+        */
         if (referenceAltitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
             captureRelative = true;
         }
@@ -194,12 +202,19 @@ class PressTempBMP180 {
 
     double getPressure() {
         /*! Get current pressure
-        @return Pressure (in percent)
+        @return Pressure (in hPa)
         */
         return pressureValue;
     }
 
     double getPressureNN(double _pressure) {
+        /*! Get current pressure at sea level (NN)
+
+        Once a reference altitude is defined (see \ref setReferenceAltitude()), pressure
+        at sea level NN can be calculated with this function.
+
+        @return Pressure at sea level (in hPa)
+        */
         if (referenceAltitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
             double prNN=_pressure/pow((1.0-(referenceAltitudeMeters/44330.0)),5.255);
             return prNN;

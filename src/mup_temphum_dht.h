@@ -16,28 +16,28 @@ namespace ustd {
 
 /*! States of the interrupt handler protocol automat */
 enum DhtProtState {
-                   NONE,                           //!> idle, no operation
-                   START_PULSE_START,              //!> start of (1) [see state diagram below], mcu starts write +-20ms low-pulse
-                   START_PULSE_END,                //!> end of (1), a short high pulse is sent by MCU before switching to input and activating IRQ handler
-                   REPL_PULSE_START,               //!> start of (3.1), preamble, dht writes 80us low pulse
-                   REPL_PULSE_START_H,             //!> start of (3.2), preamble, dht writes 80us high pulse
-                   DATA_ACQUISITION_INTRO_START,   //!> start of (4), lead-in for data-bit
-                   DATA_ACQUISITION_INTRO_END,     //!> end of (4), starting to receive data bit
-                   DATA_ACQUISITION,               //!> end of (5), either 0bit(27us) or 1bit(70us) received
-                   DATA_ABORT,                     //!> error condition, timeout, or illegal state, state machine aborted, no valid result
-                   DATA_OK                         //!> five data bits have been received and can be decoded
+                   NONE,                           ///< idle, no operation
+                   START_PULSE_START,              ///< start of (1) [see state diagram below], mcu starts write +-20ms low-pulse
+                   START_PULSE_END,                ///< end of (1), a short high pulse is sent by MCU before switching to input and activating IRQ handler
+                   REPL_PULSE_START,               ///< start of (3.1), preamble, dht writes 80us low pulse
+                   REPL_PULSE_START_H,             ///< start of (3.2), preamble, dht writes 80us high pulse
+                   DATA_ACQUISITION_INTRO_START,   ///< start of (4), lead-in for data-bit
+                   DATA_ACQUISITION_INTRO_END,     ///< end of (4), starting to receive data bit
+                   DATA_ACQUISITION,               ///< end of (5), either 0bit(27us) or 1bit(70us) received
+                   DATA_ABORT,                     ///< error condition, timeout, or illegal state, state machine aborted, no valid result
+                   DATA_OK                         ///< five data bits have been received and can be decoded
                    };
 
 /*! Error states with DHT sensor */
 enum DhtFailureCode {
-    OK=0,                           //!> Sensor ok
-    BAD_START_PULSE_LEVEL=1,        //!> (3.1) Start pulse at wrong logic level
-    BAD_REPLY_PULSE_LENGTH=2,       //!> (3.1) Pulse length wrong
-    BAD_START_PULSE_END_LEVEL=3,    //!> (3.2) Pulse at wrong logic level
-    BAD_REPLY_PULSE_LENGTH2=4,      //!> (3.2) Pulse length wrong
-    BAD_START_PULSE_END_LEVEL2=5,   //!> (3.2) Pulse at wrong logic level
-    BAD_DATA_INTRO_PULSE_LENGTH=6,  //!> (4) Bad pulse length
-    BAD_DATA_BIT_LENGTH=7           //!> (5) Bad pulse length for either high or low bit
+    OK=0,                           ///< Sensor ok
+    BAD_START_PULSE_LEVEL=1,        ///< (3.1) Start pulse at wrong logic level
+    BAD_REPLY_PULSE_LENGTH=2,       ///< (3.1) Pulse length wrong
+    BAD_START_PULSE_END_LEVEL=3,    ///< (3.2) Pulse at wrong logic level
+    BAD_REPLY_PULSE_LENGTH2=4,      ///< (3.2) Pulse length wrong
+    BAD_START_PULSE_END_LEVEL2=5,   ///< (3.2) Pulse at wrong logic level
+    BAD_DATA_INTRO_PULSE_LENGTH=6,  ///< (4) Bad pulse length
+    BAD_DATA_BIT_LENGTH=7           ///< (5) Bad pulse length for either high or low bit
     };
 
 volatile DhtProtState pDhtState[USTD_DHT_MAX_PIRQS] = {DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,
@@ -252,7 +252,7 @@ void setup() {
 ## DHT protocol state diagram
 
 ```
-..........MCU awakens DHT...............||.........DHT preamble..........|......data bit 1...........|......data bit 2...........| -> 40 data bis.
+..........MCU awakens DHT...............||.........DHT preamble..........|......data bit 1...........|......data bit 2...........| -> 40 data bits.
 ...........MCU writes...................||..............MCU reads, DHT writes.......................................................
  - - - -+                      +--------||- - -+            +--- 80us ---+         +- 27us or 70 us -+         +- 27us or 70 us -+
         |                      |               |            |            |         |  0bit    1bit   |         |  0bit    1bit   |
@@ -266,6 +266,7 @@ void setup() {
 */
 
 // clang-format on
+
 class TempHumDHT {
   private:
     String DHT_VERSION = "0.1.0";
