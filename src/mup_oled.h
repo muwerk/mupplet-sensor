@@ -7,18 +7,22 @@
 namespace ustd {
 class SensorDisplay {
   public:
-    double t1,t2, d1, d2;
+    double t1,t2,t3, d1, d2, d3;
     int t1_val=0;
     int t2_val=0;
+    int t3_val=0;
     time_t lastUpdate_t1=0;
     time_t lastUpdate_t2=0;
+    time_t lastUpdate_t3=0;
     uint16_t screen_x, screen_y;
     uint8_t i2c_address;
     TwoWire *pWire;
+    String topic1,topic2, topic3;
 
-    #define HIST_CNT 4
+    #define HIST_CNT 30
     double hist_t1[HIST_CNT];
     double hist_t2[HIST_CNT];
+    double hist_t3[HIST_CNT];
    
     Adafruit_SSD1306 *pDisplay;
 
@@ -26,14 +30,15 @@ class SensorDisplay {
     }
     ~SensorDisplay() {
     }
-    void begin() {
+    void begin(String _topic1, String _topic2, String _topic3) {
+        topic1=_topic1;
+        topic2=_topic2;
+        topic3=_topic3;
         pDisplay=new Adafruit_SSD1306(screen_x, screen_y, pWire); 
         pDisplay->begin(SSD1306_SWITCHCAPVCC, i2c_address);
         pDisplay->clearDisplay();
         pDisplay->setTextColor(SSD1306_WHITE); // Draw white text
         pDisplay->cp437(true);         // Use full 256 char 'Code Page 437' font
-
-        updateDisplay("init","init",0.0,0.0);
     }
 
     void drawArrow(uint16_t x, uint16_t y, bool up=true, uint16_t len=8, uint16_t wid=3, int16_t delta_down=0) {
@@ -54,16 +59,21 @@ class SensorDisplay {
         }
     }
 
-    void updateDisplay(String msg1, String msg2, double d1, double d2) {
+    void updateDisplay(String msg1, String msg2, String msg3, double d1, double d2, double d3) {
         pDisplay->clearDisplay();
 
         pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
         pDisplay->setFont();
         pDisplay->setTextSize(1);
         pDisplay->setCursor(14,3);
-        pDisplay->println("In  DHT-1 14:07");
+        pDisplay->println("Studio C");
         pDisplay->setCursor(15,3);
-        pDisplay->println("In        14:07");
+        pDisplay->println("Studio");
+
+        pDisplay->setCursor(78,3);
+        pDisplay->println("Balkon C");
+        pDisplay->setCursor(79,3);
+        pDisplay->println("Balkon");
 
         pDisplay->setFont(&FreeSans12pt7b);
         pDisplay->setTextSize(1);      // Normal 1:1 pixel scale
@@ -71,6 +81,10 @@ class SensorDisplay {
         pDisplay->println(msg1);
         pDisplay->setCursor(15,29);
         pDisplay->println(msg1);
+        pDisplay->setCursor(78,29);
+        pDisplay->println(msg2);
+        pDisplay->setCursor(79,29);
+        pDisplay->println(msg2);
 
         pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
         pDisplay->setFont();
@@ -78,20 +92,23 @@ class SensorDisplay {
         pDisplay->setCursor(14,36);
         pDisplay->println("Pressure");
         pDisplay->setCursor(15,36);
-        pDisplay->println("Pressure (hPA)");
+        pDisplay->println("Pressure hPA");
 
         pDisplay->setFont(&FreeSans12pt7b);
         pDisplay->setTextSize(1);      // Normal 1:1 pixel scale
         pDisplay->setCursor(14,61);
-        pDisplay->println(msg2);
+        pDisplay->println(msg3);
         pDisplay->setCursor(15,61);
-        pDisplay->println(msg2);
+        pDisplay->println(msg3);
         pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
 
         if (d1!=0.0) {
             drawArrow(5,14,(d1>0.0),8,3,7);
         }
         if (d2!=0.0) {
+            drawArrow(69,14,(d1>0.0),8,3,7);
+        }
+        if (d3!=0.0) {
             drawArrow(5,45,(d2>0.0),8,3,7);
         }
         pDisplay->display();
@@ -101,8 +118,8 @@ class SensorDisplay {
     // This is called on Sensor-update events
     void sensorUpdates(String topic, String msg, String originator) {
         int disp_update=0;
-        char buf1[64],buf2[64];
-        if (topic == "myBMP180/sensor/temperature") {
+        char buf1[64],buf2[64],buf3[64];
+        if (topic == topic1) {
             t1 = msg.toFloat();
             lastUpdate_t1=time(nullptr);
             if (!t1_val) {
@@ -115,7 +132,7 @@ class SensorDisplay {
             t1_val=1;
             disp_update=1;
         }
-        if (topic == "myBMP180/sensor/deltaaltitude") {
+        if (topic == topic2) {
             t2 = msg.toFloat();
             lastUpdate_t2=time(nullptr);
             if (!t2_val) {
@@ -128,18 +145,36 @@ class SensorDisplay {
             t2_val=1;
             disp_update=1;
         }
+        if (topic == topic3) {
+            t3 = msg.toFloat();
+            lastUpdate_t3=time(nullptr);
+            if (!t3_val) {
+                for (int i=0; i<HIST_CNT; i++) hist_t3[i]=t3;
+            } else {
+                for (int i=0; i<HIST_CNT-1; i++) hist_t3[i]=hist_t3[i+1];
+                hist_t3[HIST_CNT-1]=t3;
+            }
+            d3=t3-hist_t3[0];
+            t3_val=1;
+            disp_update=1;
+        }
         if (disp_update) {
             if (t1_val) {
-                sprintf(buf1,"%.1f C",t1);
+                sprintf(buf1,"%.1f",t1);
             } else {
                 sprintf(buf1,"%s", "NaN");
             }
             if (t2_val) {
-                sprintf(buf2,"%.3f",t2);
+                sprintf(buf2,"%.1f",t2);
             } else {
                 sprintf(buf2,"%s", "NaN");
             }
-            updateDisplay(buf1,buf2,d1,d2);
+            if (t3_val) {
+                sprintf(buf3,"%.3f",t3);
+            } else {
+                sprintf(buf3,"%s", "NaN");
+            }
+            updateDisplay(buf1,buf2,buf3,d1,d2,d3);
         }
     }
 
