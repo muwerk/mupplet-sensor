@@ -139,7 +139,17 @@ Public Member Functions</h2></td></tr>
 <div class="line">    };</div>
 <div class="line">    pSched-&gt;subscribe(tID, name + <span class="stringliteral">&quot;/sensor/#&quot;</span>, fnall);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassustd_1_1TempHumDHT_html"><div class="ttname"><a href="classustd_1_1TempHumDHT.html">ustd::TempHumDHT</a></div><div class="ttdoc">mupplet-sensor temperature and humidity with DHT11/22</div><div class="ttdef"><b>Definition:</b> mup_temphum_dht.h:259</div></div>
+<div class="ttc" id="aclassustd_1_1TempHumDHT_html"><div class="ttname"><a href="classustd_1_1TempHumDHT.html">ustd::TempHumDHT</a></div><div class="ttdoc">mupplet-sensor temperature and humidity with DHT11/22</div><div class="ttdef"><b>Definition:</b> mup_temphum_dht.h:264</div></div>
+</div><!-- fragment --><h2>DHT protocol state diagram</h2>
+<div class="fragment"><div class="line">..........MCU awakens DHT...............||.........DHT preamble..........|......data bit 1...........|......data bit 2...........| -&gt; 40 data bis.</div>
+<div class="line">...........MCU writes...................||..............MCU reads, DHT writes.......................................................</div>
+<div class="line"> - - - -+                      +--------||- - -+            +--- 80us ---+         +- 27us or 70 us -+         +- 27us or 70 us -+</div>
+<div class="line">        |                      |               |            |            |         |  0bit    1bit   |         |  0bit    1bit   |</div>
+<div class="line">        |                      |               |            |            |         |                 |         |                 |</div>
+<div class="line">        |                      |               |            |            |         |                 |         |                 |</div>
+<div class="line">        |                      |               |            |            |         |                 |         |                 |</div>
+<div class="line">        +--------<span class="comment">// 22ms // ---+               +--- 80us ---+            +--50 us -+                 +--50 us -+                 + . . . 38 more bits</span></div>
+<div class="line">                 (1)              (2)    |          (3.1)        (3.2)       (4)           (5)        </div>
 </div><!-- fragment --> </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a0a6fbf13ac9dd7a61b0dc112bd5327f3" name="a0a6fbf13ac9dd7a61b0dc112bd5327f3"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0a6fbf13ac9dd7a61b0dc112bd5327f3">&#9670;&nbsp;</a></span>TempHumDHT()</h2>
