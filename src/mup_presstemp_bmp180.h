@@ -110,7 +110,7 @@ class PressTempBMP180 {
     uint16_t oversampleMode=2; // 0..3, see BMPSampleMode.
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     #define MUP_BMP_INVALID_ALTITUDE -1000000.0
-    double altitudeMeters = MUP_BMP_INVALID_ALTITUDE;
+    double altitudeMeters;
     FilterMode filterMode;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
@@ -126,6 +126,7 @@ class PressTempBMP180 {
         */
         lastError=BMPError::UNDEFINED;
         sensorState=BMPSensorState::UNAVAILABLE;
+        altitudeMeters = MUP_BMP_INVALID_ALTITUDE;
         setFilterMode(filterMode, true);
     }
 
