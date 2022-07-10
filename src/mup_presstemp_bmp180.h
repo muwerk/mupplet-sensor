@@ -136,7 +136,8 @@ class PressTempBMP180 {
     enum BMPSensorState {UNAVAILABLE, IDLE, TEMPERATURE_WAIT, PRESSURE_WAIT, WAIT_NEXT_MEASUREMENT};
     
     /*! Hardware accuracy modes of BMP180 */
-    enum BMPSampleMode {ULTRA_LOW_POWER=0,      //!> 1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec, 0.06 RMS noise typ. [hPA]
+    enum BMPSampleMode {
+                        ULTRA_LOW_POWER=0,      //!> 1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec, 0.06 RMS noise typ. [hPA]
                         STANDARD=1,             //!> 2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS noise typ. [hPA]
                         HIGH_RESOLUTION=2,      //!> 4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec, 0.04 RMS noise typ. [hPA]
                         ULTRA_HIGH_RESOLUTION=3 //!> 8 samples, 25.5ms conversion time, 12uA current at 1 sample/sec, 0.03 RMS noise typ. [hPA]
