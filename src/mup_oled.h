@@ -17,7 +17,7 @@ class SensorDisplay {
     uint16_t screen_x, screen_y;
     uint8_t i2c_address;
     TwoWire *pWire;
-    String topic1,topic2, topic3;
+    String topic1,topic2, topic3, caption1, caption2, caption3, caption11, caption21, caption31;
 
     #define HIST_CNT 30
     double hist_t1[HIST_CNT];
@@ -30,10 +30,15 @@ class SensorDisplay {
     }
     ~SensorDisplay() {
     }
-    void begin(String _topic1, String _topic2, String _topic3) {
+    void begin(String _topic1, String _topic2, String _topic3, String _caption1, String _caption2, String _caption3) {
         topic1=_topic1;
         topic2=_topic2;
         topic3=_topic3;
+
+        caption1=_caption1;
+        caption2=_caption2;
+        caption3=_caption3;
+        
         pDisplay=new Adafruit_SSD1306(screen_x, screen_y, pWire); 
         pDisplay->begin(SSD1306_SWITCHCAPVCC, i2c_address);
         pDisplay->clearDisplay();
@@ -60,20 +65,28 @@ class SensorDisplay {
     }
 
     void updateDisplay(String msg1, String msg2, String msg3, double d1, double d2, double d3) {
+        int16_t ind;
+        String bold;
         pDisplay->clearDisplay();
 
         pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
         pDisplay->setFont();
         pDisplay->setTextSize(1);
         pDisplay->setCursor(14,3);
-        pDisplay->println("Studio C");
+        pDisplay->println(caption1);
+        ind=caption1.indexOf(' ');
+        if (ind==-1) bold=caption1;
+        else bold=caption1.substring(0,ind);
         pDisplay->setCursor(15,3);
-        pDisplay->println("Studio");
+        pDisplay->println(bold);
 
         pDisplay->setCursor(78,3);
-        pDisplay->println("Balkon C");
+        pDisplay->println(caption2);
         pDisplay->setCursor(79,3);
-        pDisplay->println("Balkon");
+        ind=caption2.indexOf(' ');
+        if (ind==-1) bold=caption2;
+        else bold=caption2.substring(0,ind);
+        pDisplay->println(bold);
 
         pDisplay->setFont(&FreeSans12pt7b);
         pDisplay->setTextSize(1);      // Normal 1:1 pixel scale
@@ -90,9 +103,12 @@ class SensorDisplay {
         pDisplay->setFont();
         pDisplay->setTextSize(1);
         pDisplay->setCursor(14,36);
-        pDisplay->println("Pressure");
+        pDisplay->println(caption3);
         pDisplay->setCursor(15,36);
-        pDisplay->println("Pressure hPA");
+        ind=caption3.indexOf(' ');
+        if (ind==-1) bold=caption3;
+        else bold=caption3.substring(0,ind);
+        pDisplay->println(bold);
 
         pDisplay->setFont(&FreeSans12pt7b);
         pDisplay->setTextSize(1);      // Normal 1:1 pixel scale
