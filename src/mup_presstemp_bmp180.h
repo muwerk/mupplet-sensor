@@ -121,7 +121,6 @@ class PressTempBMP180 {
     uint16_t CD_AC4, CD_AC5, CD_AC6;
 
   public:
-    enum BMPType { BMP085, BMP180 };
     enum BMPError { UNDEFINED, OK, I2C_HW_ERROR, I2C_WRONG_HARDWARE_AT_ADDRESS, I2C_DEVICE_NOT_AT_ADDRESS, I2C_REGISTER_WRITE_ERROR,
                     I2C_VALUE_WRITE_ERROR, I2C_WRITE_DATA_TOO_LONG, I2C_WRITE_NACK_ON_ADDRESS, 
                     I2C_WRITE_NACK_ON_DATA, I2C_WRITE_ERR_OTHER, I2C_WRITE_TIMEOUT, I2C_WRITE_INVALID_CODE,
@@ -134,7 +133,6 @@ class PressTempBMP180 {
                         HIGH_RESOLUTION=2,      //!> 4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec, 0.04 RMS noise typ. [hPA]
                         ULTRA_HIGH_RESOLUTION=3 //!> 8 samples, 25.5ms conversion time, 12uA current at 1 sample/sec, 0.03 RMS noise typ. [hPA]
                         };
-    BMPType bmp180Type;
     BMPError lastError;
     BMPSensorState sensorState;
     unsigned long errs=0;
@@ -149,7 +147,7 @@ class PressTempBMP180 {
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive=false;
 
-    PressTempBMP180(String name, uint8_t i2c_address=0x77, BMPType bmp180Type=BMPType::BMP180, FilterMode filterMode = FilterMode::MEDIUM)
+    PressTempBMP180(String name, uint8_t i2c_address=0x77, FilterMode filterMode = FilterMode::MEDIUM)
         : name(name), i2c_address(i2c_address), bmp180Type(bmp180Type), filterMode(filterMode) {
         /*! Instantiate an BMP sensor mupplet
         @param name Name used for pub/sub messages
