@@ -27,15 +27,15 @@ For ESP8266 and ESP32, it is recommended to use [munet][gh_munet] for network co
 
 Note: third-party libraries may be subject to different licensing conditions.
 
-Mupplet                     | Function | Hardware | Dependencies
---------------------------- | -------- | -------- | ---------------
+Mupplet                     | Function | Hardware | Dependencies    |
+--------------------------- | -------- | -------- | --------------- |
 `mup_illuminance_ldr.h`     | Illuminance | LDR connected to analog port |
-`mup_illuminance_tsl2561.h` | Illuminance | [Adafruit TSL2561][2] | Wire, [Adafruit Unified Sensor][1], [Adafruit TSL2561][2]
+`mup_presstemp_bmp180.h` | Pressure, temperature | [Bosch BMP180][1] | Wire |
 
 History
 -------
 
-- 0.1.0 (2021-02-XX) (Not yet Released) Illuminance LDR Sensor
+- 0.1.0 (2021-02-XX) (Not yet Released) Illuminance LDR Sensor, BMP180 pressure sensor
 
 More mupplet libraries
 ----------------------
@@ -67,5 +67,4 @@ References
 [gh_mupdisplay]: https://github.com/muwerk/mupplet-display
 [gh_mupsensor]: https://github.com/muwerk/mupplet-sendsor
 
-[1]: https://github.com/adafruit/Adafruit_Sensor
-[2]: https://github.com/adafruit/Adafruit_TSL2561
+[1]: https://www.digikey.com/htmldatasheets/production/856385/0/0/1/bmp180-datasheet.html
