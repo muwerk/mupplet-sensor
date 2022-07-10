@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['temphumdht_0',['TempHumDHT',['../classustd_1_1TempHumDHT.html#a0a6fbf13ac9dd7a61b0dc112bd5327f3',1,'ustd::TempHumDHT']]]
+  ['setreferencealtitude_0',['setReferenceAltitude',['../classustd_1_1PressTempBMP180.html#ab28f303967524daa77e713f96474e783',1,'ustd::PressTempBMP180']]],
+  ['startrelativealtitude_1',['startRelativeAltitude',['../classustd_1_1PressTempBMP180.html#a5a82c509f6eed4f945e85ce082bb0366',1,'ustd::PressTempBMP180']]]
 ];

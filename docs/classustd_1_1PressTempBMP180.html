@@ -82,17 +82,27 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a732c2d9886254f6b8d38fb2b83e52bdc"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#a732c2d9886254f6b8d38fb2b83e52bdc">BMPSampleMode</a> {  }</td></tr>
+<tr class="memitem:a732c2d9886254f6b8d38fb2b83e52bdc"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#a732c2d9886254f6b8d38fb2b83e52bdc">BMPSampleMode</a> { <a class="el" href="classustd_1_1PressTempBMP180.html#a732c2d9886254f6b8d38fb2b83e52bdca224deaa79f89e81f5582fb72a540dbad">ULTRA_LOW_POWER</a> =0
+, <a class="el" href="classustd_1_1PressTempBMP180.html#a732c2d9886254f6b8d38fb2b83e52bdca4ffc6499f528379da080c220e513b6b8">STANDARD</a> =1
+, <a class="el" href="classustd_1_1PressTempBMP180.html#a732c2d9886254f6b8d38fb2b83e52bdcaea404380642caf054a116b9db949da14">HIGH_RESOLUTION</a> =2
+, <a class="el" href="classustd_1_1PressTempBMP180.html#a732c2d9886254f6b8d38fb2b83e52bdca6a12e3366d8062d1d61081b0a298fb28">ULTRA_HIGH_RESOLUTION</a> =3
+ }</td></tr>
 <tr class="separator:a732c2d9886254f6b8d38fb2b83e52bdc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:af7cc64209615cc79708def9112a4d3ab"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#af7cc64209615cc79708def9112a4d3ab">PressTempBMP180</a> (String name, FilterMode filterMode=FilterMode::MEDIUM, uint8_t i2c_address=0x77)</td></tr>
 <tr class="separator:af7cc64209615cc79708def9112a4d3ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab28f303967524daa77e713f96474e783"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#ab28f303967524daa77e713f96474e783">setReferenceAltitude</a> (double _referenceAltitudeMeters)</td></tr>
+<tr class="separator:ab28f303967524daa77e713f96474e783"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5a82c509f6eed4f945e85ce082bb0366"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#a5a82c509f6eed4f945e85ce082bb0366">startRelativeAltitude</a> ()</td></tr>
+<tr class="separator:a5a82c509f6eed4f945e85ce082bb0366"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0e0a8acff997abb647f3ae0792f1f7ed"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#a0e0a8acff997abb647f3ae0792f1f7ed">getTemperature</a> ()</td></tr>
 <tr class="separator:a0e0a8acff997abb647f3ae0792f1f7ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5a5824be6779d11df3da0bc5c4d1af5f"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#a5a5824be6779d11df3da0bc5c4d1af5f">getPressure</a> ()</td></tr>
 <tr class="separator:a5a5824be6779d11df3da0bc5c4d1af5f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afae9fac346503d7f3f82da7ae7a0c04c"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#afae9fac346503d7f3f82da7ae7a0c04c">getPressureNN</a> (double _pressure)</td></tr>
+<tr class="separator:afae9fac346503d7f3f82da7ae7a0c04c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p >mupplet-sensor temperature and pressure with Bosch BMP180 </p>
@@ -108,11 +118,11 @@ Public Member Functions</h2></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/pressure</code>   </td><td class="markdownTableBodyNone">pressure in hPA for current altitude   </td><td class="markdownTableBodyNone">Float value encoded as string, sent periodically as available    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/pressureNN</code>   </td><td class="markdownTableBodyNone">pressure in hPA adjusted for sea level (requires setReferenceAltitude() to be called)   </td><td class="markdownTableBodyNone">Float value encoded as string, sent periodically as available    </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/pressureNN</code>   </td><td class="markdownTableBodyNone">pressure in hPA adjusted for sea level (requires <a class="el" href="classustd_1_1PressTempBMP180.html#ab28f303967524daa77e713f96474e783">setReferenceAltitude()</a> to be called)   </td><td class="markdownTableBodyNone">Float value encoded as string, sent periodically as available    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/calibrationdata</code>   </td><td class="markdownTableBodyNone">a string with values of all internal calibration variables   </td><td class="markdownTableBodyNone">descriptive string    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/referencealtitude</code>   </td><td class="markdownTableBodyNone">altitude above sea level as set with setReferenceAltitude()   </td><td class="markdownTableBodyNone">Float value encoded as string    </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/referencealtitude</code>   </td><td class="markdownTableBodyNone">altitude above sea level as set with <a class="el" href="classustd_1_1PressTempBMP180.html#ab28f303967524daa77e713f96474e783">setReferenceAltitude()</a>   </td><td class="markdownTableBodyNone">Float value encoded as string    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/relativealtitude</code>   </td><td class="markdownTableBodyNone">current altitude in meters   </td><td class="markdownTableBodyNone">Current altitude in comparison to the set reference in meters, requires referencealtitude/set and relativealtitude/set msgs being sent.    </td></tr>
 <tr class="markdownTableRowOdd">
@@ -211,17 +221,13 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 <p >Hardware accuracy modes of BMP180 </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a732c2d9886254f6b8d38fb2b83e52bdca4ffc6499f528379da080c220e513b6b8" name="a732c2d9886254f6b8d38fb2b83e52bdca4ffc6499f528379da080c220e513b6b8"></a>STANDARD&#160;</td><td class="fielddoc"><blockquote class="doxtable">
-<p >&zwj;1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec, 0.06 RMS noise typ. [hPA] </p>
-</blockquote>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a732c2d9886254f6b8d38fb2b83e52bdca224deaa79f89e81f5582fb72a540dbad" name="a732c2d9886254f6b8d38fb2b83e52bdca224deaa79f89e81f5582fb72a540dbad"></a>ULTRA_LOW_POWER&#160;</td><td class="fielddoc"><p >1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec, 0.06 RMS noise typ. [hPA] </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a732c2d9886254f6b8d38fb2b83e52bdcaea404380642caf054a116b9db949da14" name="a732c2d9886254f6b8d38fb2b83e52bdcaea404380642caf054a116b9db949da14"></a>HIGH_RESOLUTION&#160;</td><td class="fielddoc"><blockquote class="doxtable">
-<p >&zwj;2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS noise typ. [hPA] </p>
-</blockquote>
+<tr><td class="fieldname"><a id="a732c2d9886254f6b8d38fb2b83e52bdca4ffc6499f528379da080c220e513b6b8" name="a732c2d9886254f6b8d38fb2b83e52bdca4ffc6499f528379da080c220e513b6b8"></a>STANDARD&#160;</td><td class="fielddoc"><p >2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS noise typ. [hPA] </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a732c2d9886254f6b8d38fb2b83e52bdca6a12e3366d8062d1d61081b0a298fb28" name="a732c2d9886254f6b8d38fb2b83e52bdca6a12e3366d8062d1d61081b0a298fb28"></a>ULTRA_HIGH_RESOLUTION&#160;</td><td class="fielddoc"><blockquote class="doxtable">
-<p >&zwj;4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec, 0.04 RMS noise typ. [hPA] </p>
-</blockquote>
+<tr><td class="fieldname"><a id="a732c2d9886254f6b8d38fb2b83e52bdcaea404380642caf054a116b9db949da14" name="a732c2d9886254f6b8d38fb2b83e52bdcaea404380642caf054a116b9db949da14"></a>HIGH_RESOLUTION&#160;</td><td class="fielddoc"><p >4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec, 0.04 RMS noise typ. [hPA] </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a732c2d9886254f6b8d38fb2b83e52bdca6a12e3366d8062d1d61081b0a298fb28" name="a732c2d9886254f6b8d38fb2b83e52bdca6a12e3366d8062d1d61081b0a298fb28"></a>ULTRA_HIGH_RESOLUTION&#160;</td><td class="fielddoc"><p >8 samples, 25.5ms conversion time, 12uA current at 1 sample/sec, 0.03 RMS noise typ. [hPA] </p>
 </td></tr>
 </table>
 
@@ -301,7 +307,36 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p >Get current pressure </p><dl class="section return"><dt>Returns</dt><dd>Pressure (in percent)</dd></dl>
+<p >Get current pressure </p><dl class="section return"><dt>Returns</dt><dd>Pressure (in hPa)</dd></dl>
+
+</div>
+</div>
+<a id="afae9fac346503d7f3f82da7ae7a0c04c" name="afae9fac346503d7f3f82da7ae7a0c04c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afae9fac346503d7f3f82da7ae7a0c04c">&#9670;&nbsp;</a></span>getPressureNN()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double ustd::PressTempBMP180::getPressureNN </td>
+          <td>(</td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>_pressure</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p >Get current pressure at sea level (NN)</p>
+<p >Once a reference altitude is defined (see <a class="el" href="classustd_1_1PressTempBMP180.html#ab28f303967524daa77e713f96474e783">setReferenceAltitude()</a>), pressure at sea level NN can be calculated with this function.</p>
+<dl class="section return"><dt>Returns</dt><dd>Pressure at sea level (in hPa)</dd></dl>
 
 </div>
 </div>
@@ -328,6 +363,65 @@ Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 <p >Get current temperature </p><dl class="section return"><dt>Returns</dt><dd>Temperature (in degrees celsius)</dd></dl>
+
+</div>
+</div>
+<a id="ab28f303967524daa77e713f96474e783" name="ab28f303967524daa77e713f96474e783"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab28f303967524daa77e713f96474e783">&#9670;&nbsp;</a></span>setReferenceAltitude()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ustd::PressTempBMP180::setReferenceAltitude </td>
+          <td>(</td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>_referenceAltitudeMeters</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p >Set the altitude at current sensor location as reference </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">_referenceAltitudeMeters</td><td>The current altitude above sea level in meters</td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a5a82c509f6eed4f945e85ce082bb0366" name="a5a82c509f6eed4f945e85ce082bb0366"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5a82c509f6eed4f945e85ce082bb0366">&#9670;&nbsp;</a></span>startRelativeAltitude()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ustd::PressTempBMP180::startRelativeAltitude </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p >Store current pressure for a reference altitude to start relative altitude measurement</p>
+<p >Once a reference altitude is defined (see <a class="el" href="classustd_1_1PressTempBMP180.html#ab28f303967524daa77e713f96474e783">setReferenceAltitude()</a>), measurement of relative altitude can be started by calling this function.</p>
 
 </div>
 </div>

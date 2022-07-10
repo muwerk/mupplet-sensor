@@ -139,9 +139,9 @@ Public Member Functions</h2></td></tr>
 <div class="line">    };</div>
 <div class="line">    pSched-&gt;subscribe(tID, name + <span class="stringliteral">&quot;/sensor/#&quot;</span>, fnall);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassustd_1_1TempHumDHT_html"><div class="ttname"><a href="classustd_1_1TempHumDHT.html">ustd::TempHumDHT</a></div><div class="ttdoc">mupplet-sensor temperature and humidity with DHT11/22</div><div class="ttdef"><b>Definition:</b> mup_temphum_dht.h:269</div></div>
+<div class="ttc" id="aclassustd_1_1TempHumDHT_html"><div class="ttname"><a href="classustd_1_1TempHumDHT.html">ustd::TempHumDHT</a></div><div class="ttdoc">mupplet-sensor temperature and humidity with DHT11/22</div><div class="ttdef"><b>Definition:</b> mup_temphum_dht.h:270</div></div>
 </div><!-- fragment --><h2>DHT protocol state diagram</h2>
-<div class="fragment"><div class="line">..........MCU awakens DHT...............||.........DHT preamble..........|......data bit 1...........|......data bit 2...........| -&gt; 40 data bis.</div>
+<div class="fragment"><div class="line">..........MCU awakens DHT...............||.........DHT preamble..........|......data bit 1...........|......data bit 2...........| -&gt; 40 data bits.</div>
 <div class="line">...........MCU writes...................||..............MCU reads, DHT writes.......................................................</div>
 <div class="line"> - - - -+                      +--------||- - -+            +--- 80us ---+         +- 27us or 70 us -+         +- 27us or 70 us -+</div>
 <div class="line">        |                      |               |            |            |         |  0bit    1bit   |         |  0bit    1bit   |</div>
