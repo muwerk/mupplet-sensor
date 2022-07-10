@@ -14,10 +14,12 @@ namespace ustd {
 
 
 // clang - format off
-/*! \brief mupplet-sensor temperature and pressure with BMP180
+/*! \brief mupplet-sensor temperature and pressure with Bosch BMP180
 
 The mup_presstemp_bmp180 mupplet measures temperature and pressure using a or BMP180 sensor. It should
 also work with the outdated BMP085.
+
+This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.
 
 #### Messages sent by presstemp_bmp180 mupplet:
 
