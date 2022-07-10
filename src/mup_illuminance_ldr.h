@@ -1,6 +1,39 @@
 // mup_illuminance_ldr.h
 #pragma once
 
+/*! \mainpage mupplet-sensor is a collection of hardware sensor applets for the muwerk scheduler
+
+\section Introduction
+
+mupplet-sensor implements the following classes based on the cooperative scheduler muwerk:
+
+* * \ref ustd::IlluminanceLdr
+* * \ref ustd::PressTempBMP180
+* * \ref ustd::TempHumDHT
+
+For an overview, see:
+<a href="https://github.com/muwerk/mupplet-sensor/blob/master/README.md">mupplet-sensor readme</a>
+
+Libraries are header-only and should work with any c++11 compiler and
+and support platforms esp8266 and esp32.
+
+This library requires the libraries ustd, muwerk and requires a
+<a href="https://github.com/muwerk/ustd/blob/master/README.md">platform
+define</a>.
+
+\section Reference
+* * <a href="https://github.com/muwerk/mupplet-sensor">mupplet-sensor github repository</a>
+* * <a href="https://github.com/muwerk/mupplet-core">mupplet-core github repository</a>
+
+depends on:
+* * <a href="https://github.com/muwerk/ustd">ustd github repository</a>
+* * <a href="https://github.com/muwerk/muwerk">muwerk github repository</a>
+* * <a href="https://github.com/muwerk/munet">munet github repository</a>
+
+*/
+
+
+
 #include "scheduler.h"
 #include "sensors.h"
 
