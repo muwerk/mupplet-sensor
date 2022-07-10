@@ -16,20 +16,29 @@ namespace ustd {
 
 /*! States of the interrupt handler protocol automat */
 enum DhtProtState {
-                   NONE,                           /*!> idle, no operation */ 
-                   START_PULSE_START,              /*!> start of (1) [see state diagram below], mcu starts write +-20ms low-pulse */
-                   START_PULSE_END,                /*!> end of (1), a short high pulse is sent by MCU before switching to input and activating IRQ handler */
-                   REPL_PULSE_START,               /*!> start of (3.1), preamble, dht writes 80us low pulse */
-                   REPL_PULSE_START_H,             /*!> start of (3.2), preamble, dht writes 80us high pulse */
-                   DATA_ACQUISITION_INTRO_START,   /*!> start of (4), lead-in for data-bit */
-                   DATA_ACQUISITION_INTRO_END,     /*!> end of (4), starting to receive data bit */
-                   DATA_ACQUISITION,               /*!> end of (5), either 0bit(27us) or 1bit(70us) received */
-                   DATA_ABORT,                     /*!> error condition, timeout, or illegal state, state machine aborted, no valid result */
-                   DATA_OK                         /*!> five data bits have been received and can be decoded */
+                   NONE,                           //!> idle, no operation
+                   START_PULSE_START,              //!> start of (1) [see state diagram below], mcu starts write +-20ms low-pulse
+                   START_PULSE_END,                //!> end of (1), a short high pulse is sent by MCU before switching to input and activating IRQ handler
+                   REPL_PULSE_START,               //!> start of (3.1), preamble, dht writes 80us low pulse
+                   REPL_PULSE_START_H,             //!> start of (3.2), preamble, dht writes 80us high pulse
+                   DATA_ACQUISITION_INTRO_START,   //!> start of (4), lead-in for data-bit
+                   DATA_ACQUISITION_INTRO_END,     //!> end of (4), starting to receive data bit
+                   DATA_ACQUISITION,               //!> end of (5), either 0bit(27us) or 1bit(70us) received
+                   DATA_ABORT,                     //!> error condition, timeout, or illegal state, state machine aborted, no valid result
+                   DATA_OK                         //!> five data bits have been received and can be decoded
                    };
 
-enum DhtFailureCode {OK=0, BAD_START_PULSE_LEVEL=1, BAD_REPLY_PULSE_LENGTH=2, BAD_START_PULSE_END_LEVEL=3, BAD_REPLY_PULSE_LENGTH2=4, BAD_START_PULSE_END_LEVEL2=5, 
-                     BAD_DATA_INTRO_PULSE_LENGTH=6, BAD_DATA_BIT_LENGTH=7};
+/*! Error states with DHT sensor */
+enum DhtFailureCode {
+    OK=0,                           //!> Sensor ok
+    BAD_START_PULSE_LEVEL=1,        //!> (3.1) Start pulse at wrong logic level
+    BAD_REPLY_PULSE_LENGTH=2,       //!> (3.1) Pulse length wrong
+    BAD_START_PULSE_END_LEVEL=3,    //!> (3.2) Pulse at wrong logic level
+    BAD_REPLY_PULSE_LENGTH2=4,      //!> (3.2) Pulse length wrong
+    BAD_START_PULSE_END_LEVEL2=5,   //!> (3.2) Pulse at wrong logic level
+    BAD_DATA_INTRO_PULSE_LENGTH=6,  //!> (4) Bad pulse length
+    BAD_DATA_BIT_LENGTH=7           //!> (5) Bad pulse length for either high or low bit
+    };
 
 volatile DhtProtState pDhtState[USTD_DHT_MAX_PIRQS] = {DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,
     DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE,DhtProtState::NONE};
@@ -41,10 +50,6 @@ volatile DhtFailureCode pDhtFailureCode[USTD_DHT_MAX_PIRQS] = {DhtFailureCode::O
     DhtFailureCode::OK};
 volatile int pDhtFailureData[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t sensorDataBytes[USTD_DHT_MAX_PIRQS*5];
-
-
-// clang - format off
-// clang - format on
 
 int dhtWakeUpPulse=22000;   // (1) The intial low-pulse of 22ms that awakens the DHT. Note: manufacturer doc is wrong! Says 2ms.  
 int dhtInitialDelay=20;     // (2) after about 20ms(!) low by mcpu, at least dhtInitialDelay uS high is set by mcu before switching to input.
