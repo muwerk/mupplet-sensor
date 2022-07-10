@@ -14,16 +14,18 @@ namespace ustd {
 
 
 // clang - format off
-/*! \brief mupplet-sensor temperature and pressure with BMP085/180
+/*! \brief mupplet-sensor temperature and pressure with BMP180
 
-The presstemp_bmp180 mupplet measures temperature and pressure using a BMP085 or BMP180 sensor
+The mup_presstemp_bmp180 mupplet measures temperature and pressure using a or BMP180 sensor. It should
+also work with the outdated BMP085.
 
 #### Messages sent by presstemp_bmp180 mupplet:
 
 | topic | message body | comment |
 | ----- | ------------ | ------- |
 | `<mupplet-name>/sensor/temperature` | temperature in degree celsius | Float value encoded as string |
-| `<mupplet-name>/sensor/pressure` | pressure in hPA | Float value encoded as string |
+| `<mupplet-name>/sensor/pressure` | pressure in hPA for current altitude | Float value encoded as string |
+| `<mupplet-name>/sensor/pressureNN` | pressure in hPA adjusted for sea level (requires setAltidute() to be called) | Float value encoded as string |
 | `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for sensor values |
 
 #### Messages received by presstemp_bmp180 mupplet:
@@ -74,7 +76,7 @@ class PressTempBMP180 {
     int tID;
     String name;
     uint8_t i2c_address;
-    double temperatureValue, pressureValue;
+    double temperatureValue, pressureValue, pressureNNValue;
     unsigned long stateMachineClock;
     int32_t rawTemperature;
     double calibratedTemperature;
@@ -92,14 +94,23 @@ class PressTempBMP180 {
                     I2C_WRITE_NACK_ON_DATA, I2C_WRITE_ERR_OTHER, I2C_WRITE_TIMEOUT, I2C_WRITE_INVALID_CODE,
                     I2C_READ_REQUEST_FAILED,I2C_CALIBRATION_READ_FAILURE};
     enum BMPSensorState {UNAVAILABLE, IDLE, TEMPERATURE_WAIT, PRESSURE_WAIT, WAIT_NEXT_MEASUREMENT};
+    
+    /*! Hardware accuracy modes of BMP180 */
+    enum BMPSampleMode {ULTRA_LOW_POWER=0,      //!> 1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec, 0.06 RMS noise typ. [hPA]
+                        STANDARD=1,             //!> 2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS noise typ. [hPA]
+                        HIGH_RESOLUTION=2,      //!> 4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec, 0.04 RMS noise typ. [hPA]
+                        ULTRA_HIGH_RESOLUTION=3 //!> 8 samples, 25.5ms conversion time, 12uA current at 1 sample/sec, 0.03 RMS noise typ. [hPA]
+                        };
     BMPType bmp180Type;
     BMPError lastError;
     BMPSensorState sensorState;
     unsigned long errs=0;
     unsigned long oks=0;
     unsigned long pollRateUs = 2000000;
-    uint16_t oversampleMode=1; // 0..3
+    uint16_t oversampleMode=2; // 0..3, see BMPSampleMode.
     enum FilterMode { FAST, MEDIUM, LONGTERM };
+    #define MUP_BMP_INVALID_ALTITUDE -1000000.0
+    double altitudeMeters = MUP_BMP_INVALID_ALTITUDE;
     FilterMode filterMode;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
@@ -121,6 +132,10 @@ class PressTempBMP180 {
     ~PressTempBMP180() {
     }
 
+    void setAltitude(double _altitudeMeters) {
+        altitudeMeters=_altitudeMeters;
+    }
+
     double getTemperature() {
         /*! Get current temperature
         @return Temperature (in degrees celsius)
@@ -133,6 +148,18 @@ class PressTempBMP180 {
         @return Pressure (in percent)
         */
         return pressureValue;
+    }
+
+    double getPressureNN(double _pressure) {
+        if (altitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
+            double prNN=_pressure/pow((1.0-(altitudeMeters/44330.0)),5.255);
+            return prNN;
+        }
+        return 0.0;
+    }
+
+    void setSampleMode(BMPSampleMode _sampleMode) {
+        oversampleMode=(uint16_t)_sampleMode;
     }
 
     bool initBmpSensorConstants() {
@@ -150,8 +177,9 @@ class PressTempBMP180 {
         return true;
     }
 
-    void begin(Scheduler *_pSched, TwoWire* _pWire=&Wire) {
+    void begin(Scheduler *_pSched, BMPSampleMode _sampleMode=BMPSampleMode::STANDARD, TwoWire *_pWire=&Wire) {
         pSched = _pSched;
+        setSampleMode(_sampleMode);
         pWire=_pWire;
         uint8_t data;
 
@@ -350,8 +378,12 @@ class PressTempBMP180 {
 
     void publishPressure() {
         char buf[32];
-        sprintf(buf, "%6.2f", pressureValue);
+        sprintf(buf, "%7.2f", pressureValue);
         pSched->publish(name + "/sensor/pressure", buf);
+        if (altitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
+            sprintf(buf, "%7.2f", pressureNNValue);
+            pSched->publish(name + "/sensor/pressureNN", buf);
+        }
     }
 
     void publishError(String errMsg) {
@@ -450,9 +482,9 @@ class PressTempBMP180 {
         int32_t x3 = x1+x2;
         int32_t b3 = ((((int32_t)CD_AC1*4L+x3) << oversampleMode) + 2L)/4;
         
-        char msg[128];
-        sprintf(msg,"x1=%d,x2=%d, x3=%d,b3=%d,rt=%d,rp=%d",x1,x2,x3,b3,rawTemperature,rawPressure);
-        pSched->publish("myBMP180/sensor/debug1",msg);
+        //char msg[128];
+        //sprintf(msg,"x1=%d,x2=%d, x3=%d,b3=%d,rt=%d,rp=%d",x1,x2,x3,b3,rawTemperature,rawPressure);
+        //pSched->publish("myBMP180/sensor/debug1",msg);
 
         x1=((int32_t)CD_AC3*b6) >> 13;
         x2=((int32_t)CD_B1*((b6*b6) >> 12)) >> 16;
@@ -460,8 +492,8 @@ class PressTempBMP180 {
         uint32_t b4=((uint32_t)CD_AC4*(uint32_t)(x3+(uint32_t) 32768)) >> 15;
         uint32_t b7=((uint32_t)rawPressure-b3)*((uint32_t)50000>>oversampleMode);
         
-        sprintf(msg,"x1=%d,x2=%d, x3=%d,b4=%u,b7=%u",x1,x2,x3,b4,b7);
-        pSched->publish("myBMP180/sensor/debug2",msg);
+        //sprintf(msg,"x1=%d,x2=%d, x3=%d,b4=%u,b7=%u",x1,x2,x3,b4,b7);
+        //pSched->publish("myBMP180/sensor/debug2",msg);
 
         int32_t p;
         if (b7<(uint32_t)0x80000000) {
@@ -475,8 +507,8 @@ class PressTempBMP180 {
 
         int32_t cp=p+ ((x1+x2+(int32_t)3791) >> 4);
         
-        sprintf(msg,"x1=%d,x2=%d,p=%d,cp=%d",x1,x2,p,cp);
-        pSched->publish("myBMP180/sensor/debug3",msg);
+        //sprintf(msg,"x1=%d,x2=%d,p=%d,cp=%d",x1,x2,p,cp);
+        //pSched->publish("myBMP180/sensor/debug3",msg);
 
         calibratedPressure=cp/100.0; // hPa;
         return true;
@@ -495,6 +527,9 @@ class PressTempBMP180 {
             }
             if (pressureSensor.filter(&pressVal)) {
                 pressureValue = pressVal;
+                if (altitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
+                    pressureNNValue=getPressureNN(pressureValue);
+                }
                 publishPressure();
             }
             //char msg[256];
