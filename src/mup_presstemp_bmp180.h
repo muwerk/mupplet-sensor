@@ -23,7 +23,7 @@ This mupplet is a fully asynchronous state-machine with no delay()s, so it never
 
 #### Messages sent by presstemp_bmp180 mupplet:
 
-messages are prefixed by `omu\<hostname>`:
+messages are prefixed by `omu/<hostname>`:
 
 | topic | message body | comment |
 | ----- | ------------ | ------- |
@@ -110,7 +110,6 @@ class PressTempBMP180 {
     TwoWire *pWire;
     int tID;
     String name;
-    uint8_t i2c_address;
     double temperatureValue, pressureValue, pressureNNValue;
     unsigned long stateMachineClock;
     int32_t rawTemperature;
@@ -145,17 +144,17 @@ class PressTempBMP180 {
     #define MUP_BMP_INVALID_ALTITUDE -1000000.0
     double altitudeMeters;
     FilterMode filterMode;
+    uint8_t i2c_address;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive=false;
 
-    PressTempBMP180(String name, uint8_t i2c_address=0x77, FilterMode filterMode = FilterMode::MEDIUM)
-        : name(name), i2c_address(i2c_address), bmp180Type(bmp180Type), filterMode(filterMode) {
+    PressTempBMP180(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address=0x77)
+        : name(name), filterMode(filterMode), i2c_address(i2c_address) {
         /*! Instantiate an BMP sensor mupplet
         @param name Name used for pub/sub messages
-        @param i2c_address Should always be 0x77 for BMP180, cannot be changed.
-        @param bmp180Type BMP085, BMP180
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
+        @param i2c_address Should always be 0x77 for BMP180, cannot be changed.
         */
         lastError=BMPError::UNDEFINED;
         sensorState=BMPSensorState::UNAVAILABLE;
