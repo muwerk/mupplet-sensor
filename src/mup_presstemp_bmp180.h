@@ -23,15 +23,17 @@ This mupplet is a fully asynchronous state-machine with no delay()s, so it never
 
 #### Messages sent by presstemp_bmp180 mupplet:
 
-messages are prefixed by `omu\<hostname>`:
+messages are prefixed by `omu/<hostname>`:
 
 | topic | message body | comment |
 | ----- | ------------ | ------- |
 | `<mupplet-name>/sensor/temperature` | temperature in degree celsius | Float value encoded as string, sent periodically as available |
 | `<mupplet-name>/sensor/pressure` | pressure in hPA for current altitude | Float value encoded as string, sent periodically as available |
-| `<mupplet-name>/sensor/pressureNN` | pressure in hPA adjusted for sea level (requires setAltitude() to be called) | Float value encoded as string, sent periodically as available |
+| `<mupplet-name>/sensor/pressureNN` | pressure in hPA adjusted for sea level (requires setReferenceAltitude() to be called) | Float value encoded as string, sent periodically as available |
 | `<mupplet-name>/sensor/calibrationdata` | a string with values of all internal calibration variables | descriptive string |
-| `<mupplet-name>/sensor/altitude` | altitude above sea level as set with setAltitude() | Float value encoded as string |
+| `<mupplet-name>/sensor/referencealtitude` | altitude above sea level as set with setReferenceAltitude() | Float value encoded as string |
+| `<mupplet-name>/sensor/relativealtitude` | current altitude in meters | Current altitude in comparison to the set reference in meters, requires referencealtitude/set and relativealtitude/set msgs being sent. |
+| `<mupplet-name>/sensor/deltaaltitude` | current altitude in meters | Current  altitude delta in meters, requirements as with relativealtitude |
 | `<mupplet-name>/sensor/oversampling` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Internal sensor oversampling mode (sensor hardware) |
 | `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for sensor values, external, additional integration |
 
@@ -44,8 +46,10 @@ Need to be prefixed by `<hostname>/`:
 | `<mupplet-name>/sensor/temperature/get` | - | Causes current value to be sent. |
 | `<mupplet-name>/sensor/pressure/get` | - | Causes current value to be sent. |
 | `<mupplet-name>/sensor/pressureNN/get` | - | Causes current value to be sent. |
-| `<mupplet-name>/sensor/altitude/get` | - | Causes current value to be sent. |
-| `<mupplet-name>/sensor/altitude/set` | float encoded as string of current altitude in meters | Once altitude is set, pressureNN values can be calculated. |
+| `<mupplet-name>/sensor/referencealtitude/get` | - | Causes current value to be sent. |
+| `<mupplet-name>/sensor/referencealtitude/set` | float encoded as string of current altitude in meters | Once the reference altitude is set, pressureNN values can be calculated. |
+| `<mupplet-name>/sensor/relativealtitude/set` | - | Save current pressureNN values as reference, start generating relative altitude-change messages, requires reference altitude to be set |
+| `<mupplet-name>/sensor/relativealtitude/get` | - | Get current altitude in comparison to the set reference and an altitude delta in meters |
 | `<mupplet-name>/sensor/calibrationdata/get` | - | Causes current values to be sent. |
 | `<mupplet-name>/sensor/oversampling/get` | - | Returns samplemode: `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` |
 | `<mupplet-name>/sensor/oversampling/set` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Set internal sensor oversampling mode |
@@ -86,7 +90,7 @@ void setup() {
     int tID = sched.add(appLoop, "main", 1000000);
 
     // sensors start measuring pressure and temperature
-    bmp.setAltitude(518.0); // 518m above NN, now we also receive PressureNN values for sea level.
+    bmp.setReferenceAltitude(518.0); // 518m above NN, now we also receive PressureNN values for sea level.
     bmp.begin(&sched, ustd::PressTempBMP180::BMPSampleMode::ULTRA_HIGH_RESOLUTION);
 
     sched.subscribe(tID, "myBMP180/sensor/temperature", sensorUpdates);
@@ -110,13 +114,15 @@ class PressTempBMP180 {
     TwoWire *pWire;
     int tID;
     String name;
-    uint8_t i2c_address;
     double temperatureValue, pressureValue, pressureNNValue;
     unsigned long stateMachineClock;
     int32_t rawTemperature;
     double calibratedTemperature;
     int32_t rawPressure;
     double calibratedPressure;
+    double baseRelativeNNPressure;
+    bool relativeAltitudeStarted;
+    bool captureRelative=false;
 
     // BMP Sensor calibration data
     int16_t CD_AC1, CD_AC2, CD_AC3, CD_B1, CD_B2, CD_MB, CD_MC, CD_MD;
@@ -143,31 +149,39 @@ class PressTempBMP180 {
     uint16_t oversampleMode=2; // 0..3, see BMPSampleMode.
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     #define MUP_BMP_INVALID_ALTITUDE -1000000.0
-    double altitudeMeters;
+    double referenceAltitudeMeters;
     FilterMode filterMode;
+    uint8_t i2c_address;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive=false;
 
-    PressTempBMP180(String name, uint8_t i2c_address=0x77, FilterMode filterMode = FilterMode::MEDIUM)
-        : name(name), i2c_address(i2c_address), bmp180Type(bmp180Type), filterMode(filterMode) {
+    PressTempBMP180(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address=0x77)
+        : name(name), filterMode(filterMode), i2c_address(i2c_address) {
         /*! Instantiate an BMP sensor mupplet
         @param name Name used for pub/sub messages
-        @param i2c_address Should always be 0x77 for BMP180, cannot be changed.
-        @param bmp180Type BMP085, BMP180
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
+        @param i2c_address Should always be 0x77 for BMP180, cannot be changed.
         */
         lastError=BMPError::UNDEFINED;
         sensorState=BMPSensorState::UNAVAILABLE;
-        altitudeMeters = MUP_BMP_INVALID_ALTITUDE;
+        referenceAltitudeMeters = MUP_BMP_INVALID_ALTITUDE;
+        relativeAltitudeStarted = false;
+        captureRelative = false;
         setFilterMode(filterMode, true);
     }
 
     ~PressTempBMP180() {
     }
 
-    void setAltitude(double _altitudeMeters) {
-        altitudeMeters=_altitudeMeters;
+    void setReferenceAltitude(double _referenceAltitudeMeters) {
+        referenceAltitudeMeters=_referenceAltitudeMeters;
+    }
+
+    void startRelativeAltitude() {
+        if (referenceAltitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
+            captureRelative = true;
+        }
     }
 
     double getTemperature() {
@@ -185,8 +199,8 @@ class PressTempBMP180 {
     }
 
     double getPressureNN(double _pressure) {
-        if (altitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
-            double prNN=_pressure/pow((1.0-(altitudeMeters/44330.0)),5.255);
+        if (referenceAltitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
+            double prNN=_pressure/pow((1.0-(referenceAltitudeMeters/44330.0)),5.255);
             return prNN;
         }
         return 0.0;
@@ -414,7 +428,7 @@ class PressTempBMP180 {
         char buf[32];
         sprintf(buf, "%7.2f", pressureValue);
         pSched->publish(name + "/sensor/pressure", buf);
-        if (altitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
+        if (referenceAltitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
             sprintf(buf, "%7.2f", pressureNNValue);
             pSched->publish(name + "/sensor/pressureNN", buf);
         }
@@ -464,13 +478,25 @@ class PressTempBMP180 {
         pSched->publish("sensor/calibrationdata",msg);
     }
 
-    void publishAltitude() {
-        if (altitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
+    void publishReferenceAltitude() {
+        if (referenceAltitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
             char buf[32];
-            sprintf(buf, "%7.2f", altitudeMeters);
-            pSched->publish(name+"/sensor/altitude",buf);
+            sprintf(buf, "%7.2f", referenceAltitudeMeters);
+            pSched->publish(name+"/sensor/referencealtitude",buf);
         } else {
-            pSched->publish(name+"/sensor/altitude", "unknown");
+            pSched->publish(name+"/sensor/referencealtitude", "unknown");
+        }
+    }
+
+    void publishRelativeAltitude() {
+        char buf[32];
+        if (relativeAltitudeStarted) {
+            double ralt = 44330.0 * ( 1.0 - pow(pressureValue/baseRelativeNNPressure,1./5.255));
+            sprintf(buf, "%7.2f", ralt);
+            pSched->publish(name+"/sensor/relativealtitude",buf);
+            double dalt=ralt-referenceAltitudeMeters;
+            sprintf(buf, "%7.2f", dalt);
+            pSched->publish(name+"/sensor/deltaaltitude",buf);
         }
     }
 
@@ -597,10 +623,16 @@ class PressTempBMP180 {
             }
             if (pressureSensor.filter(&pressVal)) {
                 pressureValue = pressVal;
-                if (altitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
+                if (referenceAltitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
                     pressureNNValue=getPressureNN(pressureValue);
+                    if (captureRelative) {
+                        baseRelativeNNPressure=pressureNNValue;
+                        relativeAltitudeStarted = true;
+                        captureRelative = false;
+                    }
                 }
                 publishPressure();
+                if (relativeAltitudeStarted) publishRelativeAltitude();
             }
         }
     }
@@ -618,15 +650,21 @@ class PressTempBMP180 {
         if (topic == name + "/sensor/calibrationdata/get") {
             publishCalibrationData();
         }
-        if (topic == name + "/sensor/altitude/get") {
-            publishAltitude();
+        if (topic == name + "/sensor/referencealtitude/get") {
+            publishReferenceAltitude();
+        }
+        if (topic == name + "/sensor/relativealtitude/get") {
+            publishRelativeAltitude();
+        }
+        if (topic == name + "/sensor/relativealtitude/set") {
+            startRelativeAltitude();
         }
         if (topic == name + "/sensor/oversampling/get") {
             publishOversampling();
         }
-        if (topic == name + "/sensor/altitude/set") {
+        if (topic == name + "/sensor/referencealtitude/set") {
             double alt=atof(msg.c_str());
-            setAltitude(alt);
+            setReferenceAltitude(alt);
         }
         if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
