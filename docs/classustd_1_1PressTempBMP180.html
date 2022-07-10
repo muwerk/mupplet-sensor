@@ -87,8 +87,8 @@ Public Types</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ae0828ebdc3961e13b74e46d369be8654"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#ae0828ebdc3961e13b74e46d369be8654">PressTempBMP180</a> (String name, uint8_t i2c_address=0x77, FilterMode filterMode=FilterMode::MEDIUM)</td></tr>
-<tr class="separator:ae0828ebdc3961e13b74e46d369be8654"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7cc64209615cc79708def9112a4d3ab"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#af7cc64209615cc79708def9112a4d3ab">PressTempBMP180</a> (String name, FilterMode filterMode=FilterMode::MEDIUM, uint8_t i2c_address=0x77)</td></tr>
+<tr class="separator:af7cc64209615cc79708def9112a4d3ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0e0a8acff997abb647f3ae0792f1f7ed"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#a0e0a8acff997abb647f3ae0792f1f7ed">getTemperature</a> ()</td></tr>
 <tr class="separator:a0e0a8acff997abb647f3ae0792f1f7ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5a5824be6779d11df3da0bc5c4d1af5f"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempBMP180.html#a5a5824be6779d11df3da0bc5c4d1af5f">getPressure</a> ()</td></tr>
@@ -99,7 +99,7 @@ Public Member Functions</h2></td></tr>
 <p >The mup_presstemp_bmp180 mupplet measures temperature and pressure using a or BMP180 sensor. It should also work with the outdated BMP085.</p>
 <p >This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.</p>
 <h4>Messages sent by presstemp_bmp180 mupplet:</h4>
-<p >messages are prefixed by <code>omu\&lt;hostname&gt;</code>:</p>
+<p >messages are prefixed by <code>omu/&lt;hostname&gt;</code>:</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">topic   </th><th class="markdownTableHeadNone">message body   </th><th class="markdownTableHeadNone">comment    </th></tr>
@@ -108,11 +108,15 @@ Public Member Functions</h2></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/pressure</code>   </td><td class="markdownTableBodyNone">pressure in hPA for current altitude   </td><td class="markdownTableBodyNone">Float value encoded as string, sent periodically as available    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/pressureNN</code>   </td><td class="markdownTableBodyNone">pressure in hPA adjusted for sea level (requires setAltitude() to be called)   </td><td class="markdownTableBodyNone">Float value encoded as string, sent periodically as available    </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/pressureNN</code>   </td><td class="markdownTableBodyNone">pressure in hPA adjusted for sea level (requires setReferenceAltitude() to be called)   </td><td class="markdownTableBodyNone">Float value encoded as string, sent periodically as available    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/calibrationdata</code>   </td><td class="markdownTableBodyNone">a string with values of all internal calibration variables   </td><td class="markdownTableBodyNone">descriptive string    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/altitude</code>   </td><td class="markdownTableBodyNone">altitude above sea level as set with setAltitude()   </td><td class="markdownTableBodyNone">Float value encoded as string    </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/referencealtitude</code>   </td><td class="markdownTableBodyNone">altitude above sea level as set with setReferenceAltitude()   </td><td class="markdownTableBodyNone">Float value encoded as string    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/relativealtitude</code>   </td><td class="markdownTableBodyNone">current altitude in meters   </td><td class="markdownTableBodyNone">Current altitude in comparison to the set reference in meters, requires referencealtitude/set and relativealtitude/set msgs being sent.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/deltaaltitude</code>   </td><td class="markdownTableBodyNone">current altitude in meters   </td><td class="markdownTableBodyNone">Current altitude delta in meters, requirements as with relativealtitude    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/oversampling</code>   </td><td class="markdownTableBodyNone"><code>ULTRA_LOW_POWER</code>, <code>STANDARD</code>, <code>HIGH_RESOLUTION</code>, <code>ULTRA_HIGH_RESOLUTION</code>   </td><td class="markdownTableBodyNone">Internal sensor oversampling mode (sensor hardware)    </td></tr>
 <tr class="markdownTableRowOdd">
@@ -130,9 +134,13 @@ Public Member Functions</h2></td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/pressureNN/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Causes current value to be sent.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/altitude/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Causes current value to be sent.    </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/referencealtitude/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Causes current value to be sent.    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/altitude/set</code>   </td><td class="markdownTableBodyNone">float encoded as string of current altitude in meters   </td><td class="markdownTableBodyNone">Once altitude is set, pressureNN values can be calculated.    </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/referencealtitude/set</code>   </td><td class="markdownTableBodyNone">float encoded as string of current altitude in meters   </td><td class="markdownTableBodyNone">Once the reference altitude is set, pressureNN values can be calculated.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/relativealtitude/set</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Save current pressureNN values as reference, start generating relative altitude-change messages, requires reference altitude to be set    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/relativealtitude/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Get current altitude in comparison to the set reference and an altitude delta in meters    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/calibrationdata/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Causes current values to be sent.    </td></tr>
 <tr class="markdownTableRowOdd">
@@ -175,7 +183,7 @@ Public Member Functions</h2></td></tr>
 <div class="line">    <span class="keywordtype">int</span> tID = sched.add(appLoop, <span class="stringliteral">&quot;main&quot;</span>, 1000000);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// sensors start measuring pressure and temperature</span></div>
-<div class="line">    bmp.setAltitude(518.0); <span class="comment">// 518m above NN, now we also receive PressureNN values for sea level.</span></div>
+<div class="line">    bmp.setReferenceAltitude(518.0); <span class="comment">// 518m above NN, now we also receive PressureNN values for sea level.</span></div>
 <div class="line">    bmp.begin(&amp;sched, ustd::PressTempBMP180::BMPSampleMode::ULTRA_HIGH_RESOLUTION);</div>
 <div class="line"> </div>
 <div class="line">    sched.subscribe(tID, <span class="stringliteral">&quot;myBMP180/sensor/temperature&quot;</span>, sensorUpdates);</div>
@@ -188,7 +196,7 @@ Public Member Functions</h2></td></tr>
 <div class="line"><span class="keywordtype">void</span> loop() {</div>
 <div class="line">    sched.loop();</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassustd_1_1PressTempBMP180_html"><div class="ttname"><a href="classustd_1_1PressTempBMP180.html">ustd::PressTempBMP180</a></div><div class="ttdoc">mupplet-sensor temperature and pressure with Bosch BMP180</div><div class="ttdef"><b>Definition:</b> mup_presstemp_bmp180.h:106</div></div>
+<div class="ttc" id="aclassustd_1_1PressTempBMP180_html"><div class="ttname"><a href="classustd_1_1PressTempBMP180.html">ustd::PressTempBMP180</a></div><div class="ttdoc">mupplet-sensor temperature and pressure with Bosch BMP180</div><div class="ttdef"><b>Definition:</b> mup_presstemp_bmp180.h:110</div></div>
 </div><!-- fragment --> </div><h2 class="groupheader">Member Enumeration Documentation</h2>
 <a id="a732c2d9886254f6b8d38fb2b83e52bdc" name="a732c2d9886254f6b8d38fb2b83e52bdc"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a732c2d9886254f6b8d38fb2b83e52bdc">&#9670;&nbsp;</a></span>BMPSampleMode</h2>
@@ -220,8 +228,8 @@ Public Member Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="ae0828ebdc3961e13b74e46d369be8654" name="ae0828ebdc3961e13b74e46d369be8654"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae0828ebdc3961e13b74e46d369be8654">&#9670;&nbsp;</a></span>PressTempBMP180()</h2>
+<a id="af7cc64209615cc79708def9112a4d3ab" name="af7cc64209615cc79708def9112a4d3ab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af7cc64209615cc79708def9112a4d3ab">&#9670;&nbsp;</a></span>PressTempBMP180()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -238,14 +246,14 @@ Public Member Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>i2c_address</em> = <code>0x77</code>, </td>
+          <td class="paramtype">FilterMode&#160;</td>
+          <td class="paramname"><em>filterMode</em> = <code>FilterMode::MEDIUM</code>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">FilterMode&#160;</td>
-          <td class="paramname"><em>filterMode</em> = <code>FilterMode::MEDIUM</code>&#160;</td>
+          <td class="paramtype">uint8_t&#160;</td>
+          <td class="paramname"><em>i2c_address</em> = <code>0x77</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -262,9 +270,8 @@ Public Member Functions</h2></td></tr>
 <p >Instantiate an BMP sensor mupplet </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">name</td><td>Name used for pub/sub messages </td></tr>
-    <tr><td class="paramname">i2c_address</td><td>Should always be 0x77 for BMP180, cannot be changed. </td></tr>
-    <tr><td class="paramname">bmp180Type</td><td>BMP085, BMP180 </td></tr>
-    <tr><td class="paramname">filterMode</td><td>FAST, MEDIUM or LONGTERM filtering of sensor values</td></tr>
+    <tr><td class="paramname">filterMode</td><td>FAST, MEDIUM or LONGTERM filtering of sensor values </td></tr>
+    <tr><td class="paramname">i2c_address</td><td>Should always be 0x77 for BMP180, cannot be changed.</td></tr>
   </table>
   </dd>
 </dl>
