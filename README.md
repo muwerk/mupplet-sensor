@@ -27,10 +27,10 @@ For ESP8266 and ESP32, it is recommended to use [munet][gh_munet] for network co
 
 Note: third-party libraries may be subject to different licensing conditions.
 
-Mupplet                     | Function | Hardware | Dependencies    |
---------------------------- | -------- | -------- | --------------- |
-`mup_illuminance_ldr.h`     | Illuminance | LDR connected to analog port |
-`mup_presstemp_bmp180.h` | Pressure, temperature | [Bosch BMP180][1] | Wire |
+| Mupplet                     | Function | Hardware | Dependencies    |
+| --------------------------- | -------- | -------- | --------------- |
+| `mup_illuminance_ldr.h`     | Illuminance | LDR connected to analog port | none |
+| `mup_presstemp_bmp180.h` | Pressure, temperature | [Bosch BMP180][1] | Wire |
 
 History
 -------
