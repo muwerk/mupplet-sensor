@@ -11,7 +11,7 @@ void appLoop() {
 }
 
 void ldrMsg(String topic, String message, String originator) {
-    if (topic=="ldr/sensor/unitilluminance") {
+    if (topic=="myldr/sensor/unitilluminance") {
         // message contains the unit-illumance value as string: 0.0=dark, 1.0 max light
     }
 }

@@ -33,10 +33,10 @@ height="30%"> Hardware: LDR, 10kΩ resistor
 ```cpp
 #define __ESP__ 1
 #include "scheduler.h"
-#include "illuminance_ldr.h"
+#include "mup_illuminance_ldr.h"
 
 ustd::Scheduler sched;
-ustd::Ldr ldr("myLDR",A0);
+ustd::IlluminanceLdr ldr("myLDR",A0);
 
 void task0(String topic, String msg, String originator) {
     if (topic == "myLDR/sensor/unitilluminance") {
@@ -173,7 +173,7 @@ class IlluminanceLdr {
             publishIlluminance();
         }
         if (topic == name + "/sensor/mode/get") {
-            publishIlluminance();
+            publishFilterMode();
         }
         if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
