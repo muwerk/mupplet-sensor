@@ -92,7 +92,14 @@ Public Member Functions</h2></td></tr>
 <div class="textblock"><p >mupplet-sensor analog LDR illumance sensor </p>
 <p >The illuminance_ldr mupplet measures illuminance using a simple analog LDR (light dependent resistor)</p>
 <h4>Messages sent by illuminance_ldr mupplet:</h4>
-<p >| topic | message body | comment | --&mdash; | ---------&mdash; | ----&mdash; | <code>&lt;mupplet-name&gt;/sensor/unitilluminance</code> | normalized illuminance [0.0-1.0] | Float value encoded as string | <code>&lt;mupplet-name&gt;/sensor/mode</code> | <code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code> | Integration time for illuminance values</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">topic   </th><th class="markdownTableHeadNone">message body   </th><th class="markdownTableHeadNone">comment    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/unitilluminance</code>   </td><td class="markdownTableBodyNone">normalized illuminance [0.0-1.0]   </td><td class="markdownTableBodyNone">Float value encoded as string    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/mode</code>   </td><td class="markdownTableBodyNone"><code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>   </td><td class="markdownTableBodyNone">Integration time for illuminance values   </td></tr>
+</table>
 <h4>Messages received by illuminance_ldr mupplet:</h4>
 <table class="markdownTable">
 <tr class="markdownTableHead">
@@ -123,7 +130,7 @@ Public Member Functions</h2></td></tr>
 <div class="line"><span class="keywordtype">void</span> setup() {</div>
 <div class="line">   ldr.begin(&amp;sched);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html">ustd::IlluminanceLdr</a></div><div class="ttdoc">mupplet-sensor analog LDR illumance sensor</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:90</div></div>
+<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html">ustd::IlluminanceLdr</a></div><div class="ttdoc">mupplet-sensor analog LDR illumance sensor</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:91</div></div>
 </div><!-- fragment --><p >Note: For ESP32 make sure to use a port connected to ADC #1, since ADC #2 conflicts with Wifi and ports connected to ADC #2 cannot be used concurrently with Wifi! </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="ac8382d3eae8c36fc22e080b88ae876be" name="ac8382d3eae8c36fc22e080b88ae876be"></a>
