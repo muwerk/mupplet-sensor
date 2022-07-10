@@ -21,48 +21,81 @@ also work with the outdated BMP085.
 
 #### Messages sent by presstemp_bmp180 mupplet:
 
+messages are prefixed by `omu\<hostname>`:
+
 | topic | message body | comment |
 | ----- | ------------ | ------- |
-| `<mupplet-name>/sensor/temperature` | temperature in degree celsius | Float value encoded as string |
-| `<mupplet-name>/sensor/pressure` | pressure in hPA for current altitude | Float value encoded as string |
-| `<mupplet-name>/sensor/pressureNN` | pressure in hPA adjusted for sea level (requires setAltidute() to be called) | Float value encoded as string |
-| `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for sensor values |
+| `<mupplet-name>/sensor/temperature` | temperature in degree celsius | Float value encoded as string, sent periodically as available |
+| `<mupplet-name>/sensor/pressure` | pressure in hPA for current altitude | Float value encoded as string, sent periodically as available |
+| `<mupplet-name>/sensor/pressureNN` | pressure in hPA adjusted for sea level (requires setAltitude() to be called) | Float value encoded as string, sent periodically as available |
+| `<mupplet-name>/sensor/calibrationdata` | a string with values of all internal calibration variables | descriptive string |
+| `<mupplet-name>/sensor/altitude` | altitude above sea level as set with setAltitude() | Float value encoded as string |
+| `<mupplet-name>/sensor/oversampling` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Internal sensor oversampling mode (sensor hardware) |
+| `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for sensor values, external, additional integration |
 
 #### Messages received by presstemp_bmp180 mupplet:
+
+Need to be prefixed by `<hostname>/`:
 
 | topic | message body | comment |
 | ----- | ------------ | ------- |
 | `<mupplet-name>/sensor/temperature/get` | - | Causes current value to be sent. |
 | `<mupplet-name>/sensor/pressure/get` | - | Causes current value to be sent. |
+| `<mupplet-name>/sensor/pressureNN/get` | - | Causes current value to be sent. |
+| `<mupplet-name>/sensor/altitude/get` | - | Causes current value to be sent. |
+| `<mupplet-name>/sensor/altitude/set` | float encoded as string of current altitude in meters | Once altitude is set, pressureNN values can be calculated. |
+| `<mupplet-name>/sensor/calibrationdata/get` | - | Causes current values to be sent. |
+| `<mupplet-name>/sensor/oversampling/get` | - | Returns samplemode: `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` |
+| `<mupplet-name>/sensor/oversampling/set` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Set internal sensor oversampling mode |
 | `<mupplet-name>/sensor/mode/get` | - | Returns filterMode: `FAST`, `MEDIUM`, or `LONGTERM` |
-| `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set integration time for illuminance values |
+| `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set external additional filter values |
 
 #### Sample code
 
 For a complete examples see the `muwerk/examples` project.
 
 ```cpp
-#define __ESP__ 1
+#include "ustd_platform.h"
 #include "scheduler.h"
+#include "net.h"
+#include "mqtt.h"
+
 #include "mup_presstemp_bmp180.h"
 
-ustd::Scheduler sched;
-ustd::PressTempBMP bmp180("myBMP",D4);
+void appLoop();
 
-void task0(String topic, String msg, String originator) {
-    if (topic == "myBMP/sensor/temperature") {
-        Serial.print("Temperature: ");
-        Serial.prinln(msg);  // String float
-    }
+ustd::Scheduler sched(10, 16, 32);
+ustd::Net net(LED_BUILTIN);
+ustd::Mqtt mqtt;
+
+ustd::PressTempBMP180 bmp("myBMP180");
+
+void sensorUpdates(String topic, String msg, String originator) {
+    // data is in topic, msg
 }
 
 void setup() {
-    bmp180.begin(&sched);
-    String name="myBMP";
-    auto fnall = [=](String topic, String msg, String originator) {
-        this->subsMsg(topic, msg, originator);
-    };
-    pSched->subscribe(tID, name + "/sensor/#", fnall);
+#ifdef USE_SERIAL_DBG
+    Serial.begin(115200);
+#endif  // USE_SERIAL_DBG
+    net.begin(&sched);
+    mqtt.begin(&sched);
+    ota.begin(&sched);
+    int tID = sched.add(appLoop, "main", 1000000);
+
+    // sensors start measuring pressure and temperature
+    bmp.setAltitude(518.0); // 518m above NN, now we also receive PressureNN values for sea level.
+    bmp.begin(&sched, ustd::PressTempBMP180::BMPSampleMode::ULTRA_HIGH_RESOLUTION);
+
+    sched.subscribe(tID, "myBMP180/sensor/temperature", sensorUpdates);
+}
+
+void appLoop() {
+}
+
+// Never add code to this loop, use appLoop() instead.
+void loop() {
+    sched.loop();
 }
 ```
 */
@@ -405,6 +438,42 @@ class PressTempBMP180 {
         }
     }
 
+    void publishOversampling() {
+        switch ((BMPSampleMode)oversampleMode) {
+        case BMPSampleMode::ULTRA_LOW_POWER:
+            pSched->publish(name + "/sensor/oversampling", "ULTRA_LOW_POWER");
+            break;
+        case BMPSampleMode::STANDARD:
+            pSched->publish(name + "/sensor/oversampling", "STANDARD");
+            break;
+        case BMPSampleMode::HIGH_RESOLUTION:
+            pSched->publish(name + "/sensor/oversampling", "HIGH_RESOLUTION");
+            break;
+        case BMPSampleMode::ULTRA_HIGH_RESOLUTION:
+            pSched->publish(name + "/sensor/oversampling", "ULTRA_HIGH_RESOLUTION");
+            break;
+        default:
+            pSched->publish(name + "/sensor/oversampling", "INVALID");
+            break;
+        }
+    }
+
+    void publishCalibrationData() {
+        char msg[256];
+        sprintf(msg,"AC1=%d, AC2=%d, AC3=%d, AC4=%u, AC5=%u, AC6=%u, B1=%d, B2=%d, MB=%d, MC=%d, MD=%d",CD_AC1, CD_AC2, CD_AC3, CD_AC4, CD_AC5, CD_AC6, CD_B1, CD_B2, CD_MB, CD_MC, CD_MD);
+        pSched->publish("sensor/calibrationdata",msg);
+    }
+
+    void publishAltitude() {
+        if (altitudeMeters!=MUP_BMP_INVALID_ALTITUDE) {
+            char buf[32];
+            sprintf(buf, "%7.2f", altitudeMeters);
+            pSched->publish(name+"/sensor/altitude",buf);
+        } else {
+            pSched->publish(name+"/sensor/altitude", "unknown");
+        }
+    }
+
     bool sensorStateMachine() {
         bool newData=false;
         uint16_t rt;
@@ -533,9 +602,6 @@ class PressTempBMP180 {
                 }
                 publishPressure();
             }
-            //char msg[256];
-            //sprintf(msg,"AC1=%d, AC2=%d, AC3=%d, AC4=%u, AC5=%u, AC6=%u, B1=%d, B2=%d, MB=%d, MC=%d, MD=%d",CD_AC1, CD_AC2, CD_AC3, CD_AC4, CD_AC5, CD_AC6, CD_B1, CD_B2, CD_MB, CD_MC, CD_MD);
-            //pSched->publish("myBMP180/cali",msg);
         }
     }
 
@@ -549,6 +615,19 @@ class PressTempBMP180 {
         if (topic == name + "/sensor/mode/get") {
             publishFilterMode();
         }
+        if (topic == name + "/sensor/calibrationdata/get") {
+            publishCalibrationData();
+        }
+        if (topic == name + "/sensor/altitude/get") {
+            publishAltitude();
+        }
+        if (topic == name + "/sensor/oversampling/get") {
+            publishOversampling();
+        }
+        if (topic == name + "/sensor/altitude/set") {
+            double alt=atof(msg.c_str());
+            setAltitude(alt);
+        }
         if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
                 setFilterMode(FilterMode::FAST);
@@ -557,6 +636,21 @@ class PressTempBMP180 {
                     setFilterMode(FilterMode::MEDIUM);
                 } else {
                     setFilterMode(FilterMode::LONGTERM);
+                }
+            }
+        }
+        if (topic == name + "/sensor/oversampling/set") {
+            if (msg == "ULTRA_LOW_POWER") {
+                setSampleMode(BMPSampleMode::ULTRA_HIGH_RESOLUTION);
+            } else {
+                if (msg == "STANDARD") {
+                    setSampleMode(BMPSampleMode::ULTRA_HIGH_RESOLUTION);
+                } else {
+                    if (msg == "HIGH_RESOLUTION") {
+                        setSampleMode(BMPSampleMode::HIGH_RESOLUTION);
+                    } else {
+                        setSampleMode(BMPSampleMode::ULTRA_HIGH_RESOLUTION);
+                    }
                 }
             }
         }
