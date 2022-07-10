@@ -81,7 +81,14 @@ $(function() {
 <p >For ESP8266 and ESP32, it is recommended to use <a href="https://github.com/muwerk/munet">munet</a> for network connectivity.</p>
 <h3>Additional hardware-dependent libraries</h3>
 <p >Note: third-party libraries may be subject to different licensing conditions.</p>
-<p >Mupplet | Function | Hardware | Dependencies | ------------------------&mdash; | -----&mdash; | -----&mdash; | ------------&mdash; | <code>mup_illuminance_ldr.h</code> | Illuminance | LDR connected to analog port | <code>mup_presstemp_bmp180.h</code> | Pressure, temperature | <a href="https://www.digikey.com/htmldatasheets/production/856385/0/0/1/bmp180-datasheet.html">Bosch BMP180</a> | Wire |</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Mupplet   </th><th class="markdownTableHeadNone">Function   </th><th class="markdownTableHeadNone">Hardware   </th><th class="markdownTableHeadNone">Dependencies    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>mup_illuminance_ldr.h</code>   </td><td class="markdownTableBodyNone">Illuminance   </td><td class="markdownTableBodyNone">LDR connected to analog port   </td><td class="markdownTableBodyNone">none    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>mup_presstemp_bmp180.h</code>   </td><td class="markdownTableBodyNone">Pressure, temperature   </td><td class="markdownTableBodyNone"><a href="https://www.digikey.com/htmldatasheets/production/856385/0/0/1/bmp180-datasheet.html">Bosch BMP180</a>   </td><td class="markdownTableBodyNone">Wire   </td></tr>
+</table>
 <h2>History </h2>
 <ul>
 <li>0.1.0 (2021-02-XX) (Not yet Released) Illuminance LDR Sensor, BMP180 pressure sensor</li>
