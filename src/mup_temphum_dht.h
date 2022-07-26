@@ -51,7 +51,7 @@ volatile DhtFailureCode pDhtFailureCode[USTD_DHT_MAX_PIRQS] = {DhtFailureCode::O
 volatile int pDhtFailureData[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t sensorDataBytes[USTD_DHT_MAX_PIRQS*5];
 
-int dhtWakeUpPulse=22000;   // (1) The intial low-pulse of 22ms that awakens the DHT. Note: manufacturer doc is wrong! Says 2ms.  
+unsigned long dhtWakeUpPulse=22000;   // (1) The intial low-pulse of 22ms that awakens the DHT. Note: manufacturer doc is wrong! Says 2ms.  
 int dhtInitialDelay=20;     // (2) after about 20ms(!) low by mcpu, at least dhtInitialDelay uS high is set by mcu before switching to input.
 int dhtSignalInitDelta=25;  // (3.1, 3.2) deviation for initial 80us low + high by dht, initialDeals uS get substracted from this.
 int dhtSignalIntroDelta=25; // (4) deviation for initial 50us low by dht

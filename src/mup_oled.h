@@ -7,38 +7,33 @@
 namespace ustd {
 class SensorDisplay {
   public:
-    double t1,t2,t3, d1, d2, d3;
-    int t1_val=0;
-    int t2_val=0;
-    int t3_val=0;
-    time_t lastUpdate_t1=0;
-    time_t lastUpdate_t2=0;
-    time_t lastUpdate_t3=0;
+    uint8_t slots;
+    double vals[4]={0,0,0,0};
+    ustd::array<double> dirs={0,0,0,0};
+    bool vals_init[4]={false,false,false,false};
+    time_t lastUpdates[4]={0,0,0,0};
     uint16_t screen_x, screen_y;
     uint8_t i2c_address;
     TwoWire *pWire;
-    String topic1,topic2, topic3, caption1, caption2, caption3, caption11, caption21, caption31;
-
+    ustd::array<String> topics;
+    ustd::array<String> captions;
+    
     #define HIST_CNT 30
-    double hist_t1[HIST_CNT];
-    double hist_t2[HIST_CNT];
-    double hist_t3[HIST_CNT];
+    double hists[4][HIST_CNT];
    
     Adafruit_SSD1306 *pDisplay;
 
     SensorDisplay(uint16_t screen_x, uint16_t screen_y, uint8_t i2c_address=0x3c, TwoWire* pWire=&Wire): screen_x(screen_x), screen_y(screen_y), i2c_address(i2c_address), pWire(pWire) {
+        slots=0;
     }
     ~SensorDisplay() {
     }
-    void begin(String _topic1, String _topic2, String _topic3, String _caption1, String _caption2, String _caption3) {
-        topic1=_topic1;
-        topic2=_topic2;
-        topic3=_topic3;
-
-        caption1=_caption1;
-        caption2=_caption2;
-        caption3=_caption3;
-        
+    void begin(uint8_t _slots, ustd::array<String> &_topics, ustd::array<String> &_captions) {
+        slots=_slots;
+        for (uint8_t i=0; i<slots; i++) {
+            topics[i]=_topics[i];
+            captions[i]=_captions[i];
+        }
         pDisplay=new Adafruit_SSD1306(screen_x, screen_y, pWire); 
         pDisplay->begin(SSD1306_SWITCHCAPVCC, i2c_address);
         pDisplay->clearDisplay();
@@ -64,133 +59,130 @@ class SensorDisplay {
         }
     }
 
-    void updateDisplay(String msg1, String msg2, String msg3, double d1, double d2, double d3) {
-        int16_t ind;
+    void updateCell(uint8_t index, String msg, String caption, double arrowDir=0.0, bool large=false) {
+        uint8_t x0=0, y0=0, x1=0, y1=0, xa=0, ya=0;
+        String bold;
+        switch (index) {
+            case 0:
+                x0=14; y0=3;
+                x1=14; y1=29;
+                xa=5; ya=14;
+                break;
+            case 1:
+                x0=78; y0=3;
+                x1=78; y1=29;
+                xa=69; ya=14;
+                break;
+            case 2:
+                x0=14; y0=36;
+                x1=14; y1=61;
+                xa=5; ya=45;
+                break;
+            case 3:
+                x0=78; y0=36;
+                x1=78; y1=61;
+                xa=69; ya=45;
+                break;
+            default:
+                break;
+        }
+        // caption
+        pDisplay->setFont();
+        pDisplay->setTextSize(1);
+        pDisplay->setCursor(x0,y0);
+        pDisplay->println(caption);
+        int ind=caption.indexOf(' ');
+        if (ind==-1) bold=caption;
+        else bold=caption.substring(0,ind);
+        pDisplay->setCursor(x0+1,y0);
+        pDisplay->println(bold);
+        // value
+        pDisplay->setFont(&FreeSans12pt7b);
+        pDisplay->setTextSize(1);
+        pDisplay->setCursor(x1,y1);
+        pDisplay->println(msg);
+        pDisplay->setCursor(x1+1,y1);
+        pDisplay->println(msg);
+        // arrow
+        if (arrowDir != 0.0) {
+            drawArrow(xa,ya,(arrowDir>0.0),8,3,7);
+        }
+    }
+
+    void updateDisplay(ustd::array<String> &msgs, ustd::array<double> &dirs) {
         String bold;
         pDisplay->clearDisplay();
 
-        pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
-        pDisplay->setFont();
-        pDisplay->setTextSize(1);
-        pDisplay->setCursor(14,3);
-        pDisplay->println(caption1);
-        ind=caption1.indexOf(' ');
-        if (ind==-1) bold=caption1;
-        else bold=caption1.substring(0,ind);
-        pDisplay->setCursor(15,3);
-        pDisplay->println(bold);
-
-        pDisplay->setCursor(78,3);
-        pDisplay->println(caption2);
-        pDisplay->setCursor(79,3);
-        ind=caption2.indexOf(' ');
-        if (ind==-1) bold=caption2;
-        else bold=caption2.substring(0,ind);
-        pDisplay->println(bold);
-
-        pDisplay->setFont(&FreeSans12pt7b);
-        pDisplay->setTextSize(1);      // Normal 1:1 pixel scale
-        pDisplay->setCursor(14,29);
-        pDisplay->println(msg1);
-        pDisplay->setCursor(15,29);
-        pDisplay->println(msg1);
-        pDisplay->setCursor(78,29);
-        pDisplay->println(msg2);
-        pDisplay->setCursor(79,29);
-        pDisplay->println(msg2);
-
-        pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
-        pDisplay->setFont();
-        pDisplay->setTextSize(1);
-        pDisplay->setCursor(14,36);
-        pDisplay->println(caption3);
-        pDisplay->setCursor(15,36);
-        ind=caption3.indexOf(' ');
-        if (ind==-1) bold=caption3;
-        else bold=caption3.substring(0,ind);
-        pDisplay->println(bold);
-
-        pDisplay->setFont(&FreeSans12pt7b);
-        pDisplay->setTextSize(1);      // Normal 1:1 pixel scale
-        pDisplay->setCursor(14,61);
-        pDisplay->println(msg3);
-        pDisplay->setCursor(15,61);
-        pDisplay->println(msg3);
-        pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
-
-        if (d1!=0.0) {
-            drawArrow(5,14,(d1>0.0),8,3,7);
+        switch (slots) {
+            case 2:
+                pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
+                updateCell(0, msgs[0], captions[0], dirs[0], true);
+                pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
+                updateCell(2, msgs[1], captions[1], dirs[1], true);
+                pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
+                break;
+            case 3:
+                pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
+                updateCell(0, msgs[0], captions[0], dirs[0], false);
+                updateCell(1, msgs[1], captions[1], dirs[1], false);
+                pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
+                updateCell(2, msgs[2], captions[2], dirs[2], true);
+                pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
+                break;
+            case 4:
+                pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
+                updateCell(0, msgs[0], captions[0], dirs[0], false);
+                updateCell(1, msgs[1], captions[1], dirs[1], false);
+                pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
+                updateCell(2, msgs[2], captions[2], dirs[2], false);
+                updateCell(3, msgs[3], captions[3], dirs[3], false);
+                pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
+            default:
+                break;
         }
-        if (d2!=0.0) {
-            drawArrow(69,14,(d1>0.0),8,3,7);
-        }
-        if (d3!=0.0) {
-            drawArrow(5,45,(d2>0.0),8,3,7);
-        }
-        pDisplay->display();
-
+       pDisplay->display();
     }
 
     // This is called on Sensor-update events
     void sensorUpdates(String topic, String msg, String originator) {
-        int disp_update=0;
-        char buf1[64],buf2[64],buf3[64];
-        if (topic == topic1) {
-            t1 = msg.toFloat();
-            lastUpdate_t1=time(nullptr);
-            if (!t1_val) {
-                for (int i=0; i<HIST_CNT; i++) hist_t1[i]=t1;
-            } else {
-                for (int i=0; i<HIST_CNT-1; i++) hist_t1[i]=hist_t1[i+1];
-                hist_t1[HIST_CNT-1]=t1;
+        ustd::array<String> msgs;
+        char buf[64];
+        bool disp_update=false;
+#ifdef USE_SERIAL_DBG
+        Serial.print("sensorUpdates ");
+        Serial.print(topic);
+        Serial.print(" ");
+        Serial.println(msg);
+#endif
+        for (uint8_t i=0; i<slots; i++) {
+            if (topic==topics[i]) {
+#ifdef USE_SERIAL_DBG
+        Serial.println("Updating: ");
+        Serial.println(msg.toFloat());
+#endif
+                vals[i]=msg.toFloat();
+                lastUpdates[i]=time(nullptr);
+                if (vals_init[i]==false) {
+                    for (uint8_t j=0; j<HIST_CNT; j++) hists[i][j]=vals[i];
+                } else {
+                    for (uint8_t j=0; j<HIST_CNT-1; j++) hists[i][j]=hists[i][j+1];
+                    hists[i][HIST_CNT-1]=vals[i];
+                }
+                vals_init[i]=true;
+                dirs[i]=vals[i]-hists[i][0];
+                disp_update=true;
             }
-            d1=t1-hist_t1[0];
-            t1_val=1;
-            disp_update=1;
         }
-        if (topic == topic2) {
-            t2 = msg.toFloat();
-            lastUpdate_t2=time(nullptr);
-            if (!t2_val) {
-                for (int i=0; i<HIST_CNT; i++) hist_t2[i]=t2;
-            } else {
-                for (int i=0; i<HIST_CNT-1; i++) hist_t2[i]=hist_t2[i+1];
-                hist_t2[HIST_CNT-1]=t2;
+        if (disp_update==true) {
+            for (uint8_t i=0; i<slots; i++) {
+                if (vals_init[i]==true) {
+                    sprintf(buf,"%.1f",vals[i]);
+                    msgs[i]=String(buf);
+                } else {
+                    msgs[i]="NaN";
+                }
             }
-            d2=t2-hist_t2[0];
-            t2_val=1;
-            disp_update=1;
-        }
-        if (topic == topic3) {
-            t3 = msg.toFloat();
-            lastUpdate_t3=time(nullptr);
-            if (!t3_val) {
-                for (int i=0; i<HIST_CNT; i++) hist_t3[i]=t3;
-            } else {
-                for (int i=0; i<HIST_CNT-1; i++) hist_t3[i]=hist_t3[i+1];
-                hist_t3[HIST_CNT-1]=t3;
-            }
-            d3=t3-hist_t3[0];
-            t3_val=1;
-            disp_update=1;
-        }
-        if (disp_update) {
-            if (t1_val) {
-                sprintf(buf1,"%.1f",t1);
-            } else {
-                sprintf(buf1,"%s", "NaN");
-            }
-            if (t2_val) {
-                sprintf(buf2,"%.1f",t2);
-            } else {
-                sprintf(buf2,"%s", "NaN");
-            }
-            if (t3_val) {
-                sprintf(buf3,"%.3f",t3);
-            } else {
-                sprintf(buf3,"%s", "NaN");
-            }
-            updateDisplay(buf1,buf2,buf3,d1,d2,d3);
+            updateDisplay(msgs, dirs);
         }
     }
 
