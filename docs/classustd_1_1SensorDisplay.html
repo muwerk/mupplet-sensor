@@ -83,6 +83,8 @@ $(function() {
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a361dbc7f6b6498ed30d1af3598573b1b"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1SensorDisplay.html#a361dbc7f6b6498ed30d1af3598573b1b">SensorDisplay</a> (String name, uint16_t screen_x, uint16_t screen_y, uint8_t i2c_address=0x3c, TwoWire *pWire=&amp;Wire)</td></tr>
 <tr class="separator:a361dbc7f6b6498ed30d1af3598573b1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a71a4e81fda9e181ed0655e25aff19c35"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1SensorDisplay.html#a71a4e81fda9e181ed0655e25aff19c35">begin</a> (ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt)</td></tr>
+<tr class="separator:a71a4e81fda9e181ed0655e25aff19c35"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p >mupplet-sensor 128x64 oled display for sensor value monitoring </p>
@@ -191,6 +193,51 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramname">screen_y</td><td>Vertical resolution, is currently always 64, (maybe 32 works with format secifiers L or SS.) </td></tr>
     <tr><td class="paramname">i2c_address</td><td>i2c address of the SSD1306 display, usually 0x3c. </td></tr>
     <tr><td class="paramname">pWire</td><td>Pointer to a TwoWire i2c instance.</td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="a71a4e81fda9e181ed0655e25aff19c35" name="a71a4e81fda9e181ed0655e25aff19c35"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a71a4e81fda9e181ed0655e25aff19c35">&#9670;&nbsp;</a></span>begin()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ustd::SensorDisplay::begin </td>
+          <td>(</td>
+          <td class="paramtype">ustd::Scheduler *&#160;</td>
+          <td class="paramname"><em>_pSched</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ustd::Mqtt *&#160;</td>
+          <td class="paramname"><em>_pMqtt</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p >Activate display and begin receiving MQTT updates for the display slots</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">_pSched</td><td>Pointer to the muwerk scheduler </td></tr>
+    <tr><td class="paramname">_pMqtt</td><td>Pointer to munet mqtt object, used to subscribe to mqtt topics defined in &lsquo;'display-name&rsquo;.json` file.</td></tr>
   </table>
   </dd>
 </dl>
