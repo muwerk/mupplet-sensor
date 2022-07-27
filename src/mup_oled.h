@@ -7,6 +7,72 @@
 ustd::jsonfile jf;
 
 namespace ustd {
+    // clang - format off
+/*! \brief mupplet-sensor 128x64 oled display for sensor value monitoring
+
+The mup_oled mupplet supports SSD1306 style 128x64 (or 128x32) OLED displays
+
+<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled.png" width="30%"
+height="30%"> Hardware: SSD1306 I2C Oled display.
+
+#### Sample code
+```cpp
+#include "ustd_platform.h"
+#include "scheduler.h"
+#include "net.h"
+#include "mqtt.h"
+#include "ota.h"
+#include "jsonfile.h"
+
+#include "mup_oled.h"
+
+void appLoop();
+
+ustd::Scheduler sched(10, 16, 32);
+ustd::Net net(LED_BUILTIN);
+ustd::Mqtt mqtt;
+ustd::Ota ota;
+
+ustd::SensorDisplay display("display", 128,64,0x3c);
+
+void setup() {
+    con.begin(&sched);
+    net.begin(&sched);
+    mqtt.begin(&sched);
+    ota.begin(&sched);
+    display.begin(&sched,&mqtt);
+    sched.add(appLoop, "main", 1000000);
+}
+
+void appLoop() {
+}
+
+// Never add code to this loop, use appLoop() instead.
+void loop() {
+    sched.loop();
+}
+```
+
+The data area of the ESP32 or ESP8266 must contain a json file with the name of SensorDisplay Object given as first
+parameter to the object instantiation, "display" in the example above. The file `display.json` should contain:
+
+```json
+{
+    "layout": "L|SS",
+    "formats": "SFF ",
+    "topics": ["clock/timeinfo", "hastates/sensor/temperature/state", "hastates/sensor/netatmo_temperature2/state"],
+    "captions": ["Time", "Out C", "Studio C"],
+}
+```
+
+`layout` contains two lines separated by |, L for one large display, SS for two small sensor displays: e.g. SS|SS, L|SS, SS|L, L|L.
+`topics` gives a list of MQTT topics that are going to be displayed. A layout L|SS has three display slots and requires 3 topics.
+A special topic `clock/timeinfo` is provided by this mupplet and displays day of week and time.
+`formats` defines how incoming MQTT messages are converted, one letter per display slot. 'S' simply displays the MQTT messages
+body as string. 'F' converts the message to float and formats it to 1 decimal.
+captions are the small-print titles for each display slot. 
+*/
+// clang-format on
 class SensorDisplay {
   public:
     String name;
@@ -32,6 +98,13 @@ class SensorDisplay {
 
     SensorDisplay(String name, uint16_t screen_x, uint16_t screen_y, uint8_t i2c_address=0x3c, TwoWire* pWire=&Wire): 
                   name(name), screen_x(screen_x), screen_y(screen_y), i2c_address(i2c_address), pWire(pWire) {
+        /*! Instantiate an sensor display mupplet
+        @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
+        @param screen_x Horizontal resolution, is currently always 128.
+        @param screen_y Vertical resolution, is currently always 64, (maybe 32 works with format secifiers L or SS.)
+        @param i2c_address i2c address of the SSD1306 display, usually 0x3c.
+        @param pWire Pointer to a TwoWire i2c instance.
+        */
         for (uint8_t i=0; i<4; i++) {
             captions[i]="room";
             topics[i]="some/topic";
@@ -74,8 +147,8 @@ class SensorDisplay {
 
     ~SensorDisplay() {
     }
-
-    void sensorLoop() {
+  private:
+    void _sensorLoop() {
         const char *weekDays[]={"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
         const char *pDay;
         struct tm *plt;
@@ -99,7 +172,7 @@ class SensorDisplay {
             }
         }
     }
-
+  public:
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
         pSched = _pSched;
         pMqtt = _pMqtt;
@@ -110,7 +183,7 @@ class SensorDisplay {
         pDisplay->cp437(true);         // Use full 256 char 'Code Page 437' font
 
         auto fntsk = [=]() {
-            sensorLoop();
+            _sensorLoop();
         };
         int tID = pSched->add(fntsk, "oled", 1000000);
 
@@ -128,6 +201,7 @@ class SensorDisplay {
         }
     }
 
+  private:
     void drawArrow(uint16_t x, uint16_t y, bool up=true, uint16_t len=8, uint16_t wid=3, int16_t delta_down=0) {
         if (up) {
             pDisplay->drawLine(x,y+len, x, y, SSD1306_WHITE);

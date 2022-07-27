@@ -32,10 +32,12 @@ Note: third-party libraries may be subject to different licensing conditions.
 | `mup_illuminance_ldr.h`     | Illuminance | LDR connected to analog port | none |
 | `mup_presstemp_bmp180.h` | Pressure, temperature | [Bosch BMP180][1] | Wire |
 | `mup_temphum_dht` | Temperature, humidity | DHT22 | none |
+| `mup_oled` | Oled display for sensor values | SSD1306 | Wire, SPI, Adafruit BusIO, Adafruit GFX Library, Adafruit SSD1306 |
 
 History
 -------
 
+- 0.1.2 (2022-07-27) DHT and Oled added.
 - 0.1.0 (2021-02-XX) (Not yet Released) Illuminance LDR Sensor, BMP180 pressure sensor
 
 More mupplet libraries
