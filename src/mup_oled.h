@@ -8,6 +8,8 @@ namespace ustd {
 class SensorDisplay {
   public:
     uint8_t slots;
+    String layout;
+    String float_string_formats;
     double vals[4]={0,0,0,0};
     ustd::array<double> dirs={0,0,0,0};
     bool vals_init[4]={false,false,false,false};
@@ -25,11 +27,15 @@ class SensorDisplay {
 
     SensorDisplay(uint16_t screen_x, uint16_t screen_y, uint8_t i2c_address=0x3c, TwoWire* pWire=&Wire): screen_x(screen_x), screen_y(screen_y), i2c_address(i2c_address), pWire(pWire) {
         slots=0;
+        layout="SS|SS";
+        float_string_formats="FFFF";
     }
     ~SensorDisplay() {
     }
-    void begin(uint8_t _slots, ustd::array<String> &_topics, ustd::array<String> &_captions) {
+    void begin(uint8_t _slots, String _layout, String _float_string_formats, ustd::array<String> &_topics, ustd::array<String> &_captions) {
         slots=_slots;
+        layout=_layout;
+        float_string_formats=_float_string_formats;
         for (uint8_t i=0; i<slots; i++) {
             topics[i]=_topics[i];
             captions[i]=_captions[i];
@@ -111,36 +117,70 @@ class SensorDisplay {
 
     void updateDisplay(ustd::array<String> &msgs, ustd::array<double> &dirs) {
         String bold;
+        bool updated=false;
         pDisplay->clearDisplay();
-
-        switch (slots) {
-            case 2:
-                pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
-                updateCell(0, msgs[0], captions[0], dirs[0], true);
-                pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
-                updateCell(2, msgs[1], captions[1], dirs[1], true);
-                pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
-                break;
-            case 3:
-                pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
-                updateCell(0, msgs[0], captions[0], dirs[0], false);
-                updateCell(1, msgs[1], captions[1], dirs[1], false);
-                pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
-                updateCell(2, msgs[2], captions[2], dirs[2], true);
-                pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
-                break;
-            case 4:
-                pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
-                updateCell(0, msgs[0], captions[0], dirs[0], false);
-                updateCell(1, msgs[1], captions[1], dirs[1], false);
-                pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
-                updateCell(2, msgs[2], captions[2], dirs[2], false);
-                updateCell(3, msgs[3], captions[3], dirs[3], false);
-                pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
-            default:
-                break;
+        if (layout=="L|L") {
+            pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
+            updateCell(0, msgs[0], captions[0], dirs[0], true);
+            pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
+            updateCell(2, msgs[1], captions[1], dirs[1], true);
+            pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
+            updated=true;
         }
-       pDisplay->display();
+        if (layout=="SS|L") {
+            pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
+            updateCell(0, msgs[0], captions[0], dirs[0], false);
+            updateCell(1, msgs[1], captions[1], dirs[1], false);
+            pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
+            updateCell(2, msgs[2], captions[2], dirs[2], true);
+            pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
+            updated=true;
+        }
+        if (layout=="L|SS") {
+            pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
+            updateCell(0, msgs[0], captions[0], dirs[0], true);
+            pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
+            updateCell(2, msgs[1], captions[1], dirs[1], false);
+            updateCell(3, msgs[2], captions[2], dirs[2], false);
+            pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
+            updated=true;
+        }
+        if (layout=="SS|SS") {
+            pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
+            updateCell(0, msgs[0], captions[0], dirs[0], false);
+            updateCell(1, msgs[1], captions[1], dirs[1], false);
+            pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
+            updateCell(2, msgs[2], captions[2], dirs[2], false);
+            updateCell(3, msgs[3], captions[3], dirs[3], false);
+            pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
+            updated=true;
+        }
+        if (layout=="SS") {
+            // pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
+            updateCell(0, msgs[0], captions[0], dirs[0], false);
+            updateCell(1, msgs[1], captions[1], dirs[1], false);
+            // pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
+            // updateCell(2, msgs[2], captions[2], dirs[2], true);
+            // pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
+            updated=true;
+        }
+        if (layout=="L") {
+            // pDisplay->drawLine(0,0,127,0, SSD1306_WHITE);
+            updateCell(0, msgs[0], captions[0], dirs[0], true);
+            // updateCell(1, msgs[1], captions[1], dirs[1], false);
+            // pDisplay->drawLine(0,33,127,33, SSD1306_WHITE);
+            // updateCell(2, msgs[2], captions[2], dirs[2], true);
+            // pDisplay->drawLine(0,63,127,63, SSD1306_WHITE);
+            updated=true;
+        }
+        if (updated) {
+            pDisplay->display();
+        } else {
+#ifdef USE_SERIAL_DBG
+            Serial.print("Can't draw unsupported layout: ");
+            Serial.println(layout);
+#endif            
+        }
     }
 
     // This is called on Sensor-update events
@@ -150,34 +190,41 @@ class SensorDisplay {
         bool disp_update=false;
 #ifdef USE_SERIAL_DBG
         Serial.print("sensorUpdates ");
-        Serial.print(topic);
-        Serial.print(" ");
         Serial.println(msg);
 #endif
         for (uint8_t i=0; i<slots; i++) {
             if (topic==topics[i]) {
-#ifdef USE_SERIAL_DBG
-        Serial.println("Updating: ");
-        Serial.println(msg.toFloat());
-#endif
-                vals[i]=msg.toFloat();
-                lastUpdates[i]=time(nullptr);
-                if (vals_init[i]==false) {
-                    for (uint8_t j=0; j<HIST_CNT; j++) hists[i][j]=vals[i];
-                } else {
-                    for (uint8_t j=0; j<HIST_CNT-1; j++) hists[i][j]=hists[i][j+1];
-                    hists[i][HIST_CNT-1]=vals[i];
+                if (float_string_formats[i]=='F') {
+                    vals[i]=msg.toFloat();
+                    lastUpdates[i]=time(nullptr);
+                    if (vals_init[i]==false) {
+                        for (uint8_t j=0; j<HIST_CNT; j++) hists[i][j]=vals[i];
+                    } else {
+                        for (uint8_t j=0; j<HIST_CNT-1; j++) hists[i][j]=hists[i][j+1];
+                        hists[i][HIST_CNT-1]=vals[i];
+                    }
+                    vals_init[i]=true;
+                    dirs[i]=vals[i]-hists[i][0];
+                    disp_update=true;
                 }
-                vals_init[i]=true;
-                dirs[i]=vals[i]-hists[i][0];
-                disp_update=true;
+                if (float_string_formats[i]=='S') {
+                    lastUpdates[i]=time(nullptr);
+                    vals_init[i]=true;
+                    disp_update=true;
+                }
             }
         }
         if (disp_update==true) {
             for (uint8_t i=0; i<slots; i++) {
                 if (vals_init[i]==true) {
-                    sprintf(buf,"%.1f",vals[i]);
-                    msgs[i]=String(buf);
+                    msgs[i]="?Format";
+                    if (float_string_formats[i]=='F') {
+                        sprintf(buf,"%.1f",vals[i]);
+                        msgs[i]=String(buf);
+                    }
+                    if (float_string_formats[i]=='S') {
+                        msgs[i]=msg;
+                    }
                 } else {
                     msgs[i]="NaN";
                 }
