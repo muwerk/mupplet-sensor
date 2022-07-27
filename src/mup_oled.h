@@ -4,12 +4,17 @@
 #include <Fonts/FreeSans12pt7b.h>
 #include <Adafruit_SSD1306.h>
 
+ustd::jsonfile jf;
+
 namespace ustd {
 class SensorDisplay {
   public:
+    String name;
+    ustd::Scheduler *pSched;
+    ustd::Mqtt *pMqtt;
     uint8_t slots;
     String layout;
-    String float_string_formats;
+    String formats;
     double vals[4]={0,0,0,0};
     ustd::array<double> dirs={0,0,0,0};
     bool vals_init[4]={false,false,false,false};
@@ -25,26 +30,102 @@ class SensorDisplay {
    
     Adafruit_SSD1306 *pDisplay;
 
-    SensorDisplay(uint16_t screen_x, uint16_t screen_y, uint8_t i2c_address=0x3c, TwoWire* pWire=&Wire): screen_x(screen_x), screen_y(screen_y), i2c_address(i2c_address), pWire(pWire) {
-        slots=0;
-        layout="SS|SS";
-        float_string_formats="FFFF";
+    SensorDisplay(String name, uint16_t screen_x, uint16_t screen_y, uint8_t i2c_address=0x3c, TwoWire* pWire=&Wire): 
+                  name(name), screen_x(screen_x), screen_y(screen_y), i2c_address(i2c_address), pWire(pWire) {
+        for (uint8_t i=0; i<4; i++) {
+            captions[i]="room";
+            topics[i]="some/topic";
+        }
+
+        layout=jf.readString(name+"/layout","SS|SS");
+        if (layout!="SS|SS" && layout!="L|SS" && layout!="L|L" && layout !="SS|L" && layout != "L" && layout != "SS") {
+            layout="SS|SS";
+#ifdef USE_SERIAL_DBG
+            Serial.print("Unsupported layout: ");
+            Serial.print(layout);
+            Serial.println(" please use (64x128 displays) 'SS|SS' or 'L|SS' or 'L|L' or 'SS|L' or (32x128 displays) 'L' or 'SS' ");
+#endif  // USE_SERIAL_DBG
+        }
+        formats=jf.readString(name+"/formats", "FFFF"); // four floats, either F (float), messages are converted to float fir %.1f, or S (string) messages displayed as-is.
+        while (formats.length()<4) {
+            formats += " ";
+        }
+        for (unsigned int i=0; i<formats.length(); i++) {
+            if (formats[i]!='F' && formats[i]!='S' && formats[i]!=' ') {
+                formats[i]='S';
+#ifdef USE_SERIAL_DBG
+                Serial.print("Unsupported formats string: ");
+                Serial.print(formats);
+                Serial.println(" should only contain 'F' for float, 'S' for string, or ' '.");
+#endif  // USE_SERIAL_DBG
+            }
+        }
+
+        jf.readStringArray(name+"/topics", topics);
+        jf.readStringArray(name+"/captions", captions);
+        slots=topics.length();
+        if (captions.length()<slots) {
+            slots=captions.length();
+#ifdef USE_SERIAL_DBG
+                Serial.print("Error: fewer captions than topics, reducing!");
+#endif  // USE_SERIAL_DBG
+        }
     }
+
     ~SensorDisplay() {
     }
-    void begin(uint8_t _slots, String _layout, String _float_string_formats, ustd::array<String> &_topics, ustd::array<String> &_captions) {
-        slots=_slots;
-        layout=_layout;
-        float_string_formats=_float_string_formats;
-        for (uint8_t i=0; i<slots; i++) {
-            topics[i]=_topics[i];
-            captions[i]=_captions[i];
+
+    void sensorLoop() {
+        const char *weekDays[]={"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
+        const char *pDay;
+        struct tm *plt;
+        time_t t;
+        char buf[64];
+        static char oldbuf[64]="";
+        // scruffy old c time functions 
+        t=time(nullptr);
+        plt=localtime(&t);
+        pDay=weekDays[plt->tm_wday];
+        // sprintf(buf,"%s %02d. %02d:%02d",pDay,plt->tm_mday, plt->tm_hour, plt->tm_min);
+        sprintf(buf,"%s %02d:%02d",pDay, plt->tm_hour, plt->tm_min);
+        if (strcmp(buf,oldbuf)) {
+            strcpy(oldbuf,buf);
+            sensorUpdates("clock/timeinfo", String(buf), "self.local");
         }
+        // If a sensors doesn't update values for 1 hr (3600sec), declare invalid.
+        for (uint8_t i=0; i<slots; i++) {
+            if (time(nullptr)-lastUpdates[i] > 3600) {
+                vals_init[i]=false;
+            }
+        }
+    }
+
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
+        pSched = _pSched;
+        pMqtt = _pMqtt;
         pDisplay=new Adafruit_SSD1306(screen_x, screen_y, pWire); 
         pDisplay->begin(SSD1306_SWITCHCAPVCC, i2c_address);
         pDisplay->clearDisplay();
         pDisplay->setTextColor(SSD1306_WHITE); // Draw white text
         pDisplay->cp437(true);         // Use full 256 char 'Code Page 437' font
+
+        auto fntsk = [=]() {
+            sensorLoop();
+        };
+        int tID = pSched->add(fntsk, "oled", 1000000);
+
+        auto fnall = [=](String topic, String msg, String originator) {
+            sensorUpdates(topic, msg, originator);
+        };
+        for (uint8_t i=0; i<slots; i++) {
+#ifdef USE_SERIAL_DBG
+            Serial.print("Subscribing: ");
+            Serial.println(topics[i]);
+#endif
+            if (topics[i]!="clock/timeinfo") {  // local msg.
+                pMqtt->addSubscription(tID, topics[i], fnall);
+            }
+        }
     }
 
     void drawArrow(uint16_t x, uint16_t y, bool up=true, uint16_t len=8, uint16_t wid=3, int16_t delta_down=0) {
@@ -194,7 +275,7 @@ class SensorDisplay {
 #endif
         for (uint8_t i=0; i<slots; i++) {
             if (topic==topics[i]) {
-                if (float_string_formats[i]=='F') {
+                if (formats[i]=='F') {
                     vals[i]=msg.toFloat();
                     lastUpdates[i]=time(nullptr);
                     if (vals_init[i]==false) {
@@ -207,7 +288,7 @@ class SensorDisplay {
                     dirs[i]=vals[i]-hists[i][0];
                     disp_update=true;
                 }
-                if (float_string_formats[i]=='S') {
+                if (formats[i]=='S') {
                     lastUpdates[i]=time(nullptr);
                     vals_init[i]=true;
                     disp_update=true;
@@ -218,11 +299,11 @@ class SensorDisplay {
             for (uint8_t i=0; i<slots; i++) {
                 if (vals_init[i]==true) {
                     msgs[i]="?Format";
-                    if (float_string_formats[i]=='F') {
+                    if (formats[i]=='F') {
                         sprintf(buf,"%.1f",vals[i]);
                         msgs[i]=String(buf);
                     }
-                    if (float_string_formats[i]=='S') {
+                    if (formats[i]=='S') {
                         msgs[i]=msg;
                     }
                 } else {
