@@ -174,6 +174,11 @@ class SensorDisplay {
     }
   public:
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
+        /*! Activate display and begin receiving MQTT updates for the display slots
+
+        @param _pSched Pointer to the muwerk scheduler
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
+        */
         pSched = _pSched;
         pMqtt = _pMqtt;
         pDisplay=new Adafruit_SSD1306(screen_x, screen_y, pWire); 
