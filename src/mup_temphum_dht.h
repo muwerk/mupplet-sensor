@@ -12,7 +12,7 @@ namespace ustd {
 #define G_INT_ATTR
 #endif
 
-#define USTD_DHT_MAX_PIRQS (10)
+#define USTD_DHT_MAX_PIRQS (10) ///< Number of different interrupts supported across all mupplets. The interval 0..9 defines the possible interrupt indices used during instantiation.
 
 /*! States of the interrupt handler protocol automat */
 enum DhtProtState {
@@ -298,6 +298,7 @@ class TempHumDHT {
         /*! Instantiate an DHT sensor mupplet
         @param name Name used for pub/sub messages
         @param port GPIO port with A/D converter capabilities.
+        @param interruptIndex A unique index [0..9] for the interrupt used. If multiple mupplets use interrupts, this index must be unique for each mupplet.
         @param dhtType DHT11, DHT22
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
         */
