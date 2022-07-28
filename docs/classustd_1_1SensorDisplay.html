@@ -125,15 +125,14 @@ Public Member Functions</h2></td></tr>
 <div class="line"><span class="keywordtype">void</span> loop() {</div>
 <div class="line">    sched.loop();</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassustd_1_1SensorDisplay_html"><div class="ttname"><a href="classustd_1_1SensorDisplay.html">ustd::SensorDisplay</a></div><div class="ttdoc">mupplet-sensor 128x64 oled display for sensor value monitoring</div><div class="ttdef"><b>Definition:</b> mup_oled.h:76</div></div>
+<div class="ttc" id="aclassustd_1_1SensorDisplay_html"><div class="ttname"><a href="classustd_1_1SensorDisplay.html">ustd::SensorDisplay</a></div><div class="ttdoc">mupplet-sensor 128x64 oled display for sensor value monitoring</div><div class="ttdef"><b>Definition:</b> mup_oled.h:77</div></div>
 </div><!-- fragment --><p >The data area of the ESP32 or ESP8266 must contain a json file with the name of <a class="el" href="classustd_1_1SensorDisplay.html" title="mupplet-sensor 128x64 oled display for sensor value monitoring">SensorDisplay</a> Object given as first parameter to the object instantiation, "display" in the example above. The file <code>display.json</code> should contain:</p>
 <div class="fragment"><div class="line">{</div>
-<div class="line">    &quot;layout&quot;: &quot;L|SS&quot;,</div>
-<div class="line">    &quot;formats&quot;: &quot;SFF &quot;,</div>
+<div class="line">    &quot;layout&quot;: &quot;S|FF&quot;,</div>
 <div class="line">    &quot;topics&quot;: [&quot;clock/timeinfo&quot;, &quot;hastates/sensor/temperature/state&quot;, &quot;hastates/sensor/netatmo_temperature2/state&quot;],</div>
 <div class="line">    &quot;captions&quot;: [&quot;Time&quot;, &quot;Out C&quot;, &quot;Studio C&quot;],</div>
 <div class="line">}</div>
-</div><!-- fragment --><p ><code>layout</code> contains two lines separated by |, L for one large display, SS for two small sensor displays: e.g. SS|SS, L|SS, SS|L, L|L. <code>topics</code> gives a list of MQTT topics that are going to be displayed. A layout L|SS has three display slots and requires 3 topics. A special topic <code>clock/timeinfo</code> is provided by this mupplet and displays day of week and time. <code>formats</code> defines how incoming MQTT messages are converted, one letter per display slot. 'S' simply displays the MQTT messages body as string. 'F' converts the message to float and formats it to 1 decimal. captions are the small-print titles for each display slot. </p>
+</div><!-- fragment --><p ><code>layout</code> contains a string defining up to two lines separated by |, marking display-slots by <code>S</code> for string (message as-is), or <code>F</code> for numbers with 1 formated for 1 decimal. Each line can have one (large display slot) or two (small slot) entries, e.g.: <code>S|FF</code>. A single line (without '|') and one or two slots is valid too, e.g. <code>S</code> or <code>FF</code>. <code>topics</code> gives a list of MQTT topics that are going to be displayed. A layout <code>S|FF</code> has three display slots (line 1: large string, line 2: two small numbers) and requires 3 topics and 3 captions. A special topic <code>clock/timeinfo</code> is provided by this mupplet and displays day of week and time. <code>captions</code> are the small-print titles for each display slot. Default is bold font. '_' switches between bold and normal font. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a361dbc7f6b6498ed30d1af3598573b1b" name="a361dbc7f6b6498ed30d1af3598573b1b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a361dbc7f6b6498ed30d1af3598573b1b">&#9670;&nbsp;</a></span>SensorDisplay()</h2>
