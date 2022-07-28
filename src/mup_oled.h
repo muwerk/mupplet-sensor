@@ -65,8 +65,9 @@ parameter to the object instantiation, "display" in the example above. The file 
 ```
 
 `layout` contains a string defining up to two lines separated by |, marking display-slots by `S` for string (message as-is), 
-or `F` for numbers with 1 formated for 1 decimal. Each line can have one (large display slot) or two (small slot) entries, 
-e.g.: `S|FF`. A single line (without '|') and one or two slots is valid too, e.g. `S` or `FF`. 
+or `I` (int),`P`(val * 100 as %),`F` (one decimal float),`D` (two decimals),`T` (three decimals) for numbers. 
+Each line can have one (large display slot) or two (small slot) entries, 
+e.g.: `S|FF`. A single line (without '|') and one or two slots is valid too, e.g. `S` or `FD`. 
 `topics` gives a list of MQTT topics that are going to be displayed. A layout `S|FF` has three display slots 
 (line 1: large string, line 2: two small numbers) and requires 3 topics and 3 captions. A topic starting with '!' creates an
 external MQTT subscription (which allows displaying values from external devices), while topics without starting '!' subscribe
@@ -85,32 +86,36 @@ class SensorDisplay {
     String layout;
     String formats;
     double vals[4]={0,0,0,0};
-    ustd::array<double> dirs={0,0,0,0};
+    double dirs[4]={0,0,0,0};
     bool vals_init[4]={false,false,false,false};
     time_t lastUpdates[4]={0,0,0,0};
     uint16_t screen_x, screen_y;
     uint8_t i2c_address;
     TwoWire *pWire;
+    String locale;
     ustd::array<String> topics;
     ustd::array<String> captions;
     
     #define HIST_CNT 30
     double hists[4][HIST_CNT];
+    String valid_formats=" SIPFDT";
    
     Adafruit_SSD1306 *pDisplay;
 
-    SensorDisplay(String name, uint16_t screen_x, uint16_t screen_y, uint8_t i2c_address=0x3c, TwoWire* pWire=&Wire): 
-                  name(name), screen_x(screen_x), screen_y(screen_y), i2c_address(i2c_address), pWire(pWire) {
+    SensorDisplay(String name, uint16_t screen_x, uint16_t screen_y, uint8_t i2c_address=0x3c, TwoWire* pWire=&Wire, String locale="C"): 
+                  name(name), screen_x(screen_x), screen_y(screen_y), i2c_address(i2c_address), pWire(pWire), locale(locale) {
         /*! Instantiate an sensor display mupplet
         @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
         @param screen_x Horizontal resolution, is currently always 128.
         @param screen_y Vertical resolution, is currently always 64, (maybe 32 works with format secifiers L or SS.)
         @param i2c_address i2c address of the SSD1306 display, usually 0x3c.
         @param pWire Pointer to a TwoWire i2c instance.
+        @param locale Locale for time, current 'C' or 'DE'.
         */
         for (uint8_t i=0; i<4; i++) {
             captions[i]="room";
             topics[i]="some/topic";
+            lastUpdates[i]=time(nullptr);
         }
 
         String combined_layout=jf.readString(name+"/layout","FF|FF");
@@ -162,12 +167,12 @@ class SensorDisplay {
             formats += " ";
         }
         for (unsigned int i=0; i<formats.length(); i++) {
-            if (formats[i]!='F' && formats[i]!='S' && formats[i]!=' ') {
+            if (valid_formats.indexOf(formats[i])==-1) {
                 formats[i]='S';
 #ifdef USE_SERIAL_DBG
                 Serial.print("Unsupported formats string: ");
                 Serial.print(formats);
-                Serial.println(" should only contain 'F' for float, 'S' for string, or ' '.");
+                Serial.println(" should only contain 'I' for int, 'F' for single decimal, 'S' for string, 'D' for double decimals, 'T' for triple dec., or ' '.");
 #endif  // USE_SERIAL_DBG
             }
         }
@@ -188,6 +193,7 @@ class SensorDisplay {
   private:
     void _sensorLoop() {
         const char *weekDays[]={"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
+        const char *wochenTage[]={"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
         const char *pDay;
         struct tm *plt;
         time_t t;
@@ -196,7 +202,8 @@ class SensorDisplay {
         // scruffy old c time functions 
         t=time(nullptr);
         plt=localtime(&t);
-        pDay=weekDays[plt->tm_wday];
+        if (locale=="DE") pDay=wochenTage[plt->tm_wday];
+        else pDay=weekDays[plt->tm_wday];
         // sprintf(buf,"%s %02d. %02d:%02d",pDay,plt->tm_mday, plt->tm_hour, plt->tm_min);
         sprintf(buf,"%s %02d:%02d",pDay, plt->tm_hour, plt->tm_min);
         if (strcmp(buf,oldbuf)) {
@@ -340,7 +347,7 @@ class SensorDisplay {
         }
     }
 
-    void updateDisplay(ustd::array<String> &msgs, ustd::array<double> &dirs) {
+    void updateDisplay(ustd::array<String> &msgs) {
         String bold;
         bool updated=false;
         pDisplay->clearDisplay();
@@ -412,14 +419,14 @@ class SensorDisplay {
     void sensorUpdates(String topic, String msg, String originator) {
         ustd::array<String> msgs;
         char buf[64];
-        bool disp_update=false;
 #ifdef USE_SERIAL_DBG
         Serial.print("sensorUpdates ");
         Serial.println(msg);
 #endif
         for (uint8_t i=0; i<slots; i++) {
             if (topic==topics[i]) {
-                if (formats[i]=='F') {
+                String valid_numbers="IPFDT";
+                if (valid_numbers.indexOf(formats[i])!= -1) {
                     vals[i]=msg.toFloat();
                     lastUpdates[i]=time(nullptr);
                     if (vals_init[i]==false) {
@@ -430,32 +437,44 @@ class SensorDisplay {
                     }
                     vals_init[i]=true;
                     dirs[i]=vals[i]-hists[i][0];
-                    disp_update=true;
                 }
                 if (formats[i]=='S') {
                     lastUpdates[i]=time(nullptr);
                     vals_init[i]=true;
-                    disp_update=true;
                 }
             }
         }
-        if (disp_update==true) {
-            for (uint8_t i=0; i<slots; i++) {
-                if (vals_init[i]==true) {
-                    msgs[i]="?Format";
-                    if (formats[i]=='F') {
-                        sprintf(buf,"%.1f",vals[i]);
-                        msgs[i]=String(buf);
-                    }
-                    if (formats[i]=='S') {
-                        msgs[i]=msg;
-                    }
-                } else {
-                    msgs[i]="NaN";
+        for (uint8_t i=0; i<slots; i++) {
+            if (vals_init[i]==true) {
+                msgs[i]="?Format";
+                if (formats[i]=='F') {
+                    sprintf(buf,"%.1f",vals[i]);
+                    msgs[i]=String(buf);
                 }
+                if (formats[i]=='D') {
+                    sprintf(buf,"%.2f",vals[i]);
+                    msgs[i]=String(buf);
+                }
+                if (formats[i]=='T') {
+                    sprintf(buf,"%.3f",vals[i]);
+                    msgs[i]=String(buf);
+                }
+                if (formats[i]=='I') {
+                    sprintf(buf,"%d",(int)vals[i]);
+                    msgs[i]=String(buf);                        
+                }
+                if (formats[i]=='P') {
+                    sprintf(buf,"%d%%",(int)(vals[i]*100));
+                    msgs[i]=String(buf);                        
+                }
+                if (formats[i]=='S') {
+                    msgs[i]=msg;
+                }
+            } else {
+                msgs[i]="NaN";
             }
-            updateDisplay(msgs, dirs);
         }
+        updateDisplay(msgs);
     }
 
 }; // SensorDisplay

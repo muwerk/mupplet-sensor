@@ -195,7 +195,7 @@ class IlluminanceLdr {
 
     void loop() {
         if (bActive) {
-            double val = analogRead(port) / (adRange - 1.0);
+            double val = 1.0 - (analogRead(port) / (adRange - 1.0));
             if (illuminanceSensor.filter(&val)) {
                 ldrvalue = val;
                 publishIlluminance();
