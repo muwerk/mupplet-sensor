@@ -68,7 +68,9 @@ parameter to the object instantiation, "display" in the example above. The file 
 or `F` for numbers with 1 formated for 1 decimal. Each line can have one (large display slot) or two (small slot) entries, 
 e.g.: `S|FF`. A single line (without '|') and one or two slots is valid too, e.g. `S` or `FF`. 
 `topics` gives a list of MQTT topics that are going to be displayed. A layout `S|FF` has three display slots 
-(line 1: large string, line 2: two small numbers) and requires 3 topics and 3 captions.
+(line 1: large string, line 2: two small numbers) and requires 3 topics and 3 captions. A topic starting with '!' creates an
+external MQTT subscription (which allows displaying values from external devices), while topics without starting '!' subscribe
+to device-local messages only via muwerk's scheduler.
 A special topic `clock/timeinfo` is provided by this mupplet and displays day of week and time.
 `captions` are the small-print titles for each display slot. Default is bold font. '_' switches between bold and normal 
 font. 
@@ -232,12 +234,27 @@ class SensorDisplay {
             sensorUpdates(topic, msg, originator);
         };
         for (uint8_t i=0; i<slots; i++) {
-#ifdef USE_SERIAL_DBG
-            Serial.print("Subscribing: ");
-            Serial.println(topics[i]);
-#endif
-            if (topics[i]!="clock/timeinfo") {  // local msg.
+            if (topics[i][0]=='!') {
+                topics[i]=topics[i].substring(1);
                 pMqtt->addSubscription(tID, topics[i], fnall);
+#ifdef USE_SERIAL_DBG
+                Serial.print("Subscribing via MQTT: ");
+                Serial.println(topics[i]);
+#endif
+            } else {
+                if (topics[i]!="clock/timeinfo") {  // local shortcut msg.
+                    pSched->subscribe(tID, topics[i], fnall);
+#ifdef USE_SERIAL_DBG
+                    Serial.print("Subscribing internally: ");
+                    Serial.println(topics[i]);
+#endif
+                } else {
+#ifdef USE_SERIAL_DBG
+                    Serial.print("Internal topic: ");
+                    Serial.println(topics[i]);
+#endif
+
+                }
             }
         }
     }
