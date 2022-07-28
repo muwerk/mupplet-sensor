@@ -59,7 +59,7 @@ parameter to the object instantiation, "display" in the example above. The file 
 ```json
 {
     "layout": "S|FF",
-    "topics": ["clock/timeinfo", "hastates/sensor/temperature/state", "hastates/sensor/netatmo_temperature2/state"],
+    "topics": ["clock/timeinfo", "!hastates/sensor/temperature/state", "!hastates/sensor/netatmo_temperature2/state"],
     "captions": ["Time", "Out C", "Studio C"],
 }
 ```
