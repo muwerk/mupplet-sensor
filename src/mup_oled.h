@@ -58,19 +58,20 @@ parameter to the object instantiation, "display" in the example above. The file 
 
 ```json
 {
-    "layout": "L|SS",
-    "formats": "SFF ",
+    "layout": "S|FF",
     "topics": ["clock/timeinfo", "hastates/sensor/temperature/state", "hastates/sensor/netatmo_temperature2/state"],
     "captions": ["Time", "Out C", "Studio C"],
 }
 ```
 
-`layout` contains two lines separated by |, L for one large display, SS for two small sensor displays: e.g. SS|SS, L|SS, SS|L, L|L.
-`topics` gives a list of MQTT topics that are going to be displayed. A layout L|SS has three display slots and requires 3 topics.
+`layout` contains a string defining up to two lines separated by |, marking display-slots by `S` for string (message as-is), 
+or `F` for numbers with 1 formated for 1 decimal. Each line can have one (large display slot) or two (small slot) entries, 
+e.g.: `S|FF`. A single line (without '|') and one or two slots is valid too, e.g. `S` or `FF`. 
+`topics` gives a list of MQTT topics that are going to be displayed. A layout `S|FF` has three display slots 
+(line 1: large string, line 2: two small numbers) and requires 3 topics and 3 captions.
 A special topic `clock/timeinfo` is provided by this mupplet and displays day of week and time.
-`formats` defines how incoming MQTT messages are converted, one letter per display slot. 'S' simply displays the MQTT messages
-body as string. 'F' converts the message to float and formats it to 1 decimal.
-captions are the small-print titles for each display slot. 
+`captions` are the small-print titles for each display slot. Default is bold font. '_' switches between bold and normal 
+font. 
 */
 // clang-format on
 class SensorDisplay {
@@ -110,8 +111,44 @@ class SensorDisplay {
             topics[i]="some/topic";
         }
 
-        layout=jf.readString(name+"/layout","SS|SS");
-        if (layout!="SS|SS" && layout!="L|SS" && layout!="L|L" && layout !="SS|L" && layout != "L" && layout != "SS") {
+        String combined_layout=jf.readString(name+"/layout","FF|FF");
+        layout="";
+        formats="";
+        bool layout_valid=true;
+        int ind = combined_layout.indexOf('|');
+        if (ind==-1) {
+            if (combined_layout.length()>2) {
+                layout_valid=false;
+            } else {
+                if (combined_layout.length()==1) {
+                    layout="L";
+                } else {
+                    layout="SS";
+                }
+                formats=layout;
+            }
+        } else {
+            String line1=combined_layout.substring(0,ind);
+            String line2=combined_layout.substring(ind+1);
+            if (line1.length()>2 || line2.length()>2) {
+                layout_valid=false;
+            } else {
+                if (line1.length()==1) {
+                    layout="L";
+                } else {
+                    layout="SS";
+                }
+                formats=line1;
+                layout+="|";
+                if (line2.length()==1) {
+                    layout+="L";
+                } else {
+                    layout+="SS";
+                }
+                formats+=line2;
+            }
+        }
+        if (!layout_valid || (layout!="SS|SS" && layout!="L|SS" && layout!="L|L" && layout !="SS|L" && layout != "L" && layout != "SS")) {
             layout="SS|SS";
 #ifdef USE_SERIAL_DBG
             Serial.print("Unsupported layout: ");
@@ -119,7 +156,6 @@ class SensorDisplay {
             Serial.println(" please use (64x128 displays) 'SS|SS' or 'L|SS' or 'L|L' or 'SS|L' or (32x128 displays) 'L' or 'SS' ");
 #endif  // USE_SERIAL_DBG
         }
-        formats=jf.readString(name+"/formats", "FFFF"); // four floats, either F (float), messages are converted to float fir %.1f, or S (string) messages displayed as-is.
         while (formats.length()<4) {
             formats += " ";
         }
@@ -255,13 +291,25 @@ class SensorDisplay {
         // caption
         pDisplay->setFont();
         pDisplay->setTextSize(1);
+        bool isBold=true;
+        String first="";
+        String second="";
+        for (unsigned int i=0; i<caption.length(); i++) {
+            if (caption[i]=='_') {
+                isBold=!isBold;
+                continue;
+            }
+            first+=caption[i];
+            if (isBold) {
+                second+=caption[i];
+            } else {
+                second+=' ';
+            }
+        }
         pDisplay->setCursor(x0,y0);
-        pDisplay->println(caption);
-        int ind=caption.indexOf(' ');
-        if (ind==-1) bold=caption;
-        else bold=caption.substring(0,ind);
+        pDisplay->println(first);
         pDisplay->setCursor(x0+1,y0);
-        pDisplay->println(bold);
+        pDisplay->println(second);
         // value
         pDisplay->setFont(&FreeSans12pt7b);
         pDisplay->setTextSize(1);
