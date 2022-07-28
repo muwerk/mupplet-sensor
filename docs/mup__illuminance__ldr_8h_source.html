@@ -177,7 +177,7 @@ $(function() {
 <div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span> </div>
 <div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>    <span class="keywordtype">void</span> loop() {</div>
 <div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>        <span class="keywordflow">if</span> (bActive) {</div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>            <span class="keywordtype">double</span> val = analogRead(port) / (adRange - 1.0);</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>            <span class="keywordtype">double</span> val = 1.0 - (analogRead(port) / (adRange - 1.0));</div>
 <div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>            <span class="keywordflow">if</span> (illuminanceSensor.filter(&amp;val)) {</div>
 <div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>                ldrvalue = val;</div>
 <div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>                publishIlluminance();</div>
