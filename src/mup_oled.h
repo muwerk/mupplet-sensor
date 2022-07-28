@@ -441,6 +441,7 @@ class SensorDisplay {
                 if (formats[i]=='S') {
                     lastUpdates[i]=time(nullptr);
                     vals_init[i]=true;
+                    msgs[i]=msg;
                 }
             }
         }
@@ -468,7 +469,7 @@ class SensorDisplay {
                     msgs[i]=String(buf);                        
                 }
                 if (formats[i]=='S') {
-                    msgs[i]=msg;
+                    // already stored!
                 }
             } else {
                 msgs[i]="NaN";
