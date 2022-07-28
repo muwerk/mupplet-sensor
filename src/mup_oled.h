@@ -86,6 +86,7 @@ class SensorDisplay {
     String layout;
     String formats;
     double vals[4]={0,0,0,0};
+    String svals[4]={"", "", "", ""};
     double dirs[4]={0,0,0,0};
     bool vals_init[4]={false,false,false,false};
     time_t lastUpdates[4]={0,0,0,0};
@@ -441,15 +442,15 @@ class SensorDisplay {
                 if (formats[i]=='S') {
                     lastUpdates[i]=time(nullptr);
                     vals_init[i]=true;
-                    msgs[i]=msg;
+                    svals[i]=msg;
                 }
             }
         }
         for (uint8_t i=0; i<slots; i++) {
             if (vals_init[i]==true) {
-                if (formats[i]!='S') {
-                    // already stored, dont override!
-                    msgs[i]="?Format";
+                msgs[i]="?Format";
+                if (formats[i]=='S') {
+                    msgs[i]=svals[i];
                 }
                 if (formats[i]=='F') {
                     sprintf(buf,"%.1f",vals[i]);
