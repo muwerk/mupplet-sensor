@@ -19,7 +19,7 @@ The `mupplet-sensor` library consists of the following modules:
 
 <img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/dht22.png" align="right" width="7%" height="7%">
 
-* [mup_temphum_dht]TempHum_DOC] A mupplet for DHT22 temperature and humidity. See [DHT22 Applications Notes][TempHum_NOTES].
+* [mup_temphum_dht][TempHum_DOC] A mupplet for DHT22 temperature and humidity. See [DHT22 Applications Notes][TempHum_NOTES].
 
 <img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled.png" align="right" width="7%" height="7%">
 
