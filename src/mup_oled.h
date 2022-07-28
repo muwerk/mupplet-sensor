@@ -65,8 +65,9 @@ parameter to the object instantiation, "display" in the example above. The file 
 ```
 
 `layout` contains a string defining up to two lines separated by |, marking display-slots by `S` for string (message as-is), 
-or `F` for numbers with 1 formated for 1 decimal. Each line can have one (large display slot) or two (small slot) entries, 
-e.g.: `S|FF`. A single line (without '|') and one or two slots is valid too, e.g. `S` or `FF`. 
+or `I`,`F`,`D`,`T` for numbers with 0(int),1(float with 1 decimal),2(float with two decimals),3 formated decimals. 
+Each line can have one (large display slot) or two (small slot) entries, 
+e.g.: `S|FF`. A single line (without '|') and one or two slots is valid too, e.g. `S` or `FD`. 
 `topics` gives a list of MQTT topics that are going to be displayed. A layout `S|FF` has three display slots 
 (line 1: large string, line 2: two small numbers) and requires 3 topics and 3 captions. A topic starting with '!' creates an
 external MQTT subscription (which allows displaying values from external devices), while topics without starting '!' subscribe
@@ -162,12 +163,12 @@ class SensorDisplay {
             formats += " ";
         }
         for (unsigned int i=0; i<formats.length(); i++) {
-            if (formats[i]!='F' && formats[i]!='S' && formats[i]!=' ') {
+            if (" SIFDT".indexOf(formats[i])==-1) {
                 formats[i]='S';
 #ifdef USE_SERIAL_DBG
                 Serial.print("Unsupported formats string: ");
                 Serial.print(formats);
-                Serial.println(" should only contain 'F' for float, 'S' for string, or ' '.");
+                Serial.println(" should only contain 'I' for int, 'F' for single decimal, 'S' for string, 'D' for double decimals, 'T' for triple dec., or ' '.");
 #endif  // USE_SERIAL_DBG
             }
         }
@@ -419,7 +420,7 @@ class SensorDisplay {
 #endif
         for (uint8_t i=0; i<slots; i++) {
             if (topic==topics[i]) {
-                if (formats[i]=='F') {
+                if (formats[i]=='F' || formats[i]=='I' || formats[i]=='D' || formats[i]=='T') {
                     vals[i]=msg.toFloat();
                     lastUpdates[i]=time(nullptr);
                     if (vals_init[i]==false) {
@@ -446,6 +447,18 @@ class SensorDisplay {
                     if (formats[i]=='F') {
                         sprintf(buf,"%.1f",vals[i]);
                         msgs[i]=String(buf);
+                    }
+                    if (formats[i]=='D') {
+                        sprintf(buf,"%.2f",vals[i]);
+                        msgs[i]=String(buf);
+                    }
+                    if (formats[i]=='T') {
+                        sprintf(buf,"%.3f",vals[i]);
+                        msgs[i]=String(buf);
+                    }
+                    if (formats[i]=='I') {
+                        sprintf(buf,"%d",(int)vals[i]);
+                        msgs[i]=String(buf);                        
                     }
                     if (formats[i]=='S') {
                         msgs[i]=msg;
