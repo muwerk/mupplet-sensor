@@ -12,7 +12,7 @@ available through an MQTT server such as Mosquitto.
 
 The `mupplet-sensor` library consists of the following modules:
 
-<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/ldr.png" align="right" width="7%" height="7%">
+<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/ldr.png" align="right" width="5%" height="5%">
 
 * [mup_illuminance_ldr][IlluminanceLdr_DOC] The `IlluminanceLdr` mupplet implements a simple LDR
   connected to analog port. See [IlluminanceLdr Application Notes][IlluminanceLdr_NOTES].
