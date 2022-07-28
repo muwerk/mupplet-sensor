@@ -447,7 +447,10 @@ class SensorDisplay {
         }
         for (uint8_t i=0; i<slots; i++) {
             if (vals_init[i]==true) {
-                msgs[i]="?Format";
+                if (formats[i]!='S') {
+                    // already stored, dont override!
+                    msgs[i]="?Format";
+                }
                 if (formats[i]=='F') {
                     sprintf(buf,"%.1f",vals[i]);
                     msgs[i]=String(buf);
@@ -467,9 +470,6 @@ class SensorDisplay {
                 if (formats[i]=='P') {
                     sprintf(buf,"%d%%",(int)(vals[i]*100));
                     msgs[i]=String(buf);                        
-                }
-                if (formats[i]=='S') {
-                    // already stored!
                 }
             } else {
                 msgs[i]="NaN";
