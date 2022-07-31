@@ -321,20 +321,26 @@ class GfxPanel {
     ustd::Scheduler *pSched;
     ustd::Mqtt *pMqtt;
 
+    #define GFX_MAX_SLOTS 16
+    #define GFX_MAX_HIST 32
     uint8_t slots;
     String layout;
     String formats;
-    double vals[4]={0,0,0,0};
-    String svals[4]={"", "", "", ""};
-    double dirs[4]={0,0,0,0};
-    bool vals_init[4]={false,false,false,false};
-    time_t lastUpdates[4]={0,0,0,0};
+    double vals[GFX_MAX_SLOTS];
+    String svals[GFX_MAX_SLOTS];
+    double dirs[GFX_MAX_SLOTS];
+    bool vals_init[GFX_MAX_SLOTS];
+    time_t lastUpdates[GFX_MAX_SLOTS];
     ustd::array<String> topics;
     ustd::array<String> captions;
+    ustd::array<String> layouts;
+    uint16_t slotsX, slotsY;
     
-    #define HIST_CNT 30
-    double hists[4][HIST_CNT];
-    String valid_formats=" SIPFDT";
+    double hists[GFX_MAX_SLOTS][GFX_MAX_HIST];
+    String valid_formats=" SIPFDTG";
+    
+    String valid_formats_long=" SIPFDTG";
+    String valid_formats_small=" sipfdtg";
     char oldbuf[64]="";
         
     GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire, String locale="C"): 
@@ -387,82 +393,65 @@ class GfxPanel {
 
   private:
     void _init_theme() {
-        for (uint8_t i=0; i<4; i++) {
+        for (uint8_t i=0; i<GFX_MAX_SLOTS; i++) {
             captions[i]="room";
             topics[i]="some/topic";
             lastUpdates[i]=time(nullptr);
         }
-
-        String combined_layout=jf.readString(name+"/layout","FF|FF");
-        layout="";
         formats="";
-        bool layout_valid=true;
-        int ind = combined_layout.indexOf('|');
-        if (ind==-1) {
-            if (combined_layout.length()>2) {
-                layout_valid=false;
-            } else {
-                if (combined_layout.length()==1) {
-                    layout="L";
-                } else {
-                    layout="SS";
-                }
-                formats=layout;
-            }
-        } else {
-            String line1=combined_layout.substring(0,ind);
-            String line2=combined_layout.substring(ind+1);
-            if (line1.length()>2 || line2.length()>2) {
-                layout_valid=false;
-            } else {
-                if (line1.length()==1) {
-                    layout="L";
-                } else {
-                    layout="SS";
-                }
-                formats=line1;
-                layout+="|";
-                if (line2.length()==1) {
-                    layout+="L";
-                } else {
-                    layout+="SS";
-                }
-                formats+=line2;
-            }
-        }
-        if (!layout_valid || (layout!="SS|SS" && layout!="L|SS" && layout!="L|L" && layout !="SS|L" && layout != "L" && layout != "SS")) {
-            layout="SS|SS";
-#ifdef USE_SERIAL_DBG
-            Serial.print("Unsupported layout: ");
-            Serial.print(layout);
-            Serial.println(" please use (64x128 displays) 'SS|SS' or 'L|SS' or 'L|L' or 'SS|L' or (32x128 displays) 'L' or 'SS' ");
-#endif  // USE_SERIAL_DBG
-        }
-        while (formats.length()<4) {
-            formats += " ";
-        }
-        for (unsigned int i=0; i<formats.length(); i++) {
-            if (valid_formats.indexOf(formats[i])==-1) {
-                formats[i]='S';
-#ifdef USE_SERIAL_DBG
-                Serial.print("Unsupported formats string: ");
-                Serial.print(formats);
-                Serial.println(" should only contain 'I' for int, 'F' for single decimal, 'S' for string, 'D' for double decimals, 'T' for triple dec., or ' '.");
-#endif  // USE_SERIAL_DBG
-            }
-        }
-
+        layout="";
+        String empty="";
         jf.readStringArray(name+"/topics", topics);
         jf.readStringArray(name+"/captions", captions);
-        slots=topics.length();
-        if (captions.length()<slots) {
-            slots=captions.length();
+        if (topics.length() != captions.length()) {
 #ifdef USE_SERIAL_DBG
-                Serial.print("Error: fewer captions than topics, reducing!");
+                Serial.print("Error: captions length and topics length does not match!");
 #endif  // USE_SERIAL_DBG
+            while (topics.length() < captions.length()) captions.add(empty);
+        }
+        slotsX=resX%64;
+        slotsY=resY%32;
+        slots=0;
+ 
+        String combined_layout=jf.readString(name+"/layout","ff|ff");
+        bool layout_valid=true;
+        bool parsing=true;
+        String line="";
+        while (parsing) {
+            int ind = combined_layout.indexOf('|');
+            if (ind==-1) {
+                line=combined_layout;
+                combined_layout="";
+            } else {
+                line=combined_layout.substring(0,ind);
+                combined_layout=combined_layout.substring(ind+1);
+            }
+            for (char c : line) {
+                if (valid_formats_small.indexOf(c)==-1 && valid_formats_long.indexOf(c)==-1) {
+                    layout_valid=false;
+                    parsing=false;
+                    break;
+                } else {
+                    ind=valid_formats_small.indexOf(c);
+                    if (ind!=-1) {
+                        c=valid_formats_long[ind];
+                        layout+="S";
+                    } else {
+                        layout+="L";
+                    }
+                    formats+=c;
+                    ++slots;
+                }
+            }
+            if (!layout_valid) break;
+            if (combined_layout!="") {
+                layout+="|";
+            } else {
+                parsing=false;
+            }
         }
     }
-  
+
     void _sensorLoop() {
         const char *weekDays[]={"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
         const char *wochenTage[]={"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
@@ -533,11 +522,14 @@ class GfxPanel {
                 }
             }
         }
-    }
+#ifdef USE_SERIAL_DBG
+        Serial.print("Layout: ");
+        Serial.print(layout);
+        Serial.print(" formats: ");
+        Serial.println(formats);
+#endif  // USE_SERIAL_DBG
 
-    uint16_t Rgb565(uint8_t red, uint8_t green, uint8_t blue) {
-        return (((red & 0xf8)<<8) + ((green & 0xfc)<<3)+(blue>>3));
-    } 
+    }
 
   private:
     void drawArrow(uint16_t x, uint16_t y, bool up=true, uint16_t len=8, uint16_t wid=3, int16_t delta_down=0) {
@@ -560,33 +552,15 @@ class GfxPanel {
         }
     }
 
-    void updateCell(uint8_t index, String msg, String caption, double arrowDir=0.0, bool large=false) {
+    void updateCell(uint8_t slotX, uint8_t slotY, String msg, double hist[], String caption, double arrowDir=0.0, bool large=false) {
         uint8_t x0=0, y0=0, x1=0, y1=0, xa=0, ya=0;
         String bold;
-        switch (index) {
-            case 0:
-                x0=14; y0=3;
-                x1=14; y1=29;
-                xa=5; ya=14;
-                break;
-            case 1:
-                x0=78; y0=3;
-                x1=78; y1=29;
-                xa=69; ya=14;
-                break;
-            case 2:
-                x0=14; y0=36;
-                x1=14; y1=61;
-                xa=5; ya=45;
-                break;
-            case 3:
-                x0=78; y0=36;
-                x1=78; y1=61;
-                xa=69; ya=45;
-                break;
-            default:
-                break;
-        }
+        x0=slotX*64+14;
+        y0=slotY*32+3;
+        x1=slotX*64+14;
+        y1=slotY*32+29;
+        xa=slotX*64+5;
+        ya=slotY*32+14;
         // caption
         pDisplay->setFont();
         pDisplay->setTextColor(pDisplay->RGB(0xbb,0xbb,0xbb));
@@ -611,16 +585,32 @@ class GfxPanel {
         pDisplay->setCursor(x0+1,y0);
         pDisplay->println(second);
         // value
-        pDisplay->setTextColor(pDisplay->RGB(0xff,0xff,0xff));
-        pDisplay->setFont(&FreeSans12pt7b);
-        pDisplay->setTextSize(1);
-        pDisplay->setCursor(x1,y1);
-        pDisplay->println(msg);
-        pDisplay->setCursor(x1+1,y1);
-        pDisplay->println(msg);
-        // arrow
-        if (arrowDir != 0.0) {
-            drawArrow(xa,ya,(arrowDir>0.0),8,3,7);
+        if (msg!="graph") {
+            pDisplay->setFont(&FreeSans12pt7b);
+            pDisplay->setTextColor(pDisplay->RGB(0xff,0xff,0xff));
+            pDisplay->setTextSize(1);
+            pDisplay->setCursor(x1,y1);
+            pDisplay->println(msg);
+            pDisplay->setCursor(x1+1,y1);
+            pDisplay->println(msg);
+            // arrow
+            if (arrowDir != 0.0) {
+                drawArrow(xa,ya,(arrowDir>0.0),8,3,7);
+            }
+        } else {
+            double min=100000, max=-100000;
+            for (uint16_t x=0; x<GFX_MAX_HIST; x++) {
+                if (hist[x]>max) max=hist[x];
+                if (hist[x]<min) min=hist[x];
+            }
+            double delta=max-min;
+            if (delta<0.0001) delta=1;
+            uint8_t m;
+            if (large) m=2;
+            else m=1;
+            for (uint16_t x=1; x<GFX_MAX_HIST; x++) {
+                pDisplay->drawLine(x1+x*m-m,y1-(hist[x-1]-min)/delta*19,x1+x*m,y1-(hist[x]-min)/delta*19,pDisplay->RGB(0xff,0,0));
+            }
         }
     }
 
@@ -629,67 +619,39 @@ class GfxPanel {
         bool updated=false;
         pDisplay->clearDisplay();
         uint32_t lineColor = pDisplay->RGB(0x80,0x80,0x80);
-        if (layout=="L|L") {
-            pDisplay->drawLine(0,0,127,0, lineColor);
-            updateCell(0, msgs[0], captions[0], dirs[0], true);
-            pDisplay->drawLine(0,33,127,33, lineColor);
-            updateCell(2, msgs[1], captions[1], dirs[1], true);
-            pDisplay->drawLine(0,63,127,63, lineColor);
-            updated=true;
+        uint8_t sx, sy, ind, ly;
+        sx=0, sy=0; ind=0, ly=0;
+        pDisplay->drawLine(0,ly,resX-1,ly, lineColor);
+        for (char c : layout) {
+            switch (c) {
+                case 'L':
+                    updateCell(sx,sy, msgs[ind], hists[ind], captions[ind], dirs[ind], true);
+                    sx+=2;
+                    ++ind;
+                    updated=true;
+                    break;
+                case 'S':
+                    updateCell(sx,sy, msgs[ind], hists[ind], captions[ind], dirs[ind], false);
+                    updated=true;
+                    sx+=1;
+                    ++ind;
+                    break;
+                case '|':
+                    sx=0;
+                    sy+=1;
+                    ly+=32;
+                    pDisplay->drawLine(0,ly,resX-1,ly, lineColor);
+                    break;
+                default:
+                    break;
+            }
         }
-        if (layout=="SS|L") {
-            pDisplay->drawLine(0,0,127,0, lineColor);
-            updateCell(0, msgs[0], captions[0], dirs[0], false);
-            updateCell(1, msgs[1], captions[1], dirs[1], false);
-            pDisplay->drawLine(0,33,127,33, lineColor);
-            updateCell(2, msgs[2], captions[2], dirs[2], true);
-            pDisplay->drawLine(0,63,127,63, lineColor);
-            updated=true;
-        }
-        if (layout=="L|SS") {
-            pDisplay->drawLine(0,0,127,0, lineColor);
-            updateCell(0, msgs[0], captions[0], dirs[0], true);
-            pDisplay->drawLine(0,33,127,33, lineColor);
-            updateCell(2, msgs[1], captions[1], dirs[1], false);
-            updateCell(3, msgs[2], captions[2], dirs[2], false);
-            pDisplay->drawLine(0,63,127,63, lineColor);
-            updated=true;
-        }
-        if (layout=="SS|SS") {
-            pDisplay->drawLine(0,0,127,0, lineColor);
-            updateCell(0, msgs[0], captions[0], dirs[0], false);
-            updateCell(1, msgs[1], captions[1], dirs[1], false);
-            pDisplay->drawLine(0,33,127,33, lineColor);
-            updateCell(2, msgs[2], captions[2], dirs[2], false);
-            updateCell(3, msgs[3], captions[3], dirs[3], false);
-            pDisplay->drawLine(0,63,127,63, lineColor);
-            updated=true;
-        }
-        if (layout=="SS") {
-            // pDisplay->drawLine(0,0,127,0, lineColor);
-            updateCell(0, msgs[0], captions[0], dirs[0], false);
-            updateCell(1, msgs[1], captions[1], dirs[1], false);
-            // pDisplay->drawLine(0,33,127,33, lineColor);
-            // updateCell(2, msgs[2], captions[2], dirs[2], true);
-            // pDisplay->drawLine(0,63,127,63, lineColor);
-            updated=true;
-        }
-        if (layout=="L") {
-            // pDisplay->drawLine(0,0,127,0, lineColor);
-            updateCell(0, msgs[0], captions[0], dirs[0], true);
-            // updateCell(1, msgs[1], captions[1], dirs[1], false);
-            // pDisplay->drawLine(0,33,127,33, lineColor);
-            // updateCell(2, msgs[2], captions[2], dirs[2], true);
-            // pDisplay->drawLine(0,63,127,63, lineColor);
-            updated=true;
-        }
+        ly+=32;
+        if (ly==resY) --ly;
+        pDisplay->drawLine(0,ly,resX-1,ly, lineColor);
+
         if (updated) {
             pDisplay->display();
-        } else {
-#ifdef USE_SERIAL_DBG
-            Serial.print("Can't draw unsupported layout: ");
-            Serial.println(layout);
-#endif            
         }
     }
 
@@ -703,15 +665,15 @@ class GfxPanel {
 #endif
         for (uint8_t i=0; i<slots; i++) {
             if (topic==topics[i]) {
-                String valid_numbers="IPFDT";
+                String valid_numbers="IPFDTG";
                 if (valid_numbers.indexOf(formats[i])!= -1) {
                     vals[i]=msg.toFloat();
                     lastUpdates[i]=time(nullptr);
                     if (vals_init[i]==false) {
-                        for (uint8_t j=0; j<HIST_CNT; j++) hists[i][j]=vals[i];
+                        for (uint8_t j=0; j<GFX_MAX_HIST; j++) hists[i][j]=vals[i];
                     } else {
-                        for (uint8_t j=0; j<HIST_CNT-1; j++) hists[i][j]=hists[i][j+1];
-                        hists[i][HIST_CNT-1]=vals[i];
+                        for (uint8_t j=0; j<GFX_MAX_HIST-1; j++) hists[i][j]=hists[i][j+1];
+                        hists[i][GFX_MAX_HIST-1]=vals[i];
                     }
                     vals_init[i]=true;
                     dirs[i]=vals[i]-hists[i][0];
@@ -748,6 +710,9 @@ class GfxPanel {
                 if (formats[i]=='P') {
                     sprintf(buf,"%d%%",(int)(vals[i]*100));
                     msgs[i]=String(buf);                        
+                }
+                if (formats[i]=='G') {
+                    msgs[i]=String("graph");
                 }
             } else {
                 msgs[i]="NaN";
