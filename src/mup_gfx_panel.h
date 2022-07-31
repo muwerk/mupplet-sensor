@@ -363,12 +363,12 @@ class GfxPanel {
         name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin), rstPin(rstPin), locale(locale)
         /*!
         @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
-        @param displayType A DisplayDriver DisplayType, e.g. GfxDrivers::DisplayType:::SSD1306, GfxDrivers::DisplayType:::ST7735.
+        @param displayType A DisplayDriver DisplayType, e.g. GfxDrivers::DisplayType::SSD1306, GfxDrivers::DisplayType::ST7735.
         @param resX Horizontal resolution.
         @param resY Vertical resolution.
-        @param cs_pin CS Pin for SPI.
-        @param dc_pin DC Pin for SPI.
-        @param rst_pin RST Pin for SPI. (default unused, -1)
+        @param csPin CS Pin for SPI.
+        @param dcPin DC Pin for SPI.
+        @param rstPin RST Pin for SPI. (default unused, -1)
         @param locale Locale for date strings, current 'C' (default) or 'DE'.
         */
     {   
