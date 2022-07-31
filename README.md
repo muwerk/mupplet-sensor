@@ -12,14 +12,18 @@ available through an MQTT server such as Mosquitto.
 
 The `mupplet-sensor` library consists of the following modules:
 
-<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/ldr.png" align="right" width="7%" height="7%">
+<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/ldr.png" align="right" width="5%" height="5%">
 
-* [IlluminanceLdr][IlluminanceLdr_DOC] The `IlluminanceLdr` mupplet implements a simple LDR
+* [mup_illuminance_ldr][IlluminanceLdr_DOC] The `IlluminanceLdr` mupplet implements a simple LDR
   connected to analog port. See [IlluminanceLdr Application Notes][IlluminanceLdr_NOTES].
+
+<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/dht22.png" align="right" width="7%" height="7%">
+
+* [mup_temphum_dht][TempHum_DOC] A mupplet for DHT22 temperature and humidity. See [DHT22 Applications Notes][TempHum_NOTES].
 
 <img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled.png" align="right" width="7%" height="7%">
 
-* [Oled][Oled_DOC] The `Oled` mupplet allows to display 2-4 sensor values on an Oled display. 
+* [mup_oled][Oled_DOC] The `Oled` mupplet allows to display 2-4 sensor values on an Oled display. 
   The values displayed can either be generated locally or imported via MQTT. A JSON file discribes
   format and data sources. See [Oled Application Notes][Oled_NOTES].
 
@@ -70,6 +74,8 @@ References
 
 [IlluminanceLdr_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1IlluminanceLdr.html
 [IlluminanceLdr_NOTES]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/illuminance-ldr-notes.md
+[TempHum_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1TempHumDHT.html
+[TempHum_Notes]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/temphum-dht-notes.md
 [Oled_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1SensorDisplay.html
 [Oled_NOTES]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled-notes.md
 
