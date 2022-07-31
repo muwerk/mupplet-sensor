@@ -342,8 +342,8 @@ class GfxPanel {
         /*!
         @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
         @param displayType A GfxDrivers::DisplayType, e.g. GfxDrivers::DisplayType::SSD1306, GfxDrivers::DisplayType::ST7735.
-        @param xRes Horizontal resolution.
-        @param yRes Vertical resolution.
+        @param resX Horizontal resolution.
+        @param resY Vertical resolution.
         @param i2cAddress I2C address of display
         @param pWire Pointer to a TwoWire I2C structure, default is &Wire.
         @param locale Locale for date strings, current 'C' (default) or 'DE'.
@@ -364,8 +364,8 @@ class GfxPanel {
         /*!
         @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
         @param displayType A DisplayDriver DisplayType, e.g. GfxDrivers::DisplayType:::SSD1306, GfxDrivers::DisplayType:::ST7735.
-        @param xRes Horizontal resolution.
-        @param yRes Vertical resolution.
+        @param resX Horizontal resolution.
+        @param resY Vertical resolution.
         @param cs_pin CS Pin for SPI.
         @param dc_pin DC Pin for SPI.
         @param rst_pin RST Pin for SPI. (default unused, -1)
