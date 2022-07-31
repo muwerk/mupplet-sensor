@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['illuminanceldr_0',['IlluminanceLdr',['../classustd_1_1IlluminanceLdr.html',1,'ustd']]]
+  ['gfxpanel_0',['GfxPanel',['../classustd_1_1GfxPanel.html',1,'ustd']]]
 ];

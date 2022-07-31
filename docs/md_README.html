@@ -71,13 +71,17 @@ $(function() {
 <p >**mu**werk a**pplet**s; mupplets: functional units that support specific hardware or reusable applications.</p>
 <p ><b>mupplets</b> use muwerks MQTT-style messaging to pass information between each other on the same device. If connected to an MQTT-server via munet, all functionallity is externally available through an MQTT server such as Mosquitto.</p>
 <p >The <code>mupplet-sensor</code> library consists of the following modules:</p>
-<p ><img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/ldr.png" alt="" align="right" width="7%" height="7%" class="inline"/></p>
+<p ><img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/ldr.png" alt="" align="right" width="5%" height="5%" class="inline"/></p>
 <ul>
-<li><a href="https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1IlluminanceLdr.html">IlluminanceLdr</a> The <code>IlluminanceLdr</code> mupplet implements a simple LDR connected to analog port. See <a href="https://github.com/muwerk/mupplet-sensor/blob/master/extras/illuminance-ldr-notes.md">IlluminanceLdr Application Notes</a>.</li>
+<li><a href="https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1IlluminanceLdr.html">mup_illuminance_ldr</a> The <code>IlluminanceLdr</code> mupplet implements a simple LDR connected to analog port. See <a href="https://github.com/muwerk/mupplet-sensor/blob/master/extras/illuminance-ldr-notes.md">IlluminanceLdr Application Notes</a>.</li>
+</ul>
+<p ><img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/dht22.png" alt="" align="right" width="7%" height="7%" class="inline"/></p>
+<ul>
+<li><a href="https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1TempHumDHT.html">mup_temphum_dht</a> A mupplet for DHT22 temperature and humidity. See <a href="https://github.com/muwerk/mupplet-sensor/blob/master/extras/temphum-dht-notes.md">DHT22 Applications Notes</a>.</li>
 </ul>
 <p ><img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled.png" alt="" align="right" width="7%" height="7%" class="inline"/></p>
 <ul>
-<li><a href="https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1SensorDisplay.html">Oled</a> The <code>Oled</code> mupplet allows to display 2-4 sensor values on an Oled display. The values displayed can either be generated locally or imported via MQTT. A JSON file discribes format and data sources. See <a href="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled-notes.md">Oled Application Notes</a>.</li>
+<li><a href="https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1SensorDisplay.html">mup_oled</a> The <code>Oled</code> mupplet allows to display 2-4 sensor values on an Oled display. The values displayed can either be generated locally or imported via MQTT. A JSON file discribes format and data sources. See <a href="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled-notes.md">Oled Application Notes</a>.</li>
 </ul>
 <h2>Dependencies </h2>
 <ul>
