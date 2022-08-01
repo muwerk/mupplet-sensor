@@ -134,20 +134,20 @@ class PressTempBMP280 {
                     I2C_READ_REQUEST_FAILED,I2C_CALIBRATION_READ_FAILURE};
     enum BMPSensorState {UNAVAILABLE, IDLE, TEMPERATURE_WAIT, PRESSURE_WAIT, WAIT_NEXT_MEASUREMENT};
     
-    /*! Hardware accuracy modes of BMP280 */
+    /*! Hardware accuracy modes of BMP280, while the sensor can have different pressure- and temperature oversampling, we use same for both temp and press. */
     enum BMPSampleMode {
-                        ULTRA_LOW_POWER=0,       ///< 1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec, 0.06 RMS noise typ. [hPA]
-                        LOW_POWER=1,         ///< 2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS noise typ. [hPA]
-                        STANDARD=2,              ///< 2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS noise typ. [hPA]
-                        HIGH_RESOLUTION=3,       ///< 4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec, 0.04 RMS noise typ. [hPA]
-                        ULTRA_HIGH_RESOLUTION=4  ///< 8 samples, 25.5ms conversion time, 12uA current at 1 sample/sec, 0.03 RMS noise typ. [hPA]
+                        ULTRA_LOW_POWER=1,       ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature oversampling: x1
+                        LOW_POWER=2,             ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature oversampling: x1
+                        STANDARD=3,              ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature oversampling: x1
+                        HIGH_RESOLUTION=4,       ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1
+                        ULTRA_HIGH_RESOLUTION=5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
                         };
     BMPError lastError;
     BMPSensorState sensorState;
     unsigned long errs=0;
     unsigned long oks=0;
     unsigned long pollRateUs = 2000000;
-    uint16_t oversampleMode=2; // 0..3, see BMPSampleMode.
+    uint16_t oversampleMode=3; // 1..5, see BMPSampleMode.
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     #define MUP_BMP_INVALID_ALTITUDE -1000000.0
     double referenceAltitudeMeters;
@@ -525,12 +525,16 @@ class PressTempBMP280 {
         bool newData=false;
         uint16_t rt;
         uint32_t rp;
-        unsigned long convTimeOversampling[4]={4500, 7500, 13500, 25500}; // sample time dependent on oversample-mode for pressure.
+        uint8_t reg_adr, reg_data;
+        const uint8_t measure_mode_register=0xf4;
+        const uint8_t _register=0xf5;
         switch (sensorState) {
             case BMPSensorState::UNAVAILABLE:
                 break;
             case BMPSensorState::IDLE:
-                if (!i2c_writeRegisterByte(0xf4,0x2e)) {
+                reg_adr=0xf4; // CMD register
+                reg_data=(oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x3;  // 0x3: normal mode
+                if (!i2c_writeRegisterByte(reg_adr, reg_data)) {
                     ++errs;
                     sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock=micros();
@@ -586,48 +590,48 @@ class PressTempBMP280 {
         return newData;
     }
 
-    bool calibrateRawData() {
-        // Temperature
-        int32_t x1=(((uint32_t)rawTemperature-(uint32_t)CD_AC6)*(uint32_t)CD_AC5) >> 15;
-        int32_t x2=((int32_t)CD_MC << 11)/(x1+(int32_t)CD_MD);
-        int32_t b5 = x1+x2;
-        calibratedTemperature = ((double)b5+8.0)/160.0;
-        // Pressure
-        int32_t b6=b5-(int32_t)4000;
-        x1=((int32_t)CD_B2*((b6*b6) >> 12)) >> 11;
-        x2=((int32_t)CD_AC2*b6) >> 11;
-        int32_t x3 = x1+x2;
-        int32_t b3 = ((((int32_t)CD_AC1*4L+x3) << oversampleMode) + 2L)/4;
-        
-        //char msg[128];
-        //sprintf(msg,"x1=%d,x2=%d, x3=%d,b3=%d,rt=%d,rp=%d",x1,x2,x3,b3,rawTemperature,rawPressure);
-        //pSched->publish("myBMP280/sensor/debug1",msg);
+    // From BOSCH datasheet BMA150 data sheet Rev. 1.4
+    // Returns temperature in DegC, double precision. Output value of “51.23” equals 51.23 DegC.
+    // t_fine carries fine temperature used by pressure
+    //int32_t t_fine;
+    double bmp280_compensate_T_double(int32_t adc_T, int32_t *pt_fine) {
+        double var1, var2, T;
+        var1 = (((double)adc_T)/16384.0 – ((double)dig_T1)/1024.0) * ((double)dig_T2);
+        var2 = ((((double)adc_T)/131072.0 – ((double)dig_T1)/8192.0) *
+        (((double)adc_T)/131072.0 – ((double) dig_T1)/8192.0)) * ((double)dig_T3);
+        *pt_fine = (int32_t)(var1 + var2);
+        T = (var1 + var2) / 5120.0;
+        return T;
+    }
 
-        x1=((int32_t)CD_AC3*b6) >> 13;
-        x2=((int32_t)CD_B1*((b6*b6) >> 12)) >> 16;
-        x3=((x1+x2)+2) >> 2;
-        uint32_t b4=((uint32_t)CD_AC4*(uint32_t)(x3+(uint32_t) 32768)) >> 15;
-        uint32_t b7=((uint32_t)rawPressure-b3)*((uint32_t)50000>>oversampleMode);
-        
-        //sprintf(msg,"x1=%d,x2=%d, x3=%d,b4=%u,b7=%u",x1,x2,x3,b4,b7);
-        //pSched->publish("myBMP280/sensor/debug2",msg);
-
-        int32_t p;
-        if (b7<(uint32_t)0x80000000) {
-            p=(b7*2)/b4;
-        } else {
-            p=(b7/b4)*2;
+    // From BOSCH datasheet BMA150 data sheet Rev. 1.4
+    // Returns pressure in Pa as double. Output value of “96386.2” equals 96386.2 Pa = 963.862 hPa
+    double bmp280_compensate_P_double(int32_t adc_P, int32_t t_fine) {
+        double var1, var2, p;
+        var1 = ((double)t_fine/2.0) – 64000.0;
+        var2 = var1 * var1 * ((double)dig_P6) / 32768.0;
+        var2 = var2 + var1 * ((double)dig_P5) * 2.0;
+        var2 = (var2/4.0)+(((double)dig_P4) * 65536.0);
+        var1 = (((double)dig_P3) * var1 * var1 / 524288.0 + ((double)dig_P2) * var1) / 524288.0;
+        var1 = (1.0 + var1 / 32768.0)*((double)dig_P1);
+        if (var1 == 0.0) {
+            return 0; // avoid exception caused by division by zero
         }
-        x1=(p >> 8) * (p >> 8);
-        x1=(x1*(int32_t)3038)>>16;
-        x2=(((int32_t)-7357)*p) >> 16;
+        p = 1048576.0 – (double)adc_P;
+        p = (p – (var2 / 4096.0)) * 6250.0 / var1;
+        var1 = ((double)dig_P9) * p * p / 2147483648.0;
+        var2 = p * ((double)dig_P8) / 32768.0;
+        p = p + (var1 + var2 + ((double)dig_P7)) / 16.0;
+        return p;
+    }
 
-        int32_t cp=p+ ((x1+x2+(int32_t)3791) >> 4);
-        
-        //sprintf(msg,"x1=%d,x2=%d,p=%d,cp=%d",x1,x2,p,cp);
-        //pSched->publish("myBMP280/sensor/debug3",msg);
 
-        calibratedPressure=cp/100.0; // hPa;
+    bool calibrateRawData() {
+        uint32_t t_fine;
+        // Temperature
+        calibratedTemperature = bmp280_compensate_T_double(rawTemperature, &t_fine);
+        // Pressure
+        calibratedPressure= bmp280_compensate_P_double(rawPressure, t_fine);
         return true;
     }
 
