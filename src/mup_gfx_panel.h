@@ -622,7 +622,7 @@ class GfxPanel {
                     if (ly1==ly0) col=pDisplay->RGB(0xc0,0xc0,0xc0);
                     else col=pDisplay->RGB(0x80,0x80,0xff);
                 }
-                pDisplay->drawLine(lx0, ly0, lx1, ly1, pDisplay->RGB(0xff,0xff,0xff));
+                pDisplay->drawLine(lx0, ly0, lx1, ly1, col);
             }
         }
     }
