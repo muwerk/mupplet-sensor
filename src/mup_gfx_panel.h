@@ -609,15 +609,14 @@ class GfxPanel {
             }
             double deltaY=max-min;
             if (deltaY<0.0001) deltaY=1;
-            double deltaX=(xm1-xm0)/(double)(GFX_MAX_HIST);
+            double deltaX=(double)(xm1-xm0)/(double)(GFX_MAX_HIST);
             int lx0,ly0,lx1,ly1;
-            int gHeight=(ym1-ym0)-8; // font size of caption.
+            int gHeight=(ym1-ym0)-11; // font size of caption.
             for (uint16_t i=1; i<GFX_MAX_HIST; i++) {
-                lx0=(int)((double)(i-1)*deltaX); lx1=(int)((double)i*deltaX);
-                ly0=ym0-(hist[i-1]-min)/deltaY*(gHeight);
-                ly1=ym0-(hist[i]-min)/deltaY*(gHeight);
-                pDisplay->drawLine(lx0, ly0, lx1, ly1, pDisplay->RGB(0x30,0x30,0x30));
-                //pDisplay->drawLine(x1+x*m-m,y1-(hist[x-1]-min)/delta*19,x1+x*m,y1-(hist[x]-min)/delta*19,pDisplay->RGB(0xff,0,0));
+                lx0=xm0+(int)((double)(i-1)*deltaX); lx1=xm0+(int)((double)i*deltaX);
+                ly0=ym1-(int)((hist[i-1]-min)/deltaY*(double)(gHeight));
+                ly1=ym1-(int)((hist[i]-min)/deltaY*(double)(gHeight));
+                pDisplay->drawLine(lx0, ly0, lx1, ly1, pDisplay->RGB(0xff,0xff,0xff));
             }
         }
     }
