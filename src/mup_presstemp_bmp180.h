@@ -695,10 +695,10 @@ class PressTempBMP180 {
         }
         if (topic == name + "/sensor/oversampling/set") {
             if (msg == "ULTRA_LOW_POWER") {
-                setSampleMode(BMPSampleMode::ULTRA_HIGH_RESOLUTION);
+                setSampleMode(BMPSampleMode::ULTRA_LOW_POWER);
             } else {
                 if (msg == "STANDARD") {
-                    setSampleMode(BMPSampleMode::ULTRA_HIGH_RESOLUTION);
+                    setSampleMode(BMPSampleMode::STANDARD);
                 } else {
                     if (msg == "HIGH_RESOLUTION") {
                         setSampleMode(BMPSampleMode::HIGH_RESOLUTION);
