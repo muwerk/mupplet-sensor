@@ -16,7 +16,7 @@ class GfxDrivers {
         ST7735
         };
     enum BusType {
-        GPIBUS,
+        GPIOBUS,
         I2CBUS,
         SPIBUS
     };
@@ -288,18 +288,17 @@ parameter to the object instantiation, "display1" or "display2" in the example a
 
 ```json
 {
-    "layout": "S|FF",
+    "layout": "S|ff",
     "topics": ["clock/timeinfo", "!hastates/sensor/temperature/state", "!hastates/sensor/netatmo_temperature2/state"],
     "captions": ["Time", "Out C", "Studio C"],
 }
 ```
 
-`layout` contains a string defining up to two lines separated by |, marking display-slots by `S` for string (message as-is), 
-or `I` (int),`P`(val * 100 as %),`F` (one decimal float),`D` (two decimals),`T` (three decimals) for numbers. 
-Each line can have one (large display slot) or two (small slot) entries, 
-e.g.: `S|FF`. A single line (without '|') and one or two slots is valid too, e.g. `S` or `FD`. 
-`topics` gives a list of MQTT topics that are going to be displayed. A layout `S|FF` has three display slots 
-(line 1: large string, line 2: two small numbers) and requires 3 topics and 3 captions. A topic starting with '!' creates an
+`layout` contains a string defining 1-n lines separated by |, marking display-slots by `S` for string (message as-is), 
+or `I` (int),`P`(val * 100 as %),`F` (one decimal float),`D` (two decimals),`T` (three decimals) for numbers, `G` for graphical plot.
+Uppercase letters generate a 64x32 slot, lowercase letters generate a 32x32 slot.
+`topics` gives a list of MQTT topics that are going to be displayed. A layout `S|ff|G` has four display slots 
+(line 1: large string, line 2: two small numbers), line 3: large plot and requires 4 topics and 4 captions. A topic starting with '!' creates an
 external MQTT subscription (which allows displaying values from external devices), while topics without starting '!' subscribe
 to device-local messages only via muwerk's scheduler.
 A special topic `clock/timeinfo` is provided by this mupplet and displays day of week and time.
@@ -322,7 +321,7 @@ class GfxPanel {
     ustd::Mqtt *pMqtt;
 
     #define GFX_MAX_SLOTS 16
-    #define GFX_MAX_HIST 32
+    #define GFX_MAX_HIST 48
     uint8_t slots;
     String layout;
     String formats;
@@ -554,6 +553,7 @@ class GfxPanel {
 
     void updateCell(uint8_t slotX, uint8_t slotY, String msg, double hist[], String caption, double arrowDir=0.0, bool large=false) {
         uint8_t x0=0, y0=0, x1=0, y1=0, xa=0, ya=0;
+        uint8_t xm0, ym0, xm1,ym1;
         String bold;
         x0=slotX*64+14;
         y0=slotY*32+3;
@@ -561,6 +561,10 @@ class GfxPanel {
         y1=slotY*32+29;
         xa=slotX*64+5;
         ya=slotY*32+14;
+        xm0=slotX*64+1;
+        ym0=slotY*32+1;
+        xm1=(slotX+1)*64-2; if (large) xm1+=64;
+        ym1=(slotY+1)*32-2;
         // caption
         pDisplay->setFont();
         pDisplay->setTextColor(pDisplay->RGB(0xbb,0xbb,0xbb));
@@ -603,13 +607,17 @@ class GfxPanel {
                 if (hist[x]>max) max=hist[x];
                 if (hist[x]<min) min=hist[x];
             }
-            double delta=max-min;
-            if (delta<0.0001) delta=1;
-            uint8_t m;
-            if (large) m=2;
-            else m=1;
-            for (uint16_t x=1; x<GFX_MAX_HIST; x++) {
-                pDisplay->drawLine(x1+x*m-m,y1-(hist[x-1]-min)/delta*19,x1+x*m,y1-(hist[x]-min)/delta*19,pDisplay->RGB(0xff,0,0));
+            double deltaY=max-min;
+            if (deltaY<0.0001) deltaY=1;
+            double deltaX=(xm1-xm0)/(double)(GFX_MAX_HIST);
+            int lx0,ly0,lx1,ly1;
+            int gHeight=(ym1-ym0)-8; // font size of caption.
+            for (uint16_t i=1; i<GFX_MAX_HIST; i++) {
+                lx0=(int)((double)(i-1)*deltaX); lx1=(int)((double)i*deltaX);
+                ly0=ym0-(hist[i-1]-min)/deltaY*(gHeight);
+                ly1=ym0-(hist[i]-min)/deltaY*(gHeight);
+                pDisplay->drawLine(lx0, ly0, lx1, ly1, pDisplay->RGB(0x30,0x30,0x30));
+                //pDisplay->drawLine(x1+x*m-m,y1-(hist[x-1]-min)/delta*19,x1+x*m,y1-(hist[x]-min)/delta*19,pDisplay->RGB(0xff,0,0));
             }
         }
     }
