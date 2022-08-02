@@ -9,6 +9,8 @@ mupplet-sensor implements the following classes based on the cooperative schedul
 
 * * \ref ustd::IlluminanceLdr
 * * \ref ustd::PressTempBMP180
+* * \ref ustd::PressTempBMP280
+* * \ref ustd::PressTempHumBME280
 * * \ref ustd::TempHumDHT
 * * \ref ustd::SensorDisplay
 
