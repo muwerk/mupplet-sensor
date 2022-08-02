@@ -235,19 +235,21 @@ class PressTempBMP280 {
     }
 
     bool initBmpSensorConstants() {
-        if (!i2c_readRegisterWord(0x88,(uint16_t*)&dig_T1)) return false;
-        if (!i2c_readRegisterWord(0x8A,(uint16_t*)&dig_T2)) return false;
-        if (!i2c_readRegisterWord(0x8C,(uint16_t*)&dig_T3)) return false;
-        if (!i2c_readRegisterWord(0x8E,(uint16_t*)&dig_P1)) return false;
-        if (!i2c_readRegisterWord(0x90,(uint16_t*)&dig_P2)) return false;
-        if (!i2c_readRegisterWord(0x92,(uint16_t*)&dig_P3)) return false;
-        if (!i2c_readRegisterWord(0x94,(uint16_t*)&dig_P4)) return false;
-        if (!i2c_readRegisterWord(0x96,(uint16_t*)&dig_P5)) return false;
-        if (!i2c_readRegisterWord(0x98,(uint16_t*)&dig_P6)) return false;
-        if (!i2c_readRegisterWord(0x9A,(uint16_t*)&dig_P7)) return false;
-        if (!i2c_readRegisterWord(0x9C,(uint16_t*)&dig_P8)) return false;
-        if (!i2c_readRegisterWord(0x9E,(uint16_t*)&dig_P9)) return false;
-        //if (!i2c_readRegisterWord(0xA0,(uint16_t*)&dig_reserved)) return false;
+        // Bosch made a long, winded paragraph about calibration data, 
+        // but didn't manage to mention that this uses the other endianness :-/ .
+        if (!i2c_readRegisterWordLE(0x88,(uint16_t*)&dig_T1)) return false;
+        if (!i2c_readRegisterWordLE(0x8A,(uint16_t*)&dig_T2)) return false;
+        if (!i2c_readRegisterWordLE(0x8C,(uint16_t*)&dig_T3)) return false;
+        if (!i2c_readRegisterWordLE(0x8E,(uint16_t*)&dig_P1)) return false;
+        if (!i2c_readRegisterWordLE(0x90,(uint16_t*)&dig_P2)) return false;
+        if (!i2c_readRegisterWordLE(0x92,(uint16_t*)&dig_P3)) return false;
+        if (!i2c_readRegisterWordLE(0x94,(uint16_t*)&dig_P4)) return false;
+        if (!i2c_readRegisterWordLE(0x96,(uint16_t*)&dig_P5)) return false;
+        if (!i2c_readRegisterWordLE(0x98,(uint16_t*)&dig_P6)) return false;
+        if (!i2c_readRegisterWordLE(0x9A,(uint16_t*)&dig_P7)) return false;
+        if (!i2c_readRegisterWordLE(0x9C,(uint16_t*)&dig_P8)) return false;
+        if (!i2c_readRegisterWordLE(0x9E,(uint16_t*)&dig_P9)) return false;
+        //if (!i2c_readRegisterWordLE(0xA0,(uint16_t*)&dig_reserved)) return false;
         dig_reserved=0xffff; // Don't try to read.
         return true;
     }
@@ -270,22 +272,45 @@ class PressTempBMP280 {
         lastError=i2c_checkAddress(i2c_address);
         if (lastError==BMPError::OK) {
             if (!i2c_readRegisterByte(0xd0, &data)) { // 0xd0: chip-id register
+#ifdef USE_SERIAL_DBG
+                Serial.print("Failed to inquire BMP280 chip-id at address 0x");
+                Serial.println(i2c_address, HEX);
+#endif
                 bActive=false;
             } else {
                 if (data==0x58) { // 0x58: signature of BMP280
                     if (!initBmpSensorConstants()) {
+#ifdef USE_SERIAL_DBG
+                        Serial.print("Failed to read calibration data for sensor BMP280 at address 0x");
+                        Serial.println(i2c_address, HEX);
+#endif
                         lastError=BMPError::I2C_CALIBRATION_READ_FAILURE;
                         bActive = false;
                     } else {
+#ifdef USE_SERIAL_DBG
+                        Serial.print("BMP280 sensor active at address 0x");
+                        Serial.println(i2c_address, HEX);
+#endif
                         sensorState=BMPSensorState::IDLE;
                         bActive=true;
                     }
                 } else {
+#ifdef USE_SERIAL_DBG
+                    Serial.print("Wrong hardware (not BMP280) found at address 0x");
+                    Serial.print(i2c_address, HEX);
+                    Serial.print(" chip-id is ");
+                    Serial.print(data, HEX);
+                    Serial.println(" expected: 0x58 for BMP280.");
+#endif
                     lastError=BMPError::I2C_WRONG_HARDWARE_AT_ADDRESS;
                     bActive = false;
                 }
             }
         } else {
+#ifdef USE_SERIAL_DBG
+            Serial.print("No BMP280 sensor found at address 0x");
+            Serial.println(i2c_address, HEX);
+#endif
             bActive = false;
         }
     }
@@ -406,6 +431,26 @@ class PressTempBMP280 {
         }
         uint8_t hb=pWire->read();
         uint8_t lb=pWire->read();
+        uint16_t data=(hb<<8) | lb;
+        *pData=data;
+        return true;
+    }
+    
+    bool i2c_readRegisterWordLE(uint8_t reg, uint16_t* pData) {
+        *pData=(uint16_t)-1;
+        pWire->beginTransmission(i2c_address);
+        if (pWire->write(&reg,1)!=1) {
+            lastError=BMPError::I2C_REGISTER_WRITE_ERROR;
+            return false;
+        }
+        if (i2c_endTransmission(true)==false) return false;
+        uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)2,(uint8_t)true);
+        if (read_cnt!=2) {
+            lastError=I2C_READ_REQUEST_FAILED;
+            return false;
+        }
+        uint8_t lb=pWire->read();
+        uint8_t hb=pWire->read();
         uint16_t data=(hb<<8) | lb;
         *pData=data;
         return true;
@@ -573,11 +618,12 @@ class PressTempBMP280 {
                     stateMachineClock=micros();
                     break;
                 } 
+                status = status & 0x09;
                 if (timeDiff(stateMachineClock,micros()) > 1 && status==0) { // 1ms for meas, no status set.
                     rt=0; rp=0;
-                    if (i2c_readRegisterTripple(temperature_registers,&rt) && i2c_readRegisterTripple(pressure_registers, &rp) {
-                        rawTemperature=rt>>3;
-                        rawPressure=rp>>3;
+                    if (i2c_readRegisterTripple(temperature_registers,&rt) && i2c_readRegisterTripple(pressure_registers, &rp)) {
+                        rawTemperature=rt>>4;
+                        rawPressure=rp>>4;
                         sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
                         stateMachineClock=micros();
                         ++oks;
@@ -587,7 +633,7 @@ class PressTempBMP280 {
                         sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
                         stateMachineClock=micros();
                     }
-                }
+                } 
                 break;
             case BMPSensorState::WAIT_NEXT_MEASUREMENT:
                 if (timeDiff(stateMachineClock,micros()) > pollRateUs) {
@@ -606,7 +652,7 @@ class PressTempBMP280 {
         double var1, var2, T;
         var1 = (((double)adc_T)/16384.0 - ((double)dig_T1)/1024.0) * ((double)dig_T2);
         var2 = ((((double)adc_T)/131072.0 - ((double)dig_T1)/8192.0) *
-        (((double)adc_T)/131072.0 - ((double) dig_T1)/8192.0)) * ((double)dig_T3);
+        (((double)adc_T)/131072.0 - ((double)dig_T1)/8192.0)) * ((double)dig_T3);
         *pt_fine = (int32_t)(var1 + var2);
         T = (var1 + var2) / 5120.0;
         return T;
@@ -635,11 +681,11 @@ class PressTempBMP280 {
 
 
     bool calibrateRawData() {
-        uint32_t t_fine;
+        int32_t t_fine;
         // Temperature
         calibratedTemperature = bmp280_compensate_T_double(rawTemperature, &t_fine);
         // Pressure
-        calibratedPressure= bmp280_compensate_P_double(rawPressure, t_fine);
+        calibratedPressure= bmp280_compensate_P_double(rawPressure, t_fine)/100.0;
         return true;
     }
 
@@ -730,6 +776,7 @@ class PressTempBMP280 {
             }
         }
     }
+
 };  // PressTempBMP
 
 }  // namespace ustd
