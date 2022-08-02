@@ -617,7 +617,7 @@ class GfxPanel {
                 ly0=ym1-(int)((hist[i-1]-min)/deltaY*(double)(gHeight));
                 ly1=ym1-(int)((hist[i]-min)/deltaY*(double)(gHeight));
                 uint32_t col;
-                if (ly1>ly0) col=pDisplay->RGB(0xff,0x80,0x80);
+                if (ly1<ly0) col=pDisplay->RGB(0xff,0x80,0x80);
                 else {
                     if (ly1==ly0) col=pDisplay->RGB(0xc0,0xc0,0xc0);
                     else col=pDisplay->RGB(0x80,0x80,0xff);
