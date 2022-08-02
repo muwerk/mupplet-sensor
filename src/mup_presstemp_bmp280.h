@@ -149,7 +149,7 @@ class PressTempBMP280 {
     unsigned long pollRateUs = 2000000;
     uint16_t oversampleMode=3; // 1..5, see BMPSampleMode.
     uint16_t oversampleModePressure=3;
-    uinit16_t oversampleModeTemperature=1;
+    uint16_t oversampleModeTemperature=1;
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     #define MUP_BMP_INVALID_ALTITUDE -1000000.0
     double referenceAltitudeMeters;
@@ -405,7 +405,7 @@ class PressTempBMP280 {
             return false;
         }
         uint8_t hb=pWire->read();
-uint8_t :lb=pWire->read();
+        uint8_t lb=pWire->read();
         uint16_t data=(hb<<8) | lb;
         *pData=data;
         return true;
@@ -535,7 +535,7 @@ uint8_t :lb=pWire->read();
         bool newData=false;
         uint32_t rt;
         uint32_t rp;
-        uint8_t reg_adr, reg_data;
+        uint8_t reg_data;
         const uint8_t status_register=0xf3;
         const uint8_t measure_mode_register=0xf4;
         const uint8_t config_register=0xf5;
@@ -604,9 +604,9 @@ uint8_t :lb=pWire->read();
     //int32_t t_fine;
     double bmp280_compensate_T_double(int32_t adc_T, int32_t *pt_fine) {
         double var1, var2, T;
-        var1 = (((double)adc_T)/16384.0 – ((double)dig_T1)/1024.0) * ((double)dig_T2);
-        var2 = ((((double)adc_T)/131072.0 – ((double)dig_T1)/8192.0) *
-        (((double)adc_T)/131072.0 – ((double) dig_T1)/8192.0)) * ((double)dig_T3);
+        var1 = (((double)adc_T)/16384.0 - ((double)dig_T1)/1024.0) * ((double)dig_T2);
+        var2 = ((((double)adc_T)/131072.0 - ((double)dig_T1)/8192.0) *
+        (((double)adc_T)/131072.0 - ((double) dig_T1)/8192.0)) * ((double)dig_T3);
         *pt_fine = (int32_t)(var1 + var2);
         T = (var1 + var2) / 5120.0;
         return T;
@@ -616,7 +616,7 @@ uint8_t :lb=pWire->read();
     // Returns pressure in Pa as double. Output value of “96386.2” equals 96386.2 Pa = 963.862 hPa
     double bmp280_compensate_P_double(int32_t adc_P, int32_t t_fine) {
         double var1, var2, p;
-        var1 = ((double)t_fine/2.0) – 64000.0;
+        var1 = ((double)t_fine/2.0) - 64000.0;
         var2 = var1 * var1 * ((double)dig_P6) / 32768.0;
         var2 = var2 + var1 * ((double)dig_P5) * 2.0;
         var2 = (var2/4.0)+(((double)dig_P4) * 65536.0);
@@ -625,8 +625,8 @@ uint8_t :lb=pWire->read();
         if (var1 == 0.0) {
             return 0; // avoid exception caused by division by zero
         }
-        p = 1048576.0 – (double)adc_P;
-        p = (p – (var2 / 4096.0)) * 6250.0 / var1;
+        p = 1048576.0 - (double)adc_P;
+        p = (p - (var2 / 4096.0)) * 6250.0 / var1;
         var1 = ((double)dig_P9) * p * p / 2147483648.0;
         var2 = p * ((double)dig_P8) / 32768.0;
         p = p + (var1 + var2 + ((double)dig_P7)) / 16.0;
