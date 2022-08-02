@@ -16,11 +16,11 @@ namespace ustd {
 // clang - format off
 /*! \brief mupplet-sensor temperature and pressure with Bosch BME280
 
-The mup_presstemp_bme280 mupplet measures temperature and pressure using BME280 sensor.
+The mup_presstemp_bme280 mupplet measures temperature, pressure, and humity using the BME280 sensor.
 
 This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.
 
-#### Messages sent by presstemp_bme280 mupplet:
+#### Messages sent by presstemphum_bme280 mupplet:
 
 messages are prefixed by `omu/<hostname>`:
 
@@ -67,7 +67,7 @@ For a complete examples see the `muwerk/examples` project.
 #include "net.h"
 #include "mqtt.h"
 
-#include "mup_presstemp_bme280.h"
+#include "mup_presstemphum_bme280.h"
 
 void appLoop();
 
@@ -75,7 +75,7 @@ ustd::Scheduler sched(10, 16, 32);
 ustd::Net net(LED_BUILTIN);
 ustd::Mqtt mqtt;
 
-ustd::PressTempBME280 bme("myBME280");
+ustd::PressTempHumBME280 bme("myBME280");
 
 void sensorUpdates(String topic, String msg, String originator) {
     // data is in topic, msg
@@ -92,7 +92,7 @@ void setup() {
 
     // sensors start measuring pressure and temperature
     bme.setReferenceAltitude(518.0); // 518m above NN, now we also receive PressureNN values for sea level.
-    bme.begin(&sched, ustd::PressTempBME280::BMESampleMode::ULTRA_HIGH_RESOLUTION);
+    bme.begin(&sched, ustd::PressTempHumBME280::BMESampleMode::ULTRA_HIGH_RESOLUTION);
 
     sched.subscribe(tID, "myBME280/sensor/temperature", sensorUpdates);
 }
@@ -108,7 +108,7 @@ void loop() {
 */
 
 // clang-format on
-class PressTempBME280 {
+class PressTempHumBME280 {
   private:
     String BME280_VERSION = "0.1.0";
     Scheduler *pSched;
@@ -167,7 +167,7 @@ class PressTempBME280 {
     ustd::sensorprocessor humiditySensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive=false;
 
-    PressTempBME280(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address=0x76)
+    PressTempHumBME280(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address=0x76)
         : name(name), filterMode(filterMode), i2c_address(i2c_address) {
         /*! Instantiate an BME sensor mupplet
         @param name Name used for pub/sub messages
@@ -182,7 +182,7 @@ class PressTempBME280 {
         setFilterMode(filterMode, true);
     }
 
-    ~PressTempBME280() {
+    ~PressTempHumBME280() {
     }
 
     void setReferenceAltitude(double _referenceAltitudeMeters) {
@@ -845,6 +845,6 @@ class PressTempBME280 {
         }
     }
 
-};  // PressTempBME
+};  // PressTempHumBME
 
 }  // namespace ustd
