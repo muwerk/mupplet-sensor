@@ -648,10 +648,10 @@ $(function() {
 <div class="line"><a id="l00695" name="l00695"></a><span class="lineno">  695</span>        }</div>
 <div class="line"><a id="l00696" name="l00696"></a><span class="lineno">  696</span>        <span class="keywordflow">if</span> (topic == name + <span class="stringliteral">&quot;/sensor/oversampling/set&quot;</span>) {</div>
 <div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span>            <span class="keywordflow">if</span> (msg == <span class="stringliteral">&quot;ULTRA_LOW_POWER&quot;</span>) {</div>
-<div class="line"><a id="l00698" name="l00698"></a><span class="lineno">  698</span>                setSampleMode(BMPSampleMode::ULTRA_HIGH_RESOLUTION);</div>
+<div class="line"><a id="l00698" name="l00698"></a><span class="lineno">  698</span>                setSampleMode(BMPSampleMode::ULTRA_LOW_POWER);</div>
 <div class="line"><a id="l00699" name="l00699"></a><span class="lineno">  699</span>            } <span class="keywordflow">else</span> {</div>
 <div class="line"><a id="l00700" name="l00700"></a><span class="lineno">  700</span>                <span class="keywordflow">if</span> (msg == <span class="stringliteral">&quot;STANDARD&quot;</span>) {</div>
-<div class="line"><a id="l00701" name="l00701"></a><span class="lineno">  701</span>                    setSampleMode(BMPSampleMode::ULTRA_HIGH_RESOLUTION);</div>
+<div class="line"><a id="l00701" name="l00701"></a><span class="lineno">  701</span>                    setSampleMode(BMPSampleMode::STANDARD);</div>
 <div class="line"><a id="l00702" name="l00702"></a><span class="lineno">  702</span>                } <span class="keywordflow">else</span> {</div>
 <div class="line"><a id="l00703" name="l00703"></a><span class="lineno">  703</span>                    <span class="keywordflow">if</span> (msg == <span class="stringliteral">&quot;HIGH_RESOLUTION&quot;</span>) {</div>
 <div class="line"><a id="l00704" name="l00704"></a><span class="lineno">  704</span>                        setSampleMode(BMPSampleMode::HIGH_RESOLUTION);</div>

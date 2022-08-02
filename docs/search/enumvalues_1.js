@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['standard_0',['STANDARD',['../classustd_1_1PressTempBMP180.html#a732c2d9886254f6b8d38fb2b83e52bdca4ffc6499f528379da080c220e513b6b8',1,'ustd::PressTempBMP180']]]
+  ['low_5fpower_0',['LOW_POWER',['../classustd_1_1PressTempBMP280.html#a51e0d414796b5b9676ef2af665441cf7a670dba23a41d5b38069f49343db504d7',1,'ustd::PressTempBMP280::LOW_POWER()'],['../classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6eca60dc7cafc6cb1064343f0f527463e0e7',1,'ustd::PressTempHumBME280::LOW_POWER()']]]
 ];

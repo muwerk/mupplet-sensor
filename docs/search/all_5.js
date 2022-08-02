@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['presstempbmp180_0',['PressTempBMP180',['../classustd_1_1PressTempBMP180.html#af7cc64209615cc79708def9112a4d3ab',1,'ustd::PressTempBMP180::PressTempBMP180()'],['../classustd_1_1PressTempBMP180.html',1,'ustd::PressTempBMP180']]]
+  ['mupplet_2dsensor_20is_20a_20collection_20of_20hardware_20sensor_20applets_20for_20the_20muwerk_20scheduler_0',['mupplet-sensor is a collection of hardware sensor applets for the muwerk scheduler',['../index.html',1,'']]]
 ];

@@ -591,7 +591,7 @@ $(function() {
 <div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>                ly0=ym1-(int)((hist[i-1]-min)/deltaY*(double)(gHeight));</div>
 <div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>                ly1=ym1-(int)((hist[i]-min)/deltaY*(double)(gHeight));</div>
 <div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>                uint32_t col;</div>
-<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>                <span class="keywordflow">if</span> (ly1&gt;ly0) col=pDisplay-&gt;RGB(0xff,0x80,0x80);</div>
+<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>                <span class="keywordflow">if</span> (ly1&lt;ly0) col=pDisplay-&gt;RGB(0xff,0x80,0x80);</div>
 <div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>                <span class="keywordflow">else</span> {</div>
 <div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span>                    <span class="keywordflow">if</span> (ly1==ly0) col=pDisplay-&gt;RGB(0xc0,0xc0,0xc0);</div>
 <div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span>                    <span class="keywordflow">else</span> col=pDisplay-&gt;RGB(0x80,0x80,0xff);</div>
