@@ -50,8 +50,8 @@ Need to be prefixed by `<hostname>/`:
 | `<mupplet-name>/sensor/relativealtitude/set` | - | Save current pressureNN values as reference, start generating relative altitude-change messages, requires reference altitude to be set |
 | `<mupplet-name>/sensor/relativealtitude/get` | - | Get current altitude in comparison to the set reference and an altitude delta in meters |
 | `<mupplet-name>/sensor/calibrationdata/get` | - | Causes current values to be sent. |
-| `<mupplet-name>/sensor/oversampling/get` | - | Returns samplemode: `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` |
-| `<mupplet-name>/sensor/oversampling/set` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Set internal sensor oversampling mode |
+| `<mupplet-name>/sensor/oversampling/get` | - | Returns samplemode: `ULTRA_LOW_POWER`, `LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` |
+| `<mupplet-name>/sensor/oversampling/set` | `ULTRA_LOW_POWER`, `LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Set internal sensor oversampling mode |
 | `<mupplet-name>/sensor/mode/get` | - | Returns filterMode: `FAST`, `MEDIUM`, or `LONGTERM` |
 | `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set external additional filter values |
 
@@ -132,7 +132,7 @@ class PressTempBMP280 {
                     I2C_VALUE_WRITE_ERROR, I2C_WRITE_DATA_TOO_LONG, I2C_WRITE_NACK_ON_ADDRESS, 
                     I2C_WRITE_NACK_ON_DATA, I2C_WRITE_ERR_OTHER, I2C_WRITE_TIMEOUT, I2C_WRITE_INVALID_CODE,
                     I2C_READ_REQUEST_FAILED,I2C_CALIBRATION_READ_FAILURE};
-    enum BMPSensorState {UNAVAILABLE, IDLE, TEMPERATURE_WAIT, PRESSURE_WAIT, WAIT_NEXT_MEASUREMENT};
+    enum BMPSensorState {UNAVAILABLE, IDLE, MEASUREMENT_WAIT, WAIT_NEXT_MEASUREMENT};
     
     /*! Hardware accuracy modes of BMP280, while the sensor can have different pressure- and temperature oversampling, we use same for both temp and press. */
     enum BMPSampleMode {
@@ -148,6 +148,8 @@ class PressTempBMP280 {
     unsigned long oks=0;
     unsigned long pollRateUs = 2000000;
     uint16_t oversampleMode=3; // 1..5, see BMPSampleMode.
+    uint16_t oversampleModePressure=3;
+    uinit16_t oversampleModeTemperature=1;
     enum FilterMode { FAST, MEDIUM, LONGTERM };
     #define MUP_BMP_INVALID_ALTITUDE -1000000.0
     double referenceAltitudeMeters;
@@ -224,6 +226,12 @@ class PressTempBMP280 {
 
     void setSampleMode(BMPSampleMode _sampleMode) {
         oversampleMode=(uint16_t)_sampleMode;
+        oversampleModePressure=oversampleMode;
+        if (oversampleModePressure==BMPSampleMode::ULTRA_HIGH_RESOLUTION) {
+            oversampleModeTemperature=2;  // as per datasheet recommendations.
+        } else {
+            oversampleModeTemperature=1;
+        }
     }
 
     bool initBmpSensorConstants() {
@@ -239,16 +247,18 @@ class PressTempBMP280 {
         if (!i2c_readRegisterWord(0x9A,(uint16_t*)&dig_P7)) return false;
         if (!i2c_readRegisterWord(0x9C,(uint16_t*)&dig_P8)) return false;
         if (!i2c_readRegisterWord(0x9E,(uint16_t*)&dig_P9)) return false;
-        if (!i2c_readRegisterWord(0xA0,(uint16_t*)&dig_reserved)) return false;
+        //if (!i2c_readRegisterWord(0xA0,(uint16_t*)&dig_reserved)) return false;
+        dig_reserved=0xffff; // Don't try to read.
         return true;
     }
 
     void begin(Scheduler *_pSched, BMPSampleMode _sampleMode=BMPSampleMode::STANDARD, TwoWire *_pWire=&Wire) {
         pSched = _pSched;
-        setSampleMode(_sampleMode);
         pWire=_pWire;
         uint8_t data;
 
+        setSampleMode(_sampleMode);
+        
         auto ft = [=]() { this->loop(); };
         tID = pSched->add(ft, name, 500);  // 500us
 
@@ -395,7 +405,7 @@ class PressTempBMP280 {
             return false;
         }
         uint8_t hb=pWire->read();
-        uint8_t lb=pWire->read();
+uint8_t :lb=pWire->read();
         uint16_t data=(hb<<8) | lb;
         *pData=data;
         return true;
@@ -523,57 +533,55 @@ class PressTempBMP280 {
 
     bool sensorStateMachine() {
         bool newData=false;
-        uint16_t rt;
+        uint32_t rt;
         uint32_t rp;
         uint8_t reg_adr, reg_data;
+        const uint8_t status_register=0xf3;
         const uint8_t measure_mode_register=0xf4;
-        const uint8_t _register=0xf5;
+        const uint8_t config_register=0xf5;
+        const uint8_t temperature_registers=0xfa;
+        const uint8_t pressure_registers=0xf7;
+        uint8_t status;
+        uint8_t normalmodeInactivity=0, IIRfilter=0; // not used.
         switch (sensorState) {
             case BMPSensorState::UNAVAILABLE:
                 break;
             case BMPSensorState::IDLE:
-                reg_adr=0xf4; // CMD register
-                reg_data=(oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x3;  // 0x3: normal mode
-                if (!i2c_writeRegisterByte(reg_adr, reg_data)) {
+                reg_data=(normalmodeInactivity<<5) + (IIRfilter << 2) + 0;
+                if (!i2c_writeRegisterByte(config_register, reg_data)) {
+                    ++errs;
+                    sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
+                    stateMachineClock=micros();
+                    break;
+                }
+                reg_data=(oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x1;  // 0x3: normal mode, 0x1 one-shot
+                if (!i2c_writeRegisterByte(measure_mode_register, reg_data)) {
                     ++errs;
                     sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock=micros();
                     break;
                 } else {  // Start temperature read
-                    sensorState=BMPSensorState::TEMPERATURE_WAIT;
+                    sensorState=BMPSensorState::MEASUREMENT_WAIT;
                     stateMachineClock=micros();
                 }
                 break;
-            case BMPSensorState::TEMPERATURE_WAIT:
-                if (timeDiff(stateMachineClock,micros()) > 4500) { // 4.5ms for temp meas.
-                    rt=0;
-                    if (i2c_readRegisterWord(0xf6,&rt)) {
-                        rawTemperature=rt;
-                        uint8_t cmd=0x34 | (oversampleMode<<6);
-                        if (!i2c_writeRegisterByte(0xf4,cmd)) {
-                            ++errs;
-                            sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
-                            stateMachineClock=micros();
-                        } else {
-                            sensorState=BMPSensorState::PRESSURE_WAIT;
-                            stateMachineClock=micros();
-                        }
-                    } else {
-                        ++errs;
+            case BMPSensorState::MEASUREMENT_WAIT:
+                if (!i2c_readRegisterByte(status_register, &status)) {
+                    // no status
+                    ++errs;
+                    sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
+                    stateMachineClock=micros();
+                    break;
+                } 
+                if (timeDiff(stateMachineClock,micros()) > 1 && status==0) { // 1ms for meas, no status set.
+                    rt=0; rp=0;
+                    if (i2c_readRegisterTripple(temperature_registers,&rt) && i2c_readRegisterTripple(pressure_registers, &rp) {
+                        rawTemperature=rt>>3;
+                        rawPressure=rp>>3;
                         sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
                         stateMachineClock=micros();
-                    }
-                }
-                break;
-            case BMPSensorState::PRESSURE_WAIT:
-                if (timeDiff(stateMachineClock,micros()) > convTimeOversampling[oversampleMode]) { // Oversamp. dep. for press meas.
-                    rp=0;
-                    if (i2c_readRegisterTripple(0xf6,&rp)) {
-                        rawPressure=rp >> (8-oversampleMode);
                         ++oks;
                         newData=true;
-                        sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
-                        stateMachineClock=micros();
                     } else {
                         ++errs;
                         sensorState=BMPSensorState::WAIT_NEXT_MEASUREMENT;
