@@ -142,7 +142,6 @@ class GammaGDK101 {
         */
         lastError=GDKError::UNDEFINED;
         sensorState=GDKSensorState::UNAVAILABLE;
-        lastDisplayUpdate=0;
         setFilterMode(filterMode, true);
     }
 

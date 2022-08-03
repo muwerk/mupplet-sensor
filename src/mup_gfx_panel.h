@@ -480,7 +480,7 @@ class GfxPanel {
                 vals_init[i]=false;
             }
         }
-        if (delayedUpdate) {
+        if (delayedUpdate && timeDiff(lastRefresh, micros())>800000L) {
             lastRefresh=0;
             delayedUpdate=false;
             updateDisplay();
@@ -639,7 +639,7 @@ class GfxPanel {
 
     void updateDisplay() {
         String bold;
-        if (timeDiff(lastRefresh, micros()) < 1000000L) {
+        if (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L) {
             delayedUpdate=true;
             return;
         }
@@ -687,6 +687,7 @@ class GfxPanel {
     // This is called on Sensor-update events
     void sensorUpdates(String topic, String msg, String originator) {
         char buf[64];
+        bool changed;
 #ifdef USE_SERIAL_DBG
         Serial.print("sensorUpdates ");
         Serial.println(msg);
@@ -713,40 +714,49 @@ class GfxPanel {
                 }
             }
         }
+        changed=false;
         for (uint8_t i=0; i<slots; i++) {
             if (vals_init[i]==true) {
                 msgs[i]="?Format";
                 if (formats[i]=='S') {
+                    if (msgs[i]!=svals[i]) changed=true;
                     msgs[i]=svals[i];
                 }
                 if (formats[i]=='F') {
                     sprintf(buf,"%.1f",vals[i]);
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);
                 }
                 if (formats[i]=='D') {
                     sprintf(buf,"%.2f",vals[i]);
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);
                 }
                 if (formats[i]=='T') {
                     sprintf(buf,"%.3f",vals[i]);
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);
                 }
                 if (formats[i]=='I') {
                     sprintf(buf,"%d",(int)vals[i]);
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);                        
                 }
                 if (formats[i]=='P') {
                     sprintf(buf,"%d%%",(int)(vals[i]*100));
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);                        
                 }
                 if (formats[i]=='G') {
                     msgs[i]=String("graph");
+                    changed=true;
                 }
             } else {
                 msgs[i]="NaN";
+                changed=true;
             }
         }
-        updateDisplay();
+        if (changed) updateDisplay();
     }
 
 }; // SensorDisplay
