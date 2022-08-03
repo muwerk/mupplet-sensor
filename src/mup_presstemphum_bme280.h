@@ -1,4 +1,4 @@
-// mup_presstemp_bme280.h
+// mup_presstemphum_bme280.h
 #pragma once
 
 #ifndef tiny_twi_h
@@ -16,7 +16,7 @@ namespace ustd {
 // clang - format off
 /*! \brief mupplet-sensor temperature and pressure with Bosch BME280
 
-The mup_presstemp_bme280 mupplet measures temperature, pressure, and humity using the BME280 sensor.
+The mup_presstemphum_bme280 mupplet measures temperature, pressure, and humity using the BME280 sensor.
 
 This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.
 
@@ -37,7 +37,7 @@ messages are prefixed by `omu/<hostname>`:
 | `<mupplet-name>/sensor/oversampling` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Internal sensor oversampling mode (sensor hardware) |
 | `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for sensor values, external, additional integration |
 
-#### Messages received by presstemp_bme280 mupplet:
+#### Messages received by presstemphum_bme280 mupplet:
 
 Need to be prefixed by `<hostname>/`:
 
