@@ -169,7 +169,7 @@ class GammaGDK101 {
         pWire->begin();  // required!
         // pWire->setClock(100000L);
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 500);  // 500us
+        tID = pSched->add(ft, name, 15000000);  // 500us
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
