@@ -333,7 +333,10 @@ class GfxPanel {
     ustd::array<String> topics;
     ustd::array<String> captions;
     ustd::array<String> layouts;
+    ustd::array<String> msgs;
     uint16_t slotsX, slotsY;
+    uint32_t lastRefresh;
+    bool delayedUpdate;
     
     double hists[GFX_MAX_SLOTS][GFX_MAX_HIST];
     String valid_formats=" SIPFDTG";
@@ -392,6 +395,8 @@ class GfxPanel {
 
   private:
     void _init_theme() {
+        lastRefresh=0;
+        delayedUpdate=false;
         for (uint8_t i=0; i<GFX_MAX_SLOTS; i++) {
             captions[i]="room";
             topics[i]="some/topic";
@@ -474,6 +479,11 @@ class GfxPanel {
             if (time(nullptr)-lastUpdates[i] > 3600) {
                 vals_init[i]=false;
             }
+        }
+        if (delayedUpdate) {
+            lastRefresh=0;
+            delayedUpdate=false;
+            updateDisplay();
         }
     }
 
@@ -627,8 +637,14 @@ class GfxPanel {
         }
     }
 
-    void updateDisplay(ustd::array<String> &msgs) {
+    void updateDisplay() {
         String bold;
+        if (timeDiff(lastRefresh, micros()) < 1000000L) {
+            delayedUpdate=true;
+            return;
+        }
+        lastRefresh=micros();
+        delayedUpdate=false;
         bool updated=false;
         pDisplay->clearDisplay();
         uint32_t lineColor = pDisplay->RGB(0x80,0x80,0x80);
@@ -670,7 +686,6 @@ class GfxPanel {
 
     // This is called on Sensor-update events
     void sensorUpdates(String topic, String msg, String originator) {
-        ustd::array<String> msgs;
         char buf[64];
 #ifdef USE_SERIAL_DBG
         Serial.print("sensorUpdates ");
@@ -731,7 +746,7 @@ class GfxPanel {
                 msgs[i]="NaN";
             }
         }
-        updateDisplay(msgs);
+        updateDisplay();
     }
 
 }; // SensorDisplay
