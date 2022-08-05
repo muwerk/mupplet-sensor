@@ -72,7 +72,12 @@ class GfxDrivers {
                 case DisplayType::ST7735:
                     pDisplayST=new Adafruit_ST7735(csPin, dcPin, rstPin); 
                     //pDisplayST->initR(INITR_BLACKTAB);
-                    pDisplayST->initR(INITR_144GREENTAB);   // 1.4" thingy?
+                    if (resX==128 && resY==128) {
+                        pDisplayST->initR(INITR_144GREENTAB);   // 1.4" thingy?
+                    }
+                    if (resX==160 && resY==128) {
+                        pDisplayST->initR(INITR_BLACKTAB);   // 1.8" thingy?
+                    }
                     pDisplayST->setTextWrap(false);
                     pDisplayST->fillScreen(ST77XX_BLACK);
                     pDisplayST->cp437(true);
