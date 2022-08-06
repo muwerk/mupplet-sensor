@@ -325,6 +325,25 @@ class GfxPanel {
     ustd::Scheduler *pSched;
     ustd::Mqtt *pMqtt;
 
+    enum SlotType {INT, FLOAT, DOUBLE, TRIPLE, PERCENT, STRING, GRAPH};
+    typedef struct t_slot {
+        bool isInit;
+        SlotType SlotType;
+        uint8_t slotLenX;
+        uint8_t slotLenY;
+        uint32_t color;
+        uint32_t bgColor;
+        String topic;
+        String caption;
+        uint16_t histLen;
+        uint32_t histDeltaMs;
+        double *pHist;
+        time_t lastUpdate;
+        double val;
+        String formatter;
+        String textRepr;
+        double deltaDir;
+    }
     #define GFX_MAX_SLOTS 16
     #define GFX_MAX_HIST 48
     uint8_t slots;
@@ -350,8 +369,8 @@ class GfxPanel {
     String valid_formats_small=" sipfdtg";
     char oldbuf[64]="";
         
-    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire, String locale="C"): 
-        name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire), locale(locale)
+    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire, String locale="C", String layout="", String topics[]={}, String captions[]={}): 
+        name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire), locale(locale), layout(layout), topics(topic), captions(captions)
         /*!
         @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
         @param displayType A GfxDrivers::DisplayType, e.g. GfxDrivers::DisplayType::SSD1306, GfxDrivers::DisplayType::ST7735.
