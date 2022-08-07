@@ -122,6 +122,7 @@ class GammaGDK101 {
                         };
     GDKError lastError;
     GDKSensorState sensorState;
+    bool disIrq=false;
     unsigned long errs=0;
     unsigned long oks=0;
     unsigned long pollRateUs = 2000000;
@@ -162,12 +163,15 @@ class GammaGDK101 {
         return gamma1minavgValue;
     }
 
-    void begin(Scheduler *_pSched, TwoWire *_pWire=&Wire) {
+    void begin(Scheduler *_pSched, TwoWire *_pWire=&Wire, bool forceSlowClock=false) {
         pSched = _pSched;
         pWire=_pWire;
 
         pWire->begin();  // required!
-        // pWire->setClock(100000L);
+        if (forceSlowClock) {
+            pWire->setClock(100000L);
+            disIrq=true;
+        }
         auto ft = [=]() { this->loop(); };
         tID = pSched->add(ft, name, 15000000);  // 500us
 
@@ -286,19 +290,23 @@ class GammaGDK101 {
         return true;
     }
 
-    bool i2c_readRegisterWord(uint8_t reg, uint16_t* pData, bool stop=true) {
+    bool i2c_readRegisterWord(uint8_t reg, uint16_t* pData, bool stop=true, bool allow_irqs=true) {
         *pData=(uint16_t)-1;
+        if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg,1)!=1) {
+            if (!allow_irqs) interrupts();
             lastError=GDKError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
         if (i2c_endTransmission(stop)==false) return false;
         uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)2,(uint8_t)true);
         if (read_cnt!=2) {
+            if (!allow_irqs) interrupts();
             lastError=I2C_READ_REQUEST_FAILED;
             return false;
         }
+        if (!allow_irqs) interrupts();
         uint8_t hb=pWire->read();
         uint8_t lb=pWire->read();
         uint16_t data=(hb<<8) | lb;
@@ -306,10 +314,12 @@ class GammaGDK101 {
         return true;
     }
     
-    bool i2c_readRegisterWordLE(uint8_t reg, uint16_t* pData) {
+    bool i2c_readRegisterWordLE(uint8_t reg, uint16_t* pData, bool allow_irqs=true) {
         *pData=(uint16_t)-1;
+        if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg,1)!=1) {
+            if (!allow_irqs) interrupts();
             lastError=GDKError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
@@ -317,8 +327,10 @@ class GammaGDK101 {
         uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)2,(uint8_t)true);
         if (read_cnt!=2) {
             lastError=I2C_READ_REQUEST_FAILED;
+            if (!allow_irqs) interrupts();
             return false;
         }
+        if (!allow_irqs) interrupts();
         uint8_t lb=pWire->read();
         uint8_t hb=pWire->read();
         uint16_t data=(hb<<8) | lb;
@@ -392,7 +404,7 @@ class GammaGDK101 {
 
     String getGDKFirmwareVersion() {
         uint16_t data;
-        if (!i2c_readRegisterWord(0xb4, &data)) { // version
+        if (!i2c_readRegisterWord(0xb4, &data, true, disIrq)) { // version
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to read version GDK101 at address 0x");
             Serial.print(i2c_address, HEX);
@@ -415,7 +427,7 @@ class GammaGDK101 {
 
     bool resetGDKSensor() {
         uint16_t data;
-        if (!i2c_readRegisterWord(0xa0, &data)) { // reset
+        if (!i2c_readRegisterWord(0xa0, &data, true, disIrq)) { // reset
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to reset GDK101 at address 0x");
             Serial.print(i2c_address, HEX);
@@ -451,7 +463,7 @@ class GammaGDK101 {
     bool readGDKSensorMeasurement(uint8_t reg, double *pMeas) {
         uint16_t data;
         *pMeas=0.0;
-        if (!i2c_readRegisterWord(reg, &data)) { // reset
+        if (!i2c_readRegisterWord(reg, &data, true, disIrq)) { // reset
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to read GDK101 at address 0x");
             Serial.print(i2c_address, HEX);
