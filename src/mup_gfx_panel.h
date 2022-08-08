@@ -358,7 +358,7 @@ class GfxPanel {
     ustd::array<String> captions;
     ustd::array<String> layouts;
     ustd::array<String> msgs;
-    uint16_t slotsX, slotsY;
+//    uint16_t slotsX, slotsY;
     uint32_t lastRefresh;
     bool delayedUpdate;
     
@@ -418,7 +418,7 @@ class GfxPanel {
     }
 
   private:
-    bool splitCombinedLayout(String combined_layout, String &layout, String &format, uint16_t &slots) {
+    bool splitCombinedLayout(String combined_layout) {
         bool layout_valid=true;
         bool parsing=true;
 
@@ -460,6 +460,13 @@ class GfxPanel {
                 parsing=false;
             }
         }
+
+        lastRefresh=0;
+        delayedUpdate=false;
+        for (uint8_t i=0; i<slots; i++) {
+            lastUpdates[i]=time(nullptr);
+        }
+
         return layout_valid;
     }
 
@@ -469,7 +476,7 @@ class GfxPanel {
         @return: True if config file was found and read, false otherwise.
         */
         String combined_layout=jf.readString(name+"/layout","ff|ff");
-        if (!splitCombinedLayout(combined_layout, layout, formats, slots)) {
+        if (!splitCombinedLayout(combined_layout)) {
             return false;
         }
         for (uint8_t i=0; i<slots; i++) {
@@ -493,7 +500,7 @@ class GfxPanel {
         @param combined_layout: The layout string, e.g. "ff|ff".
         @return: True if config file was found and read, false otherwise.
         */
-        if (!splitCombinedLayout(combined_layout, layout, formats, slots)) {
+        if (!splitCombinedLayout(combined_layout)) {
             return false;
         }
         if (topics.length() != captions.length() || topics.length() != slots) {
@@ -507,7 +514,7 @@ class GfxPanel {
 
 
     bool shortConfig2Slots(String combined_layout, uint16_t &slots, ustd::array<String> &topics, ustd::array<String> &captions, String &layout, String &formats) {
-        if (!splitCombinedLayout(combined_layout, layout, formats, slots)) {
+        if (!splitCombinedLayout(combined_layout)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Error: invalid layout");
 #endif
@@ -671,6 +678,7 @@ class GfxPanel {
 
         getConfigFromFS(name);
         commonBegin();
+        updateDisplay();
     }
 
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions) {
@@ -682,11 +690,16 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 
-        topics = _topics;
-        captions = _captions;
+        for (auto t : _topics) {
+            topics.add(t);
+        }
+        for (auto c : _captions) {
+            captions.add(c);
+        }
 
         getConfigFromLayout(name, combined_layout);
         commonBegin();
+        updateDisplay();
     }
 
   private:
@@ -839,6 +852,8 @@ class GfxPanel {
         bool changed;
 #ifdef USE_SERIAL_DBG
         Serial.print("sensorUpdates ");
+        Serial.print(topic);
+        Serial.print(" -> ");
         Serial.println(msg);
 #endif
         for (uint8_t i=0; i<slots; i++) {
