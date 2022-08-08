@@ -421,7 +421,6 @@ class GfxPanel {
     bool splitCombinedLayout(String combined_layout, String &layout, String &format, uint16_t &slots) {
         bool layout_valid=true;
         bool parsing=true;
-        uint16_t ind;
 
         formats="";
         layout="";
@@ -487,6 +486,25 @@ class GfxPanel {
         }
         return true;
     }
+
+    bool getConfigFromLayout(String name, String combined_layout) {
+        /*! Read config from FS.
+        @param name: The display's `name` and name of config file `name`.json.
+        @param combined_layout: The layout string, e.g. "ff|ff".
+        @return: True if config file was found and read, false otherwise.
+        */
+        if (!splitCombinedLayout(combined_layout, layout, formats, slots)) {
+            return false;
+        }
+        if (topics.length() != captions.length() || topics.length() != slots) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("Error: topics, captions and layout do not match");
+#endif
+            return false;
+        }
+        return true;
+    }
+
 
     bool shortConfig2Slots(String combined_layout, uint16_t &slots, ustd::array<String> &topics, ustd::array<String> &captions, String &layout, String &formats) {
         if (!splitCombinedLayout(combined_layout, layout, formats, slots)) {
@@ -652,6 +670,22 @@ class GfxPanel {
         pMqtt = _pMqtt;
 
         getConfigFromFS(name);
+        commonBegin();
+    }
+
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions) {
+        /*! Activate display and begin receiving MQTT updates for the display slots
+
+        @param _pSched Pointer to the muwerk scheduler
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
+        */
+        pSched = _pSched;
+        pMqtt = _pMqtt;
+
+        topics = _topics;
+        captions = _captions;
+
+        getConfigFromLayout(name, combined_layout);
         commonBegin();
     }
 
