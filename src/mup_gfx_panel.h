@@ -328,7 +328,7 @@ class GfxPanel {
     enum SlotType {INT, FLOAT, DOUBLE, TRIPLE, PERCENT, STRING, GRAPH};
     typedef struct t_slot {
         bool isInit;
-        SlotType SlotType;
+        SlotType slotType;
         uint8_t slotLenX;
         uint8_t slotLenY;
         uint32_t color;
@@ -343,10 +343,10 @@ class GfxPanel {
         String formatter;
         String textRepr;
         double deltaDir;
-    }
+    } T_SLOTS;
     #define GFX_MAX_SLOTS 16
     #define GFX_MAX_HIST 48
-    uint8_t slots;
+    uint16_t slots;
     String layout;
     String formats;
     double vals[GFX_MAX_SLOTS];
@@ -369,8 +369,8 @@ class GfxPanel {
     String valid_formats_small=" sipfdtg";
     char oldbuf[64]="";
         
-    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire, String locale="C", String layout="", String topics[]={}, String captions[]={}): 
-        name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire), locale(locale), layout(layout), topics(topic), captions(captions)
+    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire, String locale="C"): 
+        name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire), locale(locale)
         /*!
         @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
         @param displayType A GfxDrivers::DisplayType, e.g. GfxDrivers::DisplayType::SSD1306, GfxDrivers::DisplayType::ST7735.
@@ -388,7 +388,7 @@ class GfxPanel {
             default:
                 pDisplay=nullptr;
         }
-        _init_theme();
+        //_init_theme();
     }
 
     GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin, uint8_t dcPin, uint8_t rstPin=-1, String locale="C"):
@@ -411,13 +411,100 @@ class GfxPanel {
             default:
                 pDisplay=nullptr;
         }
-        _init_theme();
+        //_init_theme();
     }
 
     ~GfxPanel() {
     }
 
   private:
+    bool splitCombinedLayout(String combined_layout, String &layout, String &format, uint16_t &slots) {
+        bool layout_valid=true;
+        bool parsing=true;
+        uint16_t ind;
+
+        formats="";
+        layout="";
+        slots=0;
+        String line="";
+
+        while (parsing) {
+            int ind = combined_layout.indexOf('|');
+            if (ind==-1) {
+                line=combined_layout;
+                combined_layout="";
+            } else {
+                line=combined_layout.substring(0,ind);
+                combined_layout=combined_layout.substring(ind+1);
+            }
+            for (char c : line) {
+                if (valid_formats_small.indexOf(c)==-1 && valid_formats_long.indexOf(c)==-1) {
+                    layout_valid=false;
+                    parsing=false;
+                    break;
+                } else {
+                    ind=valid_formats_small.indexOf(c);
+                    if (ind!=-1) {
+                        c=valid_formats_long[ind];
+                        layout+="S";
+                    } else {
+                        layout+="L";
+                    }
+                    formats+=c;
+                    ++slots;
+                }
+            }
+            if (!layout_valid) break;
+            if (combined_layout!="") {
+                layout+="|";
+            } else {
+                parsing=false;
+            }
+        }
+        return layout_valid;
+    }
+
+    bool getConfigFromFS(String name) {
+        /*! Read config from FS.
+        @param name: The display's `name` and name of config file `name`.json.
+        @return: True if config file was found and read, false otherwise.
+        */
+        String combined_layout=jf.readString(name+"/layout","ff|ff");
+        if (!splitCombinedLayout(combined_layout, layout, formats, slots)) {
+            return false;
+        }
+        for (uint8_t i=0; i<slots; i++) {
+            captions[i]="room";
+            topics[i]="some/topic";
+        }
+        jf.readStringArray(name+"/topics", topics);
+        jf.readStringArray(name+"/captions", captions);
+        if (topics.length() != captions.length() || topics.length() != slots) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("Error: topics, captions and layout do not match");
+#endif
+            return false;
+        }
+        return true;
+    }
+
+    bool shortConfig2Slots(String combined_layout, uint16_t &slots, ustd::array<String> &topics, ustd::array<String> &captions, String &layout, String &formats) {
+        if (!splitCombinedLayout(combined_layout, layout, formats, slots)) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("Error: invalid layout");
+#endif
+            return false;
+        }
+        if (topics.length() != captions.length() || topics.length() != slots) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("Error: topics, captions and layout do not match");
+#endif
+            return false;
+        }
+        return true;
+    }
+
+/*
     void _init_theme() {
         lastRefresh=0;
         delayedUpdate=false;
@@ -479,7 +566,7 @@ class GfxPanel {
             }
         }
     }
-
+*/
     void _sensorLoop() {
         const char *weekDays[]={"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
         const char *wochenTage[]={"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
@@ -511,16 +598,7 @@ class GfxPanel {
         }
     }
 
-  public:
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
-        /*! Activate display and begin receiving MQTT updates for the display slots
-
-        @param _pSched Pointer to the muwerk scheduler
-        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
-        */
-        pSched = _pSched;
-        pMqtt = _pMqtt;
-
+    void commonBegin() {
         pDisplay->begin();
 
         auto fntsk = [=]() {
@@ -561,7 +639,20 @@ class GfxPanel {
         Serial.print(" formats: ");
         Serial.println(formats);
 #endif  // USE_SERIAL_DBG
+    }
 
+  public:
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
+        /*! Activate display and begin receiving MQTT updates for the display slots
+
+        @param _pSched Pointer to the muwerk scheduler
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
+        */
+        pSched = _pSched;
+        pMqtt = _pMqtt;
+
+        getConfigFromFS(name);
+        commonBegin();
     }
 
   private:
