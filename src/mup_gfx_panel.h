@@ -529,69 +529,6 @@ class GfxPanel {
         return true;
     }
 
-/*
-    void _init_theme() {
-        lastRefresh=0;
-        delayedUpdate=false;
-        for (uint8_t i=0; i<GFX_MAX_SLOTS; i++) {
-            captions[i]="room";
-            topics[i]="some/topic";
-            lastUpdates[i]=time(nullptr);
-        }
-        formats="";
-        layout="";
-        String empty="";
-        jf.readStringArray(name+"/topics", topics);
-        jf.readStringArray(name+"/captions", captions);
-        if (topics.length() != captions.length()) {
-#ifdef USE_SERIAL_DBG
-                Serial.print("Error: captions length and topics length does not match!");
-#endif  // USE_SERIAL_DBG
-            while (topics.length() < captions.length()) captions.add(empty);
-        }
-        slotsX=resX%64;
-        slotsY=resY%32;
-        slots=0;
- 
-        String combined_layout=jf.readString(name+"/layout","ff|ff");
-        bool layout_valid=true;
-        bool parsing=true;
-        String line="";
-        while (parsing) {
-            int ind = combined_layout.indexOf('|');
-            if (ind==-1) {
-                line=combined_layout;
-                combined_layout="";
-            } else {
-                line=combined_layout.substring(0,ind);
-                combined_layout=combined_layout.substring(ind+1);
-            }
-            for (char c : line) {
-                if (valid_formats_small.indexOf(c)==-1 && valid_formats_long.indexOf(c)==-1) {
-                    layout_valid=false;
-                    parsing=false;
-                    break;
-                } else {
-                    ind=valid_formats_small.indexOf(c);
-                    if (ind!=-1) {
-                        c=valid_formats_long[ind];
-                        layout+="S";
-                    } else {
-                        layout+="L";
-                    }
-                    formats+=c;
-                    ++slots;
-                }
-            }
-            if (!layout_valid) break;
-            if (combined_layout!="") {
-                layout+="|";
-            } else {
-                parsing=false;
-            }
-        }
-    }
-*/
     void _sensorLoop() {
         const char *weekDays[]={"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
         const char *wochenTage[]={"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
@@ -686,6 +623,9 @@ class GfxPanel {
 
         @param _pSched Pointer to the muwerk scheduler
         @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
+        @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
+        @param _topics std::array<String> of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions std::array<String> of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
@@ -697,6 +637,30 @@ class GfxPanel {
             captions.add(c);
         }
 
+        getConfigFromLayout(name, combined_layout);
+        commonBegin();
+        updateDisplay();
+    }
+
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[]) {
+        /*! Activate display and begin receiving MQTT updates for the display slots
+
+        @param _pSched Pointer to the muwerk scheduler
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
+        @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
+        @param _slots Number of slots to use, must be array dimension of both _captions and topics.
+        @param _topics const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        */
+        pSched = _pSched;
+        pMqtt = _pMqtt;
+
+        for (uint16_t i=0; i<_slots; i++) {
+            String s=_topics[i];
+            topics.add(s);
+            String c=_captions[i];
+            captions.add(c);
+        }
         getConfigFromLayout(name, combined_layout);
         commonBegin();
         updateDisplay();
