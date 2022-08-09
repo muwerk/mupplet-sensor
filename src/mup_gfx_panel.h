@@ -583,9 +583,7 @@ class GfxPanel {
             }
         }
         if (delayedUpdate && timeDiff(lastRefresh, micros())>800000L) {
-            lastRefresh=0;
-            delayedUpdate=false;
-            updateDisplay();
+            updateDisplay(true);
         }
     }
 
@@ -645,7 +643,7 @@ class GfxPanel {
         @param caption: The caption.
         */
         captions[slot]=caption;
-        updateDisplay();
+        updateDisplay(true);
     }
 
     void publishSlotCaption(uint16_t slot) {
@@ -693,6 +691,10 @@ class GfxPanel {
         @param slot: The slot number.
         @param format: The format.
         */
+        if (slot<slots && format.length()==1) {
+            formats[slot]=format[0];
+            updateDisplay(true);
+        }
     }
     void publishSlotFormat(uint16_t slot) {
         /*! Publish the format for a slot.
@@ -736,7 +738,7 @@ class GfxPanel {
 
         getConfigFromLayout(name, combined_layout);
         commonBegin();
-        updateDisplay();
+        updateDisplay(true);
     }
 
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[]) {
@@ -760,7 +762,6 @@ class GfxPanel {
         }
         getConfigFromLayout(name, combined_layout);
         commonBegin();
-        updateDisplay();
     }
 
   private:
@@ -860,9 +861,9 @@ class GfxPanel {
         }
     }
 
-    void updateDisplay() {
+    void updateDisplay(bool forceUpdate=false) {
         String bold;
-        if (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L) {
+        if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L)) {
             delayedUpdate=true;
             return;
         }
