@@ -72,7 +72,12 @@ class GfxDrivers {
                 case DisplayType::ST7735:
                     pDisplayST=new Adafruit_ST7735(csPin, dcPin, rstPin); 
                     //pDisplayST->initR(INITR_BLACKTAB);
-                    pDisplayST->initR(INITR_144GREENTAB);   // 1.4" thingy?
+                    if (resX==128 && resY==128) {
+                        pDisplayST->initR(INITR_144GREENTAB);   // 1.4" thingy?
+                    }
+                    if (resX==160 && resY==128) {
+                        pDisplayST->initR(INITR_BLACKTAB);   // 1.8" thingy?
+                    }
                     pDisplayST->setTextWrap(false);
                     pDisplayST->fillScreen(ST77XX_BLACK);
                     pDisplayST->cp437(true);
@@ -333,7 +338,10 @@ class GfxPanel {
     ustd::array<String> topics;
     ustd::array<String> captions;
     ustd::array<String> layouts;
+    ustd::array<String> msgs;
     uint16_t slotsX, slotsY;
+    uint32_t lastRefresh;
+    bool delayedUpdate;
     
     double hists[GFX_MAX_SLOTS][GFX_MAX_HIST];
     String valid_formats=" SIPFDTG";
@@ -392,6 +400,8 @@ class GfxPanel {
 
   private:
     void _init_theme() {
+        lastRefresh=0;
+        delayedUpdate=false;
         for (uint8_t i=0; i<GFX_MAX_SLOTS; i++) {
             captions[i]="room";
             topics[i]="some/topic";
@@ -474,6 +484,11 @@ class GfxPanel {
             if (time(nullptr)-lastUpdates[i] > 3600) {
                 vals_init[i]=false;
             }
+        }
+        if (delayedUpdate && timeDiff(lastRefresh, micros())>800000L) {
+            lastRefresh=0;
+            delayedUpdate=false;
+            updateDisplay();
         }
     }
 
@@ -627,8 +642,14 @@ class GfxPanel {
         }
     }
 
-    void updateDisplay(ustd::array<String> &msgs) {
+    void updateDisplay() {
         String bold;
+        if (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L) {
+            delayedUpdate=true;
+            return;
+        }
+        lastRefresh=micros();
+        delayedUpdate=false;
         bool updated=false;
         pDisplay->clearDisplay();
         uint32_t lineColor = pDisplay->RGB(0x80,0x80,0x80);
@@ -670,8 +691,8 @@ class GfxPanel {
 
     // This is called on Sensor-update events
     void sensorUpdates(String topic, String msg, String originator) {
-        ustd::array<String> msgs;
         char buf[64];
+        bool changed;
 #ifdef USE_SERIAL_DBG
         Serial.print("sensorUpdates ");
         Serial.println(msg);
@@ -698,40 +719,49 @@ class GfxPanel {
                 }
             }
         }
+        changed=false;
         for (uint8_t i=0; i<slots; i++) {
             if (vals_init[i]==true) {
                 msgs[i]="?Format";
                 if (formats[i]=='S') {
+                    if (msgs[i]!=svals[i]) changed=true;
                     msgs[i]=svals[i];
                 }
                 if (formats[i]=='F') {
                     sprintf(buf,"%.1f",vals[i]);
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);
                 }
                 if (formats[i]=='D') {
                     sprintf(buf,"%.2f",vals[i]);
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);
                 }
                 if (formats[i]=='T') {
                     sprintf(buf,"%.3f",vals[i]);
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);
                 }
                 if (formats[i]=='I') {
                     sprintf(buf,"%d",(int)vals[i]);
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);                        
                 }
                 if (formats[i]=='P') {
                     sprintf(buf,"%d%%",(int)(vals[i]*100));
+                    if (String(buf)!=msgs[i]) changed=true;
                     msgs[i]=String(buf);                        
                 }
                 if (formats[i]=='G') {
                     msgs[i]=String("graph");
+                    changed=true;
                 }
             } else {
                 msgs[i]="NaN";
+                changed=true;
             }
         }
-        updateDisplay(msgs);
+        if (changed) updateDisplay();
     }
 
 }; // SensorDisplay
