@@ -246,6 +246,23 @@ height="30%"> Hardware: ST7735 tft display.
 <img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled.png" width="30%"
 height="30%"> Hardware: SSD1306 oled display.
 
+#### Messages sent by gamma_gdk101 mupplet:
+
+messages are prefixed by `omu/<hostname>`:
+
+| topic | message body | comment |
+| ----- | ------------ | ------- |
+| `<mupplet-name>/sensor/caption/<slot_index>` | caption text | caption text for slot_index |
+
+#### Messages received by gfx_panel mupplet:
+
+Need to be prefixed by `<hostname>/`:
+
+| topic | message body | comment |
+| ----- | ------------ | ------- |
+| `<mupplet-name>/sensor/caption/<slot_index>/set` | <new-caption-text> | Causes caption text of slot 0..<slots be set to <new-caption-text>. |
+| `<mupplet-name>/sensor/caption/<slot_index>/get` | | Returns the caption text of slot 0..<slots. |
+
 #### Sample code
 ```cpp
 #include "ustd_platform.h"
@@ -567,7 +584,10 @@ class GfxPanel {
             _sensorLoop();
         };
         int tID = pSched->add(fntsk, "oled", 1000000);
-
+        auto fnsub = [=](String topic, String msg, String originator) {
+            this->subsMsg(topic, msg, originator);
+        };
+        pSched->subscribe(tID, name + "/sensor/#", fnsub);
         auto fnall = [=](String topic, String msg, String originator) {
             sensorUpdates(topic, msg, originator);
         };
@@ -604,6 +624,26 @@ class GfxPanel {
     }
 
   public:
+    void setCaption(uint8_t slot, String caption) {
+        /*! Set the caption for a slot.
+        @param slot: The slot number.
+        @param caption: The caption.
+        */
+        captions[slot]=caption;
+        updateDisplay();
+    }
+
+    void publishCaption(uint16_t slot) {
+        /*! Publish the caption for a slot.
+        @param slot: The slot number, 0..<slots.
+        */
+        if (slot<slots) {
+            if (topics[slot]!="") {
+                pSched->publish(name+"/sensor/caption/"+String(slot), captions[slot]);
+            }
+        }
+    }
+
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
@@ -885,6 +925,31 @@ class GfxPanel {
             }
         }
         if (changed) updateDisplay();
+    }
+
+    void subsMsg(String topic, String msg, String originator) {
+        if (pSched->mqttmatch(topic, name+"/sensor/caption/+/set")) {
+            String start=name+"/sensor/caption/";
+            String sub=topic.substring(start.length());
+            int16_t ind=sub.indexOf("/");
+            if (ind!=-1) {
+                uint16_t slot=sub.substring(0,ind).toInt();
+                if (slot<slots) {
+                    setCaption(slot, msg);
+                }
+            }
+        }
+        if (pSched->mqttmatch(topic, name+"/sensor/caption/+/get")) {
+            String start=name+"/sensor/caption/";
+            String sub=topic.substring(start.length());
+            int16_t ind=sub.indexOf("/");
+            if (ind!=-1) {
+                uint16_t slot=sub.substring(0,ind).toInt();
+                if (slot<slots) {
+                    publishCaption(slot);
+                }
+            }
+        }
     }
 
 }; // SensorDisplay
