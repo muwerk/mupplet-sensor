@@ -355,6 +355,8 @@ class GfxPanel {
     typedef struct t_slot {
         bool isInit;
         SlotType slotType;
+        uint8_t slotX;
+        uint8_t slotY;
         uint8_t slotLenX;
         uint8_t slotLenY;
         uint32_t color;
@@ -362,9 +364,11 @@ class GfxPanel {
         String topic;
         String caption;
         uint16_t histLen;
+        uint32_t lastHistUpdate;
         uint32_t histDeltaMs;
         double *pHist;
         time_t lastUpdate;
+        bool isValid;
         double val;
         String formatter;
         String textRepr;
@@ -541,6 +545,86 @@ class GfxPanel {
         return true;
     }
 
+    bool config2slot(uint16_t slot) {
+        /*! Convert config to slot.
+        @param slot: The slot to convert.
+        @return: True if config was converted, false otherwise.
+        */
+        if (slot>=slots) {
+            return false;
+        }
+        pSlots[i].slotX=0;
+        pSlots[i].slotY=0;
+        bool ok=false;
+        uint16_t ind=0;
+        for (c : layouts[slot]) {
+            if (ind==slot) {
+                if (c=='S') {
+                    pSlots[i].slotLenX=1;
+                    pSlots[i].slotLenY=1;
+                } else if (c=='L') {
+                    pSlots[i].slotLenX=2;
+                    pSlots[i].slotLenY=1;
+                } else {
+                    return false;
+                }
+                ok=true;
+                break;
+            }
+            if (c=='S') {
+                pSlots[i].slotX++;
+                ++ind;
+            } else if (c=='L') {
+                pSlots[i].slotX+=2;
+                ++ind;
+            } else if (c=='|') {
+                pSlots[i].slotY++;
+                pSlots[i].slotX=0;
+            } else {
+                return false;
+            }
+        }
+        switch (formats[i]) {
+            case 'I':
+                pSlots[i].slotType=SlotType::INT;
+                pSlots[i].formatter="%d";
+                break;
+            case 'F':
+                pSlots[i].slotType=SlotType::FLOAT;
+                pSlots[i].formatter="%.1f";
+                break;
+            case 'D':
+                pSlots[i].slotType=SlotType::DOUBLE;
+                pSlots[i].formatter="%.2f";
+                break;
+            case 'T':
+                pSlots[i].slotType=SlotType::TRIPLE;
+                pSlots[i].formatter="%.3f";
+                break;
+            case 'S':
+                pSlots[i].slotType=SlotType::STRING;
+                pSlots[i].formatter="%s";
+                break;
+            case 'P':
+                pSlots[i].slotType=SlotType::PERCENT;
+                pSlots[i].formatter="%.1f%%";
+                break;
+            case 'G':
+                pSlots[i].slotType=SlotType::GRAPH;
+                pSlots[i].formatter="%s";
+                break;
+            default:
+                return false;
+
+        }
+        pSlots[i].topic=topics[slot];
+        pSlots[i].caption=captions[slot];
+        pSlots[i].lastUpdate=0;
+        pSlots[i].lastValue=0;
+        pSlots[i].isValid=false;
+        p
+        return true;
+    }
 
     bool shortConfig2Slots() {
         /*! Convert short config to slots.
@@ -552,9 +636,12 @@ class GfxPanel {
 #endif
             return false;
         }
-
         pSlots=new T_SLOT[slots];
-
+        for (uint16_t i=0; i<slots; i++) {
+            if (!config2Slot(i)) {
+                return false;
+            }
+        }
         return true;
     }
 
