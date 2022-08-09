@@ -252,7 +252,10 @@ messages are prefixed by `omu/<hostname>`:
 
 | topic | message body | comment |
 | ----- | ------------ | ------- |
-| `<mupplet-name>/sensor/caption/<slot_index>` | caption text | caption text for slot_index |
+| `<mupplet-name>/display/slot/<slot_index>`/caption | caption text | caption text for slot_index |
+| `<mupplet-name>/display/slot/<slot_index>`/topic | topic | subscription topic for slot_index |
+| `<mupplet-name>/display/slot/<slot_index>`/text | main slot text | text for slot_index |
+| `<mupplet-name>/display/slot/<slot_index>`/format | format specifier | slot format specifier for slot_index |
 
 #### Messages received by gfx_panel mupplet:
 
@@ -260,8 +263,14 @@ Need to be prefixed by `<hostname>/`:
 
 | topic | message body | comment |
 | ----- | ------------ | ------- |
-| `<mupplet-name>/sensor/caption/<slot_index>/set` | <new-caption-text> | Causes caption text of slot 0..<slots be set to <new-caption-text>. |
-| `<mupplet-name>/sensor/caption/<slot_index>/get` | | Returns the caption text of slot 0..<slots. |
+| `<mupplet-name>/display/slot/<slot_index>/caption/set` | <new-caption-text> | Causes caption text of slot 0..<slots be set to <new-caption-text>. |
+| `<mupplet-name>/display/slot/<slot_index>/caption/get` | | Returns the caption text of slot 0..<slots. |
+| `<mupplet-name>/display/slot/<slot_index>/text/set` | <new-slot-text> | String. Causes slot text of slot 0..<slots be set to <new-slot-text>. |
+| `<mupplet-name>/display/slot/<slot_index>/text/get` | | Returns the slot text of slot 0..<slots. |
+| `<mupplet-name>/display/slot/<slot_index>/topic/set` | <new-subs-topic> | String. Causes new subscription of <new-subs-topic> for slot 0..<slots. |
+| `<mupplet-name>/display/slot/<slot_index>/topic/get` | | Returns the subscription topic of slot 0..<slots. |
+| `<mupplet-name>/display/slot/<slot_index>/format/set` | <format-spec> | String. Sets <format-spec> for slot 0..<slots. |
+| `<mupplet-name>/display/slot/<slot_index>/format/get` | | Returns the format-spec of slot 0..<slots. |
 
 #### Sample code
 ```cpp
@@ -360,17 +369,21 @@ class GfxPanel {
         String formatter;
         String textRepr;
         double deltaDir;
-    } T_SLOTS;
+    } T_SLOT;
+    uint16_t slots;
+    T_SLOT *pSlots;
+
     #define GFX_MAX_SLOTS 16
     #define GFX_MAX_HIST 48
-    uint16_t slots;
-    String layout;
-    String formats;
     double vals[GFX_MAX_SLOTS];
     String svals[GFX_MAX_SLOTS];
     double dirs[GFX_MAX_SLOTS];
     bool vals_init[GFX_MAX_SLOTS];
     time_t lastUpdates[GFX_MAX_SLOTS];
+    double hists[GFX_MAX_SLOTS][GFX_MAX_HIST];
+    
+    String layout;
+    String formats;
     ustd::array<String> topics;
     ustd::array<String> captions;
     ustd::array<String> layouts;
@@ -379,12 +392,11 @@ class GfxPanel {
     uint32_t lastRefresh;
     bool delayedUpdate;
     
-    double hists[GFX_MAX_SLOTS][GFX_MAX_HIST];
     String valid_formats=" SIPFDTG";
     
     String valid_formats_long=" SIPFDTG";
     String valid_formats_small=" sipfdtg";
-    char oldbuf[64]="";
+    char oldTimeString[64]="";
         
     GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire, String locale="C"): 
         name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire), locale(locale)
@@ -530,19 +542,19 @@ class GfxPanel {
     }
 
 
-    bool shortConfig2Slots(String combined_layout, uint16_t &slots, ustd::array<String> &topics, ustd::array<String> &captions, String &layout, String &formats) {
-        if (!splitCombinedLayout(combined_layout)) {
+    bool shortConfig2Slots() {
+        /*! Convert short config to slots.
+         *  @return: True if config was valid, false otherwise.
+         */
+        if (formats.length() != slots) {
 #ifdef USE_SERIAL_DBG
-            Serial.println("Error: invalid layout");
+            Serial.println("Error: formats and slots number do not match");
 #endif
             return false;
         }
-        if (topics.length() != captions.length() || topics.length() != slots) {
-#ifdef USE_SERIAL_DBG
-            Serial.println("Error: topics, captions and layout do not match");
-#endif
-            return false;
-        }
+
+        pSlots=new T_SLOT[slots];
+
         return true;
     }
 
@@ -560,8 +572,8 @@ class GfxPanel {
         else pDay=weekDays[plt->tm_wday];
         // sprintf(buf,"%s %02d. %02d:%02d",pDay,plt->tm_mday, plt->tm_hour, plt->tm_min);
         sprintf(buf,"%s %02d:%02d",pDay, plt->tm_hour, plt->tm_min);
-        if (strcmp(buf,oldbuf)) {
-            strcpy(oldbuf,buf);
+        if (strcmp(buf,oldTimeString)) {
+            strcpy(oldTimeString,buf);
             sensorUpdates("clock/timeinfo", String(buf), "self.local");
         }
         // If a sensors doesn't update values for 1 hr (3600sec), declare invalid.
@@ -583,36 +595,39 @@ class GfxPanel {
         auto fntsk = [=]() {
             _sensorLoop();
         };
-        int tID = pSched->add(fntsk, "oled", 1000000);
+        int tID = pSched->add(fntsk, name, 1000000);
         auto fnsub = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
         };
-        pSched->subscribe(tID, name + "/sensor/#", fnsub);
+        pSched->subscribe(tID, name + "/display/#", fnsub);
         auto fnall = [=](String topic, String msg, String originator) {
             sensorUpdates(topic, msg, originator);
         };
         for (uint8_t i=0; i<slots; i++) {
-            if (topics[i][0]=='!') {
-                topics[i]=topics[i].substring(1);
-                pMqtt->addSubscription(tID, topics[i], fnall);
+            if (topics[i]!="") {
+                if (topics[i][0]=='!') {
+                    topics[i]=topics[i].substring(1);
+                    pMqtt->addSubscription(tID, topics[i], fnall);
 #ifdef USE_SERIAL_DBG
-                Serial.print("Subscribing via MQTT: ");
-                Serial.println(topics[i]);
-#endif
-            } else {
-                if (topics[i]!="clock/timeinfo") {  // local shortcut msg.
-                    pSched->subscribe(tID, topics[i], fnall);
-#ifdef USE_SERIAL_DBG
-                    Serial.print("Subscribing internally: ");
+                    Serial.print("Subscribing via MQTT: ");
                     Serial.println(topics[i]);
 #endif
                 } else {
+                    if (topics[i]!="clock/timeinfo") {  // local shortcut msg. Questionable?
+                        pSched->subscribe(tID, topics[i], fnall);
 #ifdef USE_SERIAL_DBG
-                    Serial.print("Internal topic: ");
-                    Serial.println(topics[i]);
+                        Serial.print("Subscribing internally: ");
+                        Serial.println(topics[i]);
 #endif
-
+                    } else {
+#ifdef USE_SERIAL_DBG
+                        Serial.print("Internal topic: ");
+                        Serial.println(topics[i]);
+#endif
+                    }
                 }
+            } else {
+                // No sub for empty topics.
             }
         }
 #ifdef USE_SERIAL_DBG
@@ -624,7 +639,7 @@ class GfxPanel {
     }
 
   public:
-    void setCaption(uint8_t slot, String caption) {
+    void setSlotCaption(uint8_t slot, String caption) {
         /*! Set the caption for a slot.
         @param slot: The slot number.
         @param caption: The caption.
@@ -633,16 +648,58 @@ class GfxPanel {
         updateDisplay();
     }
 
-    void publishCaption(uint16_t slot) {
+    void publishSlotCaption(uint16_t slot) {
         /*! Publish the caption for a slot.
         @param slot: The slot number, 0..<slots.
         */
         if (slot<slots) {
             if (topics[slot]!="") {
-                pSched->publish(name+"/sensor/caption/"+String(slot), captions[slot]);
+                pSched->publish(name+"/display/slot/"+String(slot)+"/caption", captions[slot]);
             }
         }
     }
+
+    void setSlotText(uint16_t slot, String text) {
+        /*! Set the text for a slot.
+        @param slot: The slot number.
+        @param text: The text.
+        */
+        if (slot<slots) {
+            // XXX
+        }
+    }
+    void publishSlotText(uint16_t slot) {
+        /*! Publish the text for a slot.
+        @param slot: The slot number, 0..<slots.
+        */
+        if (slot<slots) {
+            // pSched->publish(name+"/display/slot/"+String(slot), xxx[slot]);
+        }
+    }
+
+    void setSlotTopic(uint16_t slot, String topic) {
+        /*! Set the topic for a slot.
+        @param slot: The slot number.
+        @param topic: The topic.
+        */
+    }
+    void publishSlotTopic(uint16_t slot) {
+        /*! Publish the topic for a slot.
+        @param slot: The slot number, 0..<slots.
+        */
+    }
+    void setSlotFormat(uint16_t slot, String format) {
+        /*! Set the format for a slot.
+        @param slot: The slot number.
+        @param format: The format.
+        */
+    }
+    void publishSlotFormat(uint16_t slot) {
+        /*! Publish the format for a slot.
+        @param slot: The slot number, 0..<slots.
+        */
+    }
+
 
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
         /*! Activate display and begin receiving MQTT updates for the display slots
@@ -928,25 +985,38 @@ class GfxPanel {
     }
 
     void subsMsg(String topic, String msg, String originator) {
-        if (pSched->mqttmatch(topic, name+"/sensor/caption/+/set")) {
-            String start=name+"/sensor/caption/";
-            String sub=topic.substring(start.length());
+        String toc=name+"/display/slot/";
+        if (topic.startsWith(toc)) {
+            String sub=topic.substring(toc.length());
             int16_t ind=sub.indexOf("/");
             if (ind!=-1) {
                 uint16_t slot=sub.substring(0,ind).toInt();
-                if (slot<slots) {
-                    setCaption(slot, msg);
-                }
-            }
-        }
-        if (pSched->mqttmatch(topic, name+"/sensor/caption/+/get")) {
-            String start=name+"/sensor/caption/";
-            String sub=topic.substring(start.length());
-            int16_t ind=sub.indexOf("/");
-            if (ind!=-1) {
-                uint16_t slot=sub.substring(0,ind).toInt();
-                if (slot<slots) {
-                    publishCaption(slot);
+                if (slot < slots) {
+                    String action=sub.substring(ind+1);
+                    if (action=="caption/get") {
+                        publishSlotCaption(slot);
+                    }   
+                    if (action=="caption/set") {
+                        setSlotCaption(slot,msg);
+                    }
+                    if (action=="format/get") {
+                        publishSlotFormat(slot);
+                    }
+                    if (action=="format/set") {
+                        setSlotFormat(slot,msg);
+                    }
+                    if (action=="topic/get") {
+                        publishSlotTopic(slot);
+                    }
+                    if (action=="topic/set") {
+                        setSlotTopic(slot,msg);
+                    }
+                    if (action=="text/get") {
+                        publishSlotText(slot);
+                    }
+                    if (action=="text/set") {
+                        setSlotText(slot,msg);
+                    }
                 }
             }
         }
