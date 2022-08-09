@@ -112,7 +112,7 @@ Public Member Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p >mupplet-sensor temperature and pressure with Bosch BME280 </p>
-<p >The mup_presstemp_bme280 mupplet measures temperature, pressure, and humity using the BME280 sensor.</p>
+<p >The mup_presstemphum_bme280 mupplet measures temperature, pressure, and humity using the BME280 sensor.</p>
 <p >This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.</p>
 <h4>Messages sent by presstemphum_bme280 mupplet:</h4>
 <p >messages are prefixed by <code>omu/&lt;hostname&gt;</code>:</p>
@@ -140,7 +140,7 @@ Public Member Functions</h2></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/mode</code>   </td><td class="markdownTableBodyNone"><code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>   </td><td class="markdownTableBodyNone">Integration time for sensor values, external, additional integration   </td></tr>
 </table>
-<h4>Messages received by presstemp_bme280 mupplet:</h4>
+<h4>Messages received by presstemphum_bme280 mupplet:</h4>
 <p >Need to be prefixed by <code>&lt;hostname&gt;/</code>:</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">

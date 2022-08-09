@@ -3,7 +3,7 @@ var indexSectionsWithContent =
   0: "bghilmprstu",
   1: "gipst",
   2: "bgipst",
-  3: "b",
+  3: "bg",
   4: "hlsu",
   5: "mr"
 };
