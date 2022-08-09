@@ -87,6 +87,10 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a6e52ae31c05665678a85d2ed4e12b668"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa4f62a61294b167fb41f4d5e64e07d8d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1GfxPanel.html#aa4f62a61294b167fb41f4d5e64e07d8d">begin</a> (ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt)</td></tr>
 <tr class="separator:aa4f62a61294b167fb41f4d5e64e07d8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a51833b0d8c44a54037386116564c28bb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1GfxPanel.html#a51833b0d8c44a54037386116564c28bb">begin</a> (ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array&lt; String &gt; _topics, ustd::array&lt; String &gt; _captions)</td></tr>
+<tr class="separator:a51833b0d8c44a54037386116564c28bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a375b27af930509962da75d15801ee176"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1GfxPanel.html#a375b27af930509962da75d15801ee176">begin</a> (ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[])</td></tr>
+<tr class="separator:a375b27af930509962da75d15801ee176"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p >gfx_panel mupplet for oled and tft panels to display sensor values </p>
@@ -306,7 +310,7 @@ Public Member Functions</h2></td></tr>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
 <a id="aa4f62a61294b167fb41f4d5e64e07d8d" name="aa4f62a61294b167fb41f4d5e64e07d8d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa4f62a61294b167fb41f4d5e64e07d8d">&#9670;&nbsp;</a></span>begin()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#aa4f62a61294b167fb41f4d5e64e07d8d">&#9670;&nbsp;</a></span>begin() <span class="overload">[1/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -343,6 +347,143 @@ Public Member Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">_pSched</td><td>Pointer to the muwerk scheduler </td></tr>
     <tr><td class="paramname">_pMqtt</td><td>Pointer to munet mqtt object, used to subscribe to mqtt topics defined in &lsquo;'display-name&rsquo;.json` file.</td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a375b27af930509962da75d15801ee176" name="a375b27af930509962da75d15801ee176"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a375b27af930509962da75d15801ee176">&#9670;&nbsp;</a></span>begin() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ustd::GfxPanel::begin </td>
+          <td>(</td>
+          <td class="paramtype">ustd::Scheduler *&#160;</td>
+          <td class="paramname"><em>_pSched</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ustd::Mqtt *&#160;</td>
+          <td class="paramname"><em>_pMqtt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">String&#160;</td>
+          <td class="paramname"><em>combined_layout</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t&#160;</td>
+          <td class="paramname"><em>_slots</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>_topics</em>[], </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>_captions</em>[]&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p >Activate display and begin receiving MQTT updates for the display slots</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">_pSched</td><td>Pointer to the muwerk scheduler </td></tr>
+    <tr><td class="paramname">_pMqtt</td><td>Pointer to munet mqtt object, used to subscribe to mqtt topics defined in &lsquo;'display-name&rsquo;.json` file. </td></tr>
+    <tr><td class="paramname">combined_layout</td><td>The layout string, e.g. "ff|ff" (two lines, two short floats each). </td></tr>
+    <tr><td class="paramname">_slots</td><td>Number of slots to use, must be array dimension of both _captions and topics. </td></tr>
+    <tr><td class="paramname">_topics</td><td>const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string. </td></tr>
+    <tr><td class="paramname">_captions</td><td>const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.</td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a51833b0d8c44a54037386116564c28bb" name="a51833b0d8c44a54037386116564c28bb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a51833b0d8c44a54037386116564c28bb">&#9670;&nbsp;</a></span>begin() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ustd::GfxPanel::begin </td>
+          <td>(</td>
+          <td class="paramtype">ustd::Scheduler *&#160;</td>
+          <td class="paramname"><em>_pSched</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ustd::Mqtt *&#160;</td>
+          <td class="paramname"><em>_pMqtt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">String&#160;</td>
+          <td class="paramname"><em>combined_layout</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ustd::array&lt; String &gt;&#160;</td>
+          <td class="paramname"><em>_topics</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ustd::array&lt; String &gt;&#160;</td>
+          <td class="paramname"><em>_captions</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p >Activate display and begin receiving MQTT updates for the display slots</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">_pSched</td><td>Pointer to the muwerk scheduler </td></tr>
+    <tr><td class="paramname">_pMqtt</td><td>Pointer to munet mqtt object, used to subscribe to mqtt topics defined in &lsquo;'display-name&rsquo;.json` file. </td></tr>
+    <tr><td class="paramname">combined_layout</td><td>The layout string, e.g. "ff|ff" (two lines, two short floats each). </td></tr>
+    <tr><td class="paramname">_topics</td><td>std::array&lt;String&gt; of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string. </td></tr>
+    <tr><td class="paramname">_captions</td><td>std::array&lt;String&gt; of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.</td></tr>
   </table>
   </dd>
 </dl>
