@@ -352,6 +352,10 @@ class GfxPanel {
     ustd::Mqtt *pMqtt;
 
     enum SlotType {INT, FLOAT, DOUBLE, TRIPLE, PERCENT, STRING, GRAPH};
+    uint32_t defaultColor = GfxDrivers::RGB(0xff,0xff,0xff);
+    uint32_t defaultBgColor = GfxDrivers::RGB(0x00,0x00,0x00);
+    uint16_t defaultHistLen=64;
+    uint32_t defaultHistDeltaMs=24*3600*1000/64;  // 24 hours in ms for entire history
     typedef struct t_slot {
         bool isInit;
         SlotType slotType;
@@ -366,13 +370,13 @@ class GfxPanel {
         uint16_t histLen;
         uint32_t lastHistUpdate;
         uint32_t histDeltaMs;
-        double *pHist;
+        float *pHist;
         time_t lastUpdate;
         bool isValid;
-        double val;
+        float val;
         String formatter;
         String textRepr;
-        double deltaDir;
+        float deltaDir;
     } T_SLOT;
     uint16_t slots;
     T_SLOT *pSlots;
@@ -553,18 +557,18 @@ class GfxPanel {
         if (slot>=slots) {
             return false;
         }
-        pSlots[i].slotX=0;
-        pSlots[i].slotY=0;
+        pSlots[slot].slotX=0;
+        pSlots[slot].slotY=0;
         bool ok=false;
         uint16_t ind=0;
-        for (c : layouts[slot]) {
+        for (auto c : layouts[slot]) {
             if (ind==slot) {
                 if (c=='S') {
-                    pSlots[i].slotLenX=1;
-                    pSlots[i].slotLenY=1;
+                    pSlots[slot].slotLenX=1;
+                    pSlots[slot].slotLenY=1;
                 } else if (c=='L') {
-                    pSlots[i].slotLenX=2;
-                    pSlots[i].slotLenY=1;
+                    pSlots[slot].slotLenX=2;
+                    pSlots[slot].slotLenY=1;
                 } else {
                     return false;
                 }
@@ -572,57 +576,77 @@ class GfxPanel {
                 break;
             }
             if (c=='S') {
-                pSlots[i].slotX++;
+                pSlots[slot].slotX++;
                 ++ind;
             } else if (c=='L') {
-                pSlots[i].slotX+=2;
+                pSlots[slot].slotX+=2;
                 ++ind;
             } else if (c=='|') {
-                pSlots[i].slotY++;
-                pSlots[i].slotX=0;
+                pSlots[slot].slotY++;
+                pSlots[slot].slotX=0;
             } else {
                 return false;
             }
         }
-        switch (formats[i]) {
+        pSlots[slot].histLen=defaultHistLen;
+        switch (formats[slot]) {
             case 'I':
-                pSlots[i].slotType=SlotType::INT;
-                pSlots[i].formatter="%d";
+                pSlots[slot].slotType=SlotType::INT;
+                pSlots[slot].formatter="%d";
                 break;
             case 'F':
-                pSlots[i].slotType=SlotType::FLOAT;
-                pSlots[i].formatter="%.1f";
+                pSlots[slot].slotType=SlotType::FLOAT;
+                pSlots[slot].formatter="%.1f";
                 break;
             case 'D':
-                pSlots[i].slotType=SlotType::DOUBLE;
-                pSlots[i].formatter="%.2f";
+                pSlots[slot].slotType=SlotType::DOUBLE;
+                pSlots[slot].formatter="%.2f";
                 break;
             case 'T':
-                pSlots[i].slotType=SlotType::TRIPLE;
-                pSlots[i].formatter="%.3f";
+                pSlots[slot].slotType=SlotType::TRIPLE;
+                pSlots[slot].formatter="%.3f";
                 break;
             case 'S':
-                pSlots[i].slotType=SlotType::STRING;
-                pSlots[i].formatter="%s";
+                pSlots[slot].slotType=SlotType::STRING;
+                pSlots[slot].formatter="%s";
+                pSlots[slot].histLen=0;
                 break;
             case 'P':
-                pSlots[i].slotType=SlotType::PERCENT;
-                pSlots[i].formatter="%.1f%%";
+                pSlots[slot].slotType=SlotType::PERCENT;
+                pSlots[slot].formatter="%.1f%%";
                 break;
             case 'G':
-                pSlots[i].slotType=SlotType::GRAPH;
-                pSlots[i].formatter="%s";
+                pSlots[slot].slotType=SlotType::GRAPH;
+                pSlots[slot].formatter="%s";
                 break;
             default:
                 return false;
-
         }
-        pSlots[i].topic=topics[slot];
-        pSlots[i].caption=captions[slot];
-        pSlots[i].lastUpdate=0;
-        pSlots[i].lastValue=0;
-        pSlots[i].isValid=false;
-        p
+        if (pSlots[slot].histLen) {
+            pSlots[slot].pHist=new float[pSlots[slot].histLen];
+            if (pSlots[slot].pHist) {
+                for (uint16_t j=0; j<pSlots[slot].histLen; j++) {
+                    pSlots[slot].pHist[j]=0;
+                }
+            } else {
+                pSlots[slot].histLen=0;
+                return false;
+            }
+        } else {
+            pSlots[slot].pHist=nullptr;
+            pSlots[slot].histLen=0;
+        }
+        pSlots[slot].topic=topics[slot];
+        pSlots[slot].caption=captions[slot];
+        pSlots[slot].lastUpdate=0;
+        pSlots[slot].lastHistUpdate=0;
+        pSlots[slot].histDeltaMs=defaultHistDeltaMs;
+        pSlots[slot].val=0.0;
+        pSlots[slot].textRepr="";
+        pSlots[slot].deltaDir=0.0;
+        pSlots[slot].isValid=false;
+        pSlots[slot].color=defaultColor;
+        pSlots[slot].bgColor=defaultBgColor;
         return true;
     }
 
@@ -638,7 +662,7 @@ class GfxPanel {
         }
         pSlots=new T_SLOT[slots];
         for (uint16_t i=0; i<slots; i++) {
-            if (!config2Slot(i)) {
+            if (!config2slot(i)) {
                 return false;
             }
         }
@@ -730,6 +754,11 @@ class GfxPanel {
         @param caption: The caption.
         */
         captions[slot]=caption;
+        if (pSlots) {
+            if (pSlots[slot].isInit) {
+                pSlots[slot].caption=caption;
+            }
+        }
         updateDisplay(true);
     }
 
@@ -737,10 +766,19 @@ class GfxPanel {
         /*! Publish the caption for a slot.
         @param slot: The slot number, 0..<slots.
         */
+        String cap="";
+        bool done=false;
         if (slot<slots) {
-            if (topics[slot]!="") {
-                pSched->publish(name+"/display/slot/"+String(slot)+"/caption", captions[slot]);
+            if (pSlots) {
+                if (pSlots[slot].isInit) {
+                    cap=pSlots[slot].caption;
+                    done=true;
+                }
             }
+            if (!done) {
+                cap=captions[slot];
+            }
+            pSched->publish(name+"/display/slot/"+String(slot)+"/caption", cap);
         }
     }
 
