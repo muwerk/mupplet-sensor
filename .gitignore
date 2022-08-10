@@ -1,6 +1,7 @@
 # Apple junk
 .DS_Store
 .ccls/
+.ccls-cache/
 .pio/
 .vscode/
 .clangd/
