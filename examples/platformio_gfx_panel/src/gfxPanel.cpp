@@ -31,7 +31,7 @@ Serial.println("Starting display");
 Serial.println("Display started");
 #else
     const char *topics[]={"sensor/data1", "sensor/data1", "sensor/data2"};
-    const char *captions[]={"data 1 _N", "data 1 _N", "(will be set dyn.)"};
+    const char *captions[]={"Data 1 _N", "Data 1 _N", "(will be set dyn.)"};
     displayOled.begin(&sched,"dg|G",3,topics,captions); // "f: small slot .2 float data1, g: small graph data1, next line: large graph for data2.
 #endif
     sched.add(appLoop, "main", 1000000);
@@ -44,7 +44,7 @@ void appLoop() {
     static float sensor_data2=0.0;
     sched.publish("sensor/data1", String(sensor_data1,3));
     sched.publish("sensor/data2", String(sensor_data2,3));
-    sprintf(buf,"data2: %.3f",sensor_data2);
+    sprintf(buf,"Data 2: _%.3f_ N",sensor_data2);
     // Set caption of last slot (index 2, zero based) to the value of sensor_data2.
     sched.publish("display2/display/slot/2/caption/set", buf);
     sensor_data1+=(random(10)-5)/70.0;

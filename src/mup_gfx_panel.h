@@ -353,31 +353,38 @@ class GfxPanel {
     ustd::Mqtt *pMqtt;
 #endif
 
-    enum SlotType {INT, FLOAT, DOUBLE, TRIPLE, PERCENT, STRING, GRAPH};
+    enum SlotType {NUMBER, TEXT, GRAPH};
     uint32_t defaultColor = GfxDrivers::RGB(0xff,0xff,0xff);
     uint32_t defaultBgColor = GfxDrivers::RGB(0x00,0x00,0x00);
     uint16_t defaultHistLen=64;
     uint32_t defaultHistDeltaMs=24*3600*1000/64;  // 24 hours in ms for entire history
     typedef struct t_slot {
         bool isInit;
+        bool isValid;
+        time_t lastUpdate;
         SlotType slotType;
+
         uint8_t slotX;
         uint8_t slotY;
         uint8_t slotLenX;
         uint8_t slotLenY;
         uint32_t color;
         uint32_t bgColor;
+        
         String topic;
         String caption;
+        
         uint16_t histLen;
         uint32_t lastHistUpdate;
         uint32_t histDeltaMs;
         float *pHist;
-        time_t lastUpdate;
-        bool isValid;
-        float val;
+        bool histInit;
+        
+        float currentValue;
+        String currentText;
         String formatter;
-        String textRepr;
+        float scalingFactor;
+        float offset;
         float deltaDir;
     } T_SLOT;
     uint16_t slots;
@@ -561,7 +568,6 @@ class GfxPanel {
         }
         pSlots[slot].slotX=0;
         pSlots[slot].slotY=0;
-        bool ok=false;
         uint16_t ind=0;
         for (auto c : layouts[slot]) {
             if (ind==slot) {
@@ -574,7 +580,6 @@ class GfxPanel {
                 } else {
                     return false;
                 }
-                ok=true;
                 break;
             }
             if (c=='S') {
@@ -591,30 +596,33 @@ class GfxPanel {
             }
         }
         pSlots[slot].histLen=defaultHistLen;
+        pSlots[slot].offset=0.0;
+        pSlots[slot].scalingFactor=1.0;
         switch (formats[slot]) {
             case 'I':
-                pSlots[slot].slotType=SlotType::INT;
-                pSlots[slot].formatter="%d";
+                pSlots[slot].slotType=SlotType::NUMBER;
+                pSlots[slot].formatter="%.0f";
                 break;
             case 'F':
-                pSlots[slot].slotType=SlotType::FLOAT;
+                pSlots[slot].slotType=SlotType::NUMBER;
                 pSlots[slot].formatter="%.1f";
                 break;
             case 'D':
-                pSlots[slot].slotType=SlotType::DOUBLE;
+                pSlots[slot].slotType=SlotType::NUMBER;
                 pSlots[slot].formatter="%.2f";
                 break;
             case 'T':
-                pSlots[slot].slotType=SlotType::TRIPLE;
+                pSlots[slot].slotType=SlotType::NUMBER;
                 pSlots[slot].formatter="%.3f";
                 break;
             case 'S':
-                pSlots[slot].slotType=SlotType::STRING;
+                pSlots[slot].slotType=SlotType::TEXT;
                 pSlots[slot].formatter="%s";
                 pSlots[slot].histLen=0;
                 break;
             case 'P':
-                pSlots[slot].slotType=SlotType::PERCENT;
+                pSlots[slot].slotType=SlotType::NUMBER;
+                pSlots[slot].scalingFactor=100.0;
                 pSlots[slot].formatter="%.1f%%";
                 break;
             case 'G':
@@ -626,6 +634,7 @@ class GfxPanel {
         }
         if (pSlots[slot].histLen) {
             pSlots[slot].pHist=new float[pSlots[slot].histLen];
+            pSlots[slot].histInit=false;
             if (pSlots[slot].pHist) {
                 for (uint16_t j=0; j<pSlots[slot].histLen; j++) {
                     pSlots[slot].pHist[j]=0;
@@ -643,8 +652,8 @@ class GfxPanel {
         pSlots[slot].lastUpdate=0;
         pSlots[slot].lastHistUpdate=0;
         pSlots[slot].histDeltaMs=defaultHistDeltaMs;
-        pSlots[slot].val=0.0;
-        pSlots[slot].textRepr="";
+        pSlots[slot].currentValue=0.0;
+        pSlots[slot].currentText="";
         pSlots[slot].deltaDir=0.0;
         pSlots[slot].isValid=false;
         pSlots[slot].color=defaultColor;
@@ -1066,6 +1075,64 @@ class GfxPanel {
         if (updated) {
             pDisplay->display();
         }
+    }
+
+    bool updateSlot(uint16_t slot, String msg) {
+        char buf[128];
+        bool changed=false;
+        if (slot>=slots) return;
+        float k=pSlots[slot].scalingFactor;
+        float o=pSlots[slot].offset;
+        buf[127]=0;
+        switch (pSlots[slot].slotType) {
+            case SlotType::TEXT:
+                if (pSlots[slot].currentText!=msg) {
+                    changed=true;
+                }
+                pSlots[slot].currentText=msg;
+                pSlots[slot].isValid=true;
+                pSlots[slot].lastUpdate=time(nullptr);
+                break;
+            case SlotType::NUMBER:
+            case SlotType::GRAPH:
+                pSlots[slot].currentValue=msg.toFloat()*k+o;
+                pSlots[slot].isValid=true;
+                pSlots[slot].lastUpdate=time(nullptr);
+                snprintf(buf,127,pSlots[slot].formatter.c_str(),msg);
+                if (pSlots[slot].currentText!=String(buf)) {
+                    changed=true;
+                }
+                pSlots[slot].currentText=String(buf);
+                if (pSlots[slot].pHist) {
+                    if (!pSlots[slot].histInit) {
+                        for (uint16_t i=0; i<pSlots[slot].histLen; i++) {
+                            pSlots[slot].pHist[i]=pSlots[slot].currentValue;
+                        }
+                        pSlots[slot].histDeltaMs=millis();
+                        pSlots[slot].histInit=true;
+                    } else {
+                        if (timeDiff(pSlots[slot].histDeltaMs, millis())>pSlots[slot].histDeltaMs) {
+                            for (uint16_t i=0; i<pSlots[slot].histLen-1; i++) {
+                                pSlots[slot].pHist[i]=pSlots[slot].pHist[i+1];
+                            }
+                            pSlots[slot].histDeltaMs=millis();
+                        }
+                        pSlots[slot].pHist[pSlots[slot].histLen-1]=pSlots[slot].currentValue;
+                    }
+                }
+                break;
+        }
+        return changed
+    }
+
+    void newSensorUpdate(String topic, String msg, String originator) {
+        bool changed=false;
+        for (uint16_t slot=0; slot<slots; slot++) {
+            if (pSlots[slot].topic==topic) {
+                if (updateSlot(slot, msg)) changed=true;
+            }
+        }
+        if (changed) updateDisplay();
     }
 
     // This is called on Sensor-update events
