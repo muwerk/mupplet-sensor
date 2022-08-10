@@ -30,21 +30,26 @@ Serial.println("Starting display");
     displayTft.begin(&sched);
 Serial.println("Display started");
 #else
-    const char *topics[]={"clock/timeinfo", "random/var"};
-    const char *captions[]={"Time", "Random"};
-    displayOled.begin(&sched,"S|T",2,topics,captions);
+    const char *topics[]={"sensor/data1", "sensor/data1", "sensor/data2"};
+    const char *captions[]={"data 1 _N", "data 1 _N", "Sensor data 2 _N"};
+    displayOled.begin(&sched,"dg|T",3,topics,captions); // "f: small slot .2 float data1, g: small plot data1, next line: large .3 float for data2.
+
 #endif
     sched.add(appLoop, "main", 1000000);
 }
 
 
 void appLoop() {
-    static double sensor_data=0.0;
-    sched.publish("random/var", String(sensor_data));
-#ifdef USE_SERIAL_DBG
-    Serial.println(sensor_data);
-#endif
-    sensor_data+=0.001;
+    static double sensor_data1=0.0;
+    static double sensor_data2=0.0;
+    sched.publish("sensor/data1", String(sensor_data1,3));
+    sched.publish("sensor/data2", String(sensor_data1,3));
+    sensor_data1+=(random(10)-5)/70.0;
+    if (sensor_data1<0.0) sensor_data1=0.0;
+    if (sensor_data1>1.0) sensor_data1=1.0;
+    sensor_data2+=(random(10)-5)/50.0;
+    if (sensor_data2<0.0) sensor_data2=0.0;
+    if (sensor_data2>1.0) sensor_data2=1.0;
 }
 
 // Never add code to this loop, use appLoop() instead.
