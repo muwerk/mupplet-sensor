@@ -349,7 +349,9 @@ class GfxPanel {
 
     GfxDrivers *pDisplay;
     ustd::Scheduler *pSched;
+#ifndef OPTION_NO_MQTT
     ustd::Mqtt *pMqtt;
+#endif
 
     enum SlotType {INT, FLOAT, DOUBLE, TRIPLE, PERCENT, STRING, GRAPH};
     typedef struct t_slot {
@@ -690,6 +692,7 @@ class GfxPanel {
         };
         for (uint8_t i=0; i<slots; i++) {
             if (topics[i]!="") {
+#ifndef OPTION_NO_MQTT
                 if (topics[i][0]=='!') {
                     topics[i]=topics[i].substring(1);
                     pMqtt->addSubscription(tID, topics[i], fnall);
@@ -697,7 +700,9 @@ class GfxPanel {
                     Serial.print("Subscribing via MQTT: ");
                     Serial.println(topics[i]);
 #endif
-                } else {
+                } 
+#endif
+                if (topics[i][0]!='!') {
                     if (topics[i]!="clock/timeinfo") {  // local shortcut msg. Questionable?
                         pSched->subscribe(tID, topics[i], fnall);
 #ifdef USE_SERIAL_DBG
@@ -789,7 +794,7 @@ class GfxPanel {
         */
     }
 
-
+#ifndef OPTION_NO_MQTT
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
@@ -798,12 +803,20 @@ class GfxPanel {
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
+#else
+    void begin(ustd::Scheduler *_pSched) {
+        /*! Activate display and begin receiving updates for the display slots
 
+        @param _pSched Pointer to the muwerk scheduler
+        */
+        pSched = _pSched;
+#endif
         getConfigFromFS(name);
         commonBegin();
         updateDisplay();
     }
 
+#ifndef OPTION_NO_MQTT
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
@@ -815,7 +828,17 @@ class GfxPanel {
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
+#else
+    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions) {
+        /*! Activate display and begin receiving updates for the display slots
 
+        @param _pSched Pointer to the muwerk scheduler
+        @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
+        @param _topics std::array<String> of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions std::array<String> of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        */
+        pSched = _pSched;
+#endif
         for (auto t : _topics) {
             topics.add(t);
         }
@@ -828,6 +851,7 @@ class GfxPanel {
         updateDisplay(true);
     }
 
+#ifndef OPTION_NO_MQTT
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[]) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
@@ -840,7 +864,18 @@ class GfxPanel {
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
+#else
+    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[]) {
+        /*! Activate display and begin receiving updates for the display slots
 
+        @param _pSched Pointer to the muwerk scheduler
+        @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
+        @param _slots Number of slots to use, must be array dimension of both _captions and topics.
+        @param _topics const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        */
+        pSched = _pSched;
+#endif
         for (uint16_t i=0; i<_slots; i++) {
             String s=_topics[i];
             topics.add(s);
