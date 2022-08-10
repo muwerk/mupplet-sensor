@@ -30,14 +30,21 @@ Serial.println("Starting display");
     displayTft.begin(&sched);
 Serial.println("Display started");
 #else
-    const char *topics[]={"clock/timeinfo", "!hastates/sensor/klima_nordseite_temperature/state", "!hastates/sensor/klima_kuche_temperature/state"};
-    const char *captions[]={"Time", "Nord _C", "Kueche _C"};
-    displayOled.begin(&sched,"S|ff",3,topics,captions);
+    const char *topics[]={"clock/timeinfo", "random/var"};
+    const char *captions[]={"Time", "Random"};
+    displayOled.begin(&sched,"S|T",2,topics,captions);
 #endif
     sched.add(appLoop, "main", 1000000);
 }
 
+
 void appLoop() {
+    static double sensor_data=0.0;
+    sched.publish("random/var", String(sensor_data));
+#ifdef USE_SERIAL_DBG
+    Serial.println(sensor_data);
+#endif
+    sensor_data+=0.001;
 }
 
 // Never add code to this loop, use appLoop() instead.
