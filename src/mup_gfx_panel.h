@@ -398,27 +398,17 @@ class GfxPanel {
     uint16_t slots;
     T_SLOT *pSlots;
 
-/*
-    #define GFX_MAX_SLOTS 16
-    #define GFX_MAX_HIST 48
-    double vals[GFX_MAX_SLOTS];
-    String svals[GFX_MAX_SLOTS];
-    double dirs[GFX_MAX_SLOTS];
-    bool vals_init[GFX_MAX_SLOTS];
-    time_t lastUpdates[GFX_MAX_SLOTS];
-    double hists[GFX_MAX_SLOTS][GFX_MAX_HIST];
-  */  
+
     String layout;
     String formats;
     ustd::array<String> topics;
     ustd::array<String> captions;
     ustd::array<String> msgs;
-//    uint16_t slotsX, slotsY;
+
     uint32_t lastRefresh;
     bool delayedUpdate;
     
-    String valid_formats=" SIPFDTG";
-    
+    String valid_formats=" SIPFDTG";    
     String valid_formats_long=" SIPFDTG";
     String valid_formats_small=" sipfdtg";
     char oldTimeString[64]="";
@@ -979,83 +969,8 @@ class GfxPanel {
         }
     }
 
-/*
-    void updateCell(uint8_t slotX, uint8_t slotY, String msg, double hist[], String caption, double arrowDir=0.0, bool large=false) {
-        uint8_t x0=0, y0=0, x1=0, y1=0, xa=0, ya=0;
-        uint8_t xm0, ym0, xm1,ym1;
-        String bold;
-        x0=slotX*64+14;
-        y0=slotY*32+3;
-        x1=slotX*64+14;
-        y1=slotY*32+29;
-        xa=slotX*64+5;
-        ya=slotY*32+14;
-        xm0=slotX*64+1;
-        ym0=slotY*32+1;
-        xm1=(slotX+1)*64-2; if (large) xm1+=64;
-        ym1=(slotY+1)*32-2;
-        // caption
-        pDisplay->setFont();
-        pDisplay->setTextColor(pDisplay->RGB(0xbb,0xbb,0xbb));
-        pDisplay->setTextSize(1);
-        bool isBold=true;
-        String first="";
-        String second="";
-        for (unsigned int i=0; i<caption.length(); i++) {
-            if (caption[i]=='_') {
-                isBold=!isBold;
-                continue;
-            }
-            first+=caption[i];
-            if (isBold) {
-                second+=caption[i];
-            } else {
-                second+=' ';
-            }
-        }
-        pDisplay->setCursor(x0,y0);
-        pDisplay->println(first);
-        pDisplay->setCursor(x0+1,y0);
-        pDisplay->println(second);
-        // value
-        if (msg!="graph") {
-            pDisplay->setFont(&FreeSans12pt7b);
-            pDisplay->setTextColor(pDisplay->RGB(0xff,0xff,0xff));
-            pDisplay->setTextSize(1);
-            pDisplay->setCursor(x1,y1);
-            pDisplay->println(msg);
-            pDisplay->setCursor(x1+1,y1);
-            pDisplay->println(msg);
-            // arrow
-            if (arrowDir != 0.0) {
-                drawArrow(xa,ya,(arrowDir>0.0),8,3,7);
-            }
-        } else {
-            double min=100000, max=-100000;
-            for (uint16_t x=0; x<GFX_MAX_HIST; x++) {
-                if (hist[x]>max) max=hist[x];
-                if (hist[x]<min) min=hist[x];
-            }
-            double deltaY=max-min;
-            if (deltaY<0.0001) deltaY=1;
-            double deltaX=(double)(xm1-xm0)/(double)(GFX_MAX_HIST);
-            int lx0,ly0,lx1,ly1;
-            int gHeight=(ym1-ym0)-11; // font size of caption.
-            for (uint16_t i=1; i<GFX_MAX_HIST; i++) {
-                lx0=xm0+(int)((double)(i-1)*deltaX); lx1=xm0+(int)((double)i*deltaX);
-                ly0=ym1-(int)((hist[i-1]-min)/deltaY*(double)(gHeight));
-                ly1=ym1-(int)((hist[i]-min)/deltaY*(double)(gHeight));
-                uint32_t col;
-                if (ly1<ly0) col=pDisplay->RGB(0xff,0x80,0x80);
-                else {
-                    if (ly1==ly0) col=pDisplay->RGB(0xc0,0xc0,0xc0);
-                    else col=pDisplay->RGB(0x80,0x80,0xff);
-                }
-                pDisplay->drawLine(lx0, ly0, lx1, ly1, col);
-            }
-        }
-    }
-*/
+
+
     void boldParser(String msg, String &first, String &sec) {
         bool isBold=true;
         for (unsigned int i=0; i<msg.length(); i++) {
@@ -1178,54 +1093,7 @@ class GfxPanel {
         }
     }
 
-/*
-    void updateDisplay(bool forceUpdate=false) {
-        String bold;
-        if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L)) {
-            delayedUpdate=true;
-            return;
-        }
-        lastRefresh=micros();
-        delayedUpdate=false;
-        bool updated=false;
-        pDisplay->clearDisplay();
-        uint32_t lineColor = pDisplay->RGB(0x80,0x80,0x80);
-        uint8_t sx, sy, ind, ly;
-        sx=0, sy=0; ind=0, ly=0;
-        pDisplay->drawLine(0,ly,resX-1,ly, lineColor);
-        for (char c : layout) {
-            switch (c) {
-                case 'L':
-                    updateCell(sx,sy, msgs[ind], hists[ind], captions[ind], dirs[ind], true);
-                    sx+=2;
-                    ++ind;
-                    updated=true;
-                    break;
-                case 'S':
-                    updateCell(sx,sy, msgs[ind], hists[ind], captions[ind], dirs[ind], false);
-                    updated=true;
-                    sx+=1;
-                    ++ind;
-                    break;
-                case '|':
-                    sx=0;
-                    sy+=1;
-                    ly+=32;
-                    pDisplay->drawLine(0,ly,resX-1,ly, lineColor);
-                    break;
-                default:
-                    break;
-            }
-        }
-        ly+=32;
-        if (ly==resY) --ly;
-        pDisplay->drawLine(0,ly,resX-1,ly, lineColor);
 
-        if (updated) {
-            pDisplay->display();
-        }
-    }
-*/
     bool updateSlot(uint16_t slot, String msg) {
         bool changed=false;
         if (slot>=slots) return false;
@@ -1245,7 +1113,7 @@ class GfxPanel {
                 pSlots[slot].currentValue=msg.toFloat()*k+o;
                 pSlots[slot].isValid=true;
                 pSlots[slot].lastUpdate=time(nullptr);
-                String newVal=String(pSlots[slot].currentValue,pSlots[slot].digits);
+                String newVal=String(pSlots[slot].currentValue,(uint16_t)pSlots[slot].digits);
                 if (pSlots[slot].currentText!=newVal) {
                     changed=true;
                 }
@@ -1286,84 +1154,6 @@ class GfxPanel {
         if (changed) updateDisplay();
     }
 
-/*
-    // This is called on Sensor-update events
-    void sensorUpdates(String topic, String msg, String originator) {
-        char buf[64];
-        bool changed;
-#ifdef USE_SERIAL_DBG
-        Serial.print("sensorUpdates ");
-        Serial.print(topic);
-        Serial.print(" -> ");
-        Serial.println(msg);
-#endif
-        for (uint8_t i=0; i<slots; i++) {
-            if (topic==topics[i]) {
-                String valid_numbers="IPFDTG";
-                if (valid_numbers.indexOf(formats[i])!= -1) {
-                    vals[i]=msg.toFloat();
-                    lastUpdates[i]=time(nullptr);
-                    if (vals_init[i]==false) {
-                        for (uint8_t j=0; j<GFX_MAX_HIST; j++) hists[i][j]=vals[i];
-                    } else {
-                        for (uint8_t j=0; j<GFX_MAX_HIST-1; j++) hists[i][j]=hists[i][j+1];
-                        hists[i][GFX_MAX_HIST-1]=vals[i];
-                    }
-                    vals_init[i]=true;
-                    dirs[i]=vals[i]-hists[i][0];
-                }
-                if (formats[i]=='S') {
-                    lastUpdates[i]=time(nullptr);
-                    vals_init[i]=true;
-                    svals[i]=msg;
-                }
-            }
-        }
-        changed=false;
-        for (uint8_t i=0; i<slots; i++) {
-            if (vals_init[i]==true) {
-                msgs[i]="?Format";
-                if (formats[i]=='S') {
-                    if (msgs[i]!=svals[i]) changed=true;
-                    msgs[i]=svals[i];
-                }
-                if (formats[i]=='F') {
-                    sprintf(buf,"%.1f",vals[i]);
-                    if (String(buf)!=msgs[i]) changed=true;
-                    msgs[i]=String(buf);
-                }
-                if (formats[i]=='D') {
-                    sprintf(buf,"%.2f",vals[i]);
-                    if (String(buf)!=msgs[i]) changed=true;
-                    msgs[i]=String(buf);
-                }
-                if (formats[i]=='T') {
-                    sprintf(buf,"%.3f",vals[i]);
-                    if (String(buf)!=msgs[i]) changed=true;
-                    msgs[i]=String(buf);
-                }
-                if (formats[i]=='I') {
-                    sprintf(buf,"%d",(int)vals[i]);
-                    if (String(buf)!=msgs[i]) changed=true;
-                    msgs[i]=String(buf);                        
-                }
-                if (formats[i]=='P') {
-                    sprintf(buf,"%d%%",(int)(vals[i]*100));
-                    if (String(buf)!=msgs[i]) changed=true;
-                    msgs[i]=String(buf);                        
-                }
-                if (formats[i]=='G') {
-                    msgs[i]=String("graph");
-                    changed=true;
-                }
-            } else {
-                msgs[i]="NaN";
-                changed=true;
-            }
-        }
-        if (changed) updateDisplay();
-    }
-*/
     void subsMsg(String topic, String msg, String originator) {
         if (!active) return;
         String toc=name+"/display/slot/";
