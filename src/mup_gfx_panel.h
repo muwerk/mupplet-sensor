@@ -1255,14 +1255,15 @@ class GfxPanel {
                         for (uint16_t i=0; i<pSlots[slot].histLen; i++) {
                             pSlots[slot].pHist[i]=pSlots[slot].currentValue;
                         }
-                        pSlots[slot].histDeltaMs=millis();
+                        pSlots[slot].lastHistUpdate=millis();
                         pSlots[slot].histInit=true;
                     } else {
-                        if (timeDiff(pSlots[slot].histDeltaMs, millis())>pSlots[slot].histDeltaMs) {
+                        while (timeDiff(pSlots[slot].lastHistUpdate, millis())>pSlots[slot].histDeltaMs) {
                             for (uint16_t i=0; i<pSlots[slot].histLen-1; i++) {
                                 pSlots[slot].pHist[i]=pSlots[slot].pHist[i+1];
                             }
-                            pSlots[slot].histDeltaMs=millis();
+                            pSlots[slot].lastHistUpdate += pSlots[slot].histDeltaMs;
+                            pSlots[slot].pHist[pSlots[slot].histLen-1]=pSlots[slot].currentValue;
                         }
                         pSlots[slot].pHist[pSlots[slot].histLen-1]=pSlots[slot].currentValue;
                     }
