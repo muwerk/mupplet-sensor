@@ -1030,6 +1030,10 @@ class GfxPanel {
         }
     }
 
+    void newUpdateDisplay(bool forceUpdate=false) {
+
+    }
+
     void updateDisplay(bool forceUpdate=false) {
         String bold;
         if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L)) {
@@ -1080,7 +1084,7 @@ class GfxPanel {
     bool updateSlot(uint16_t slot, String msg) {
         char buf[128];
         bool changed=false;
-        if (slot>=slots) return;
+        if (slot>=slots) return false;
         float k=pSlots[slot].scalingFactor;
         float o=pSlots[slot].offset;
         buf[127]=0;
@@ -1122,7 +1126,7 @@ class GfxPanel {
                 }
                 break;
         }
-        return changed
+        return changed;
     }
 
     void newSensorUpdate(String topic, String msg, String originator) {
