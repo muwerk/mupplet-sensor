@@ -483,6 +483,7 @@ class GfxPanel {
         defaultDecreaseColor = GfxDrivers::RGB(0x80, 0x80, 0xff);
         defaultHistLen=64;
         defaultHistDeltaMs=3600*1000/64;  // 1 hr in ms for entire history
+        Serial.println("commonInit done.");
     }
 
     bool splitCombinedLayout(String combined_layout) {
@@ -591,23 +592,19 @@ class GfxPanel {
         pSlots[slot].slotY=0;
         uint16_t ind=0;
         for (auto c : layouts[slot]) {
-            if (ind==slot) {
-                if (c=='S') {
-                    pSlots[slot].slotLenX=1;
-                    pSlots[slot].slotLenY=1;
-                } else if (c=='L') {
-                    pSlots[slot].slotLenX=2;
-                    pSlots[slot].slotLenY=1;
-                } else {
-                    return false;
-                }
-                break;
-            }
             if (c=='S') {
                 pSlots[slot].slotX++;
+                if (ind==slot) {
+                    pSlots[slot].slotLenX=1;
+                    pSlots[slot].slotLenY=1;
+                }
                 ++ind;
             } else if (c=='L') {
                 pSlots[slot].slotX+=2;
+                if (ind==slot) {
+                    pSlots[slot].slotLenX=2;
+                    pSlots[slot].slotLenY=1;
+                }
                 ++ind;
             } else if (c=='|') {
                 pSlots[slot].slotY++;
@@ -731,6 +728,7 @@ class GfxPanel {
     }
 
     void commonBegin() {
+        Serial.println("commonBegin Start");
         pDisplay->begin();
 
         auto fntsk = [=]() {
@@ -780,6 +778,8 @@ class GfxPanel {
         Serial.print(" formats: ");
         Serial.println(formats);
 #endif  // USE_SERIAL_DBG
+        shortConfig2Slots();
+        Serial.println("Config2Slots done.");
     }
 
   public:
@@ -975,6 +975,7 @@ class GfxPanel {
         }
     }
 
+/*
     void updateCell(uint8_t slotX, uint8_t slotY, String msg, double hist[], String caption, double arrowDir=0.0, bool large=false) {
         uint8_t x0=0, y0=0, x1=0, y1=0, xa=0, ya=0;
         uint8_t xm0, ym0, xm1,ym1;
@@ -1050,7 +1051,7 @@ class GfxPanel {
             }
         }
     }
-
+*/
     void boldParser(String msg, String &first, String &sec) {
         bool isBold=true;
         for (unsigned int i=0; i<msg.length(); i++) {
@@ -1139,7 +1140,7 @@ class GfxPanel {
         return true;
     }
 
-    void newUpdateDisplay(bool forceUpdate=false) {
+    void updateDisplay(bool forceUpdate=false) {
         if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L)) {
             delayedUpdate=true;
             return;
@@ -1147,6 +1148,10 @@ class GfxPanel {
         lastRefresh=micros();
         delayedUpdate=false;
         uint16_t maxSlotX=0, maxSlotY=0;
+
+        // XXX bulk erase!
+        pDisplay->clearDisplay();
+
         for (uint16_t slot=0; slot<slots; slot++) {
             if (pSlots[slot].slotX>maxSlotX) maxSlotX=pSlots[slot].slotX;
             if (pSlots[slot].slotY>maxSlotY) maxSlotY=pSlots[slot].slotY;
@@ -1167,6 +1172,7 @@ class GfxPanel {
         }
     }
 
+/*
     void updateDisplay(bool forceUpdate=false) {
         String bold;
         if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L)) {
@@ -1213,7 +1219,7 @@ class GfxPanel {
             pDisplay->display();
         }
     }
-
+*/
     bool updateSlot(uint16_t slot, String msg) {
         char buf[128];
         bool changed=false;
@@ -1263,7 +1269,7 @@ class GfxPanel {
         return changed;
     }
 
-    void newSensorUpdate(String topic, String msg, String originator) {
+    void sensorUpdates(String topic, String msg, String originator) {
         bool changed=false;
         for (uint16_t slot=0; slot<slots; slot++) {
             if (pSlots[slot].topic==topic) {
@@ -1273,6 +1279,7 @@ class GfxPanel {
         if (changed) updateDisplay();
     }
 
+/*
     // This is called on Sensor-update events
     void sensorUpdates(String topic, String msg, String originator) {
         char buf[64];
@@ -1349,7 +1356,7 @@ class GfxPanel {
         }
         if (changed) updateDisplay();
     }
-
+*/
     void subsMsg(String topic, String msg, String originator) {
         String toc=name+"/display/slot/";
         if (topic.startsWith(toc)) {
