@@ -351,7 +351,7 @@ class GfxPanel {
 
     GfxDrivers *pDisplay;
     ustd::Scheduler *pSched;
-#if defined(USTD_FEATURE_NET) && !defined(OPTION_NO_MQTT)
+#if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
     ustd::Mqtt *pMqtt;
 #endif
 
@@ -737,7 +737,7 @@ class GfxPanel {
         };
         for (uint8_t i=0; i<slots; i++) {
             if (topics[i]!="") {
-#if defined(USTD_FEATURE_NET) && !defined(OPTION_NO_MQTT)
+#if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
                 if (topics[i][0]=='!') {
                     topics[i]=topics[i].substring(1);
                     pMqtt->addSubscription(tID, topics[i], fnall);
@@ -856,7 +856,7 @@ class GfxPanel {
         */
     }
 
-#if defined(USTD_FEATURE_NET) && !defined(OPTION_NO_MQTT)
+#if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
@@ -878,7 +878,7 @@ class GfxPanel {
         updateDisplay();
     }
 
-#if defined(USTD_FEATURE_NET) && !defined(OPTION_NO_MQTT)
+#if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
@@ -913,7 +913,7 @@ class GfxPanel {
         updateDisplay(true);
     }
 
-#if defined(USTD_FEATURE_NET) && !defined(OPTION_NO_MQTT)
+#if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[]) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
