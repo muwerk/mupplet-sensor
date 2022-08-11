@@ -36,7 +36,7 @@ Serial.println("Starting display");
     displayOled.begin(&sched,"dg|G",3,topics,captions); // "f: small slot .2 float data1, g: small graph data1, next line: large graph for data2.
 Serial.println("Display started");
 #endif
-    sched.add(appLoop, "main", 1000000);
+    sched.add(appLoop, "main", 100000);
 }
 
 
