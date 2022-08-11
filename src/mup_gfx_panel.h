@@ -29,9 +29,11 @@ class GfxDrivers {
     uint8_t csPin, dcPin, rstPin;
     BusType busType;
     bool validDisplay;
+    bool useCanvas;
     Adafruit_ST7735 *pDisplayST;   // Subclasses of Adafruit_GFX, doesn't help much, an Interface would be really handy.
     Adafruit_SSD1306 *pDisplaySSD; // Inheritance is C++ language's design failure no.1
                                    // So un-inheritance.
+    GFXcanvas16 *pCanvas;
 
     GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire):
         name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire)
@@ -58,7 +60,8 @@ class GfxDrivers {
     ~GfxDrivers() {
     }
 
-    void begin() {
+    void begin(bool _useCanvas=true) {
+        useCanvas=_useCanvas;
         if (validDisplay) {
             switch (displayType) {
                 case DisplayType::SSD1306:
@@ -75,12 +78,19 @@ class GfxDrivers {
                     if (resX==128 && resY==128) {
                         pDisplayST->initR(INITR_144GREENTAB);   // 1.4" thingy?
                     }
-                    if (resX==160 && resY==128) {
+                    if (resX==128 && resY==160) {
                         pDisplayST->initR(INITR_BLACKTAB);   // 1.8" thingy?
                     }
-                    pDisplayST->setTextWrap(false);
-                    pDisplayST->fillScreen(ST77XX_BLACK);
-                    pDisplayST->cp437(true);
+                    if (useCanvas) {
+                        pCanvas=new GFXcanvas16(resX, resY);
+                        pCanvas->setTextWrap(false);
+                        pCanvas->fillScreen(ST77XX_BLACK);
+                        pCanvas->cp437(true);
+                    } else {
+                        pDisplayST->setTextWrap(false);
+                        pDisplayST->fillScreen(ST77XX_BLACK);
+                        pDisplayST->cp437(true);
+                    }
                     break;
             }
         }
@@ -122,7 +132,11 @@ class GfxDrivers {
                     pDisplaySSD->clearDisplay();
                     break;
                 case DisplayType::ST7735:
-                    pDisplayST->fillScreen(ST77XX_BLACK);
+                    if (useCanvas) {
+                        pCanvas->fillScreen(ST77XX_BLACK);
+                    } else {
+                        pDisplayST->fillScreen(ST77XX_BLACK);
+                    }
                     break;
                 default:
                     break;
@@ -137,7 +151,11 @@ class GfxDrivers {
                     pDisplaySSD->drawLine(x0,y0,x1,y1,rgbColor(rgb));
                     break;
                 case DisplayType::ST7735:
-                    pDisplayST->drawLine(x0,y0,x1,y1,rgbColor(rgb));
+                    if (useCanvas) {
+                        pCanvas->drawLine(x0,y0,x1,y1,rgbColor(rgb));
+                    } else {
+                        pDisplayST->drawLine(x0,y0,x1,y1,rgbColor(rgb));
+                    }
                     break;
                 default:
                     break;
@@ -152,7 +170,11 @@ class GfxDrivers {
                     pDisplaySSD->setFont(gfxFont);
                     break;
                 case DisplayType::ST7735:
-                    pDisplayST->setFont(gfxFont);
+                    if (useCanvas) {
+                        pCanvas->setFont(gfxFont);
+                    } else {
+                        pDisplayST->setFont(gfxFont);
+                    }
                     break;
                 default:
                     break;
@@ -167,7 +189,11 @@ class GfxDrivers {
                     pDisplaySSD->setTextColor(rgbColor(rgb));
                     break;
                 case DisplayType::ST7735:
-                    pDisplayST->setTextColor(rgbColor(rgb));
+                    if (useCanvas) {
+                        pCanvas->setTextColor(rgbColor(rgb));
+                    } else {
+                        pDisplayST->setTextColor(rgbColor(rgb));
+                    }
                     break;
                 default:
                     break;
@@ -182,7 +208,11 @@ class GfxDrivers {
                     pDisplaySSD->setTextSize(textSize);
                     break;
                 case DisplayType::ST7735:
-                    pDisplayST->setTextSize(textSize);
+                    if (useCanvas) {
+                        pCanvas->setTextSize(textSize);
+                    } else {
+                        pDisplayST->setTextSize(textSize);
+                    }
                     break;
                 default:
                     break;
@@ -197,7 +227,11 @@ class GfxDrivers {
                     pDisplaySSD->setCursor(x,y);
                     break;
                 case DisplayType::ST7735:
-                    pDisplayST->setCursor(x,y);
+                    if (useCanvas) {
+                        pCanvas->setCursor(x,y);
+                    } else {
+                        pDisplayST->setCursor(x,y);
+                    }
                     break;
                 default:
                     break;
@@ -212,7 +246,11 @@ class GfxDrivers {
                     pDisplaySSD->println(text);
                     break;
                 case DisplayType::ST7735:
-                    pDisplayST->println(text);
+                    if (useCanvas) {
+                        pCanvas->println(text);
+                    } else {
+                        pDisplayST->println(text);
+                    }
                     break;
                 default:
                     break;
@@ -227,6 +265,9 @@ class GfxDrivers {
                     pDisplaySSD->display();
                     break;
                 case DisplayType::ST7735:
+                    if (useCanvas) {
+                        pDisplayST->drawRGBBitmap(0, 0, pCanvas->getBuffer(), resX, resY);
+                    }
                     break;
                 default:
                     break;
@@ -364,7 +405,7 @@ class GfxPanel {
     uint32_t defaultConstColor;
     uint32_t defaultDecreaseColor;
     uint16_t defaultHistLen;
-    uint32_t defaultHistDeltaMs;  // 24 hours in ms for entire history
+    uint32_t defaultHistSampleRateMs;  // 24 hours in ms for entire history
     typedef struct t_slot {
         bool isInit;
         bool isValid;
@@ -384,7 +425,7 @@ class GfxPanel {
         
         uint16_t histLen;
         uint32_t lastHistUpdate;
-        uint32_t histDeltaMs;
+        uint32_t histSampleRateMs;
         float *pHist;
         bool histInit;
         
@@ -474,7 +515,7 @@ class GfxPanel {
         defaultConstColor = GfxDrivers::RGB(0xc0, 0xc0, 0xc0);
         defaultDecreaseColor = GfxDrivers::RGB(0x80, 0x80, 0xff);
         defaultHistLen=64;
-        defaultHistDeltaMs=100; // 3600*1000/64;  // 1 hr in ms for entire history
+        defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
 
     bool splitCombinedLayout(String combined_layout) {
@@ -660,7 +701,7 @@ class GfxPanel {
         pSlots[slot].caption=captions[slot];
         pSlots[slot].lastUpdate=0;
         pSlots[slot].lastHistUpdate=0;
-        pSlots[slot].histDeltaMs=defaultHistDeltaMs;
+        pSlots[slot].histSampleRateMs=defaultHistSampleRateMs;
         pSlots[slot].currentValue=0.0;
         pSlots[slot].currentText="";
         pSlots[slot].deltaDir=0.0;
@@ -856,6 +897,24 @@ class GfxPanel {
         */
     }
 
+    void setSlotHistorySampleRateMs(uint16_t slot, uint32_t rate) {
+        /*! Set the history sample rate for a slot.
+        @param slot: The slot number.
+        @param rate: The sample rate in milliseconds.
+        */
+        if (slot<slots) {
+            pSlots[slot].histSampleRateMs=rate;
+        }
+    }
+
+    void publishSlotHistorySampleRateMs(uint16_t slot) {
+        /*! Publish the history sample rate for a slot.
+        @param slot: The slot number, 0..<slots.
+        */
+        if (slot<slots) {
+            pSched->publish(name+"/display/slot/"+String(slot)+"/histosrysampleratems", String(pSlots[slot].histSampleRateMs));
+        }
+    }
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
     void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
         /*! Activate display and begin receiving MQTT updates for the display slots
@@ -1125,13 +1184,15 @@ class GfxPanel {
                         }
                         pSlots[slot].lastHistUpdate=millis();
                         pSlots[slot].histInit=true;
+                        changed=true;
                     } else {
-                        while (timeDiff(pSlots[slot].lastHistUpdate, millis())>pSlots[slot].histDeltaMs) {
+                        while (timeDiff(pSlots[slot].lastHistUpdate, millis())>pSlots[slot].histSampleRateMs) {
                             for (uint16_t i=0; i<pSlots[slot].histLen-1; i++) {
                                 pSlots[slot].pHist[i]=pSlots[slot].pHist[i+1];
                             }
-                            pSlots[slot].lastHistUpdate += pSlots[slot].histDeltaMs;
+                            pSlots[slot].lastHistUpdate += pSlots[slot].histSampleRateMs;
                             pSlots[slot].pHist[pSlots[slot].histLen-1]=pSlots[slot].currentValue;
+                            changed=true;
                         }
                         pSlots[slot].pHist[pSlots[slot].histLen-1]=pSlots[slot].currentValue;
                     }
@@ -1161,7 +1222,7 @@ class GfxPanel {
             String sub=topic.substring(toc.length());
             int16_t ind=sub.indexOf("/");
             if (ind!=-1) {
-                uint16_t slot=sub.substring(0,ind).toInt();
+                int16_t slot=sub.substring(0,ind).toInt();
                 if (slot < slots) {
                     String action=sub.substring(ind+1);
                     if (action=="caption/get") {
@@ -1188,7 +1249,13 @@ class GfxPanel {
                     if (action=="text/set") {
                         setSlotText(slot,msg);
                     }
-                }
+                    if (action=="historysampleratems/get") {
+                        publishSlotHistorySampleRateMs(slot);
+                    }
+                    if (action=="historysampleratems/set") {
+                        setSlotHistorySampleRateMs(slot,msg.toInt());
+                    }
+                 }
             }
         }
     }
