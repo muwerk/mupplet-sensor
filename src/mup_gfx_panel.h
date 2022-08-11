@@ -485,7 +485,6 @@ class GfxPanel {
         defaultDecreaseColor = GfxDrivers::RGB(0x80, 0x80, 0xff);
         defaultHistLen=64;
         defaultHistDeltaMs=100; // 3600*1000/64;  // 1 hr in ms for entire history
-        Serial.println("commonInit done.");
     }
 
     bool splitCombinedLayout(String combined_layout) {
@@ -533,8 +532,6 @@ class GfxPanel {
 
         lastRefresh=0;
         delayedUpdate=false;
-        Serial.println("Split: "+layout+" "+formats+" "+String(slots));
-        Serial.println("Split done: "+String(layout_valid));
         return layout_valid;
     }
 
@@ -568,7 +565,6 @@ class GfxPanel {
         @param combined_layout: The layout string, e.g. "ff|ff".
         @return: True if config file was found and read, false otherwise.
         */
-    Serial.println("Split combined layout");
         if (!splitCombinedLayout(combined_layout)) {
             return false;
         }
@@ -578,7 +574,6 @@ class GfxPanel {
 #endif
             return false;
         }
-        Serial.println("Done Split");
         return true;
     }
 
@@ -679,11 +674,10 @@ class GfxPanel {
         pSlots[slot].currentValue=0.0;
         pSlots[slot].currentText="";
         pSlots[slot].deltaDir=0.0;
+        pSlots[slot].isInit=true;
         pSlots[slot].isValid=false;
         pSlots[slot].color=defaultColor;
         pSlots[slot].bgColor=defaultBgColor;
-
-        Serial.println("Slot: "+String(slot)+" Topic: "+pSlots[slot].topic+" Caption: "+pSlots[slot].caption+" X:"+String(pSlots[slot].slotX)+" Y:"+String(pSlots[slot].slotY));
         return true;
     }
 
@@ -738,7 +732,6 @@ class GfxPanel {
     }
 
     void commonBegin() {
-        Serial.println("commonBegin Start");
         pDisplay->begin();
 
         auto fntsk = [=]() {
@@ -789,18 +782,17 @@ class GfxPanel {
         Serial.println(formats);
 #endif  // USE_SERIAL_DBG
         shortConfig2Slots();
-        Serial.println("Config2Slots done.");
         active=true;
     }
 
   public:
-    void setSlotCaption(uint8_t slot, String caption) {
+    void setSlotCaption(uint16_t slot, String caption) {
         /*! Set the caption for a slot.
         @param slot: The slot number.
         @param caption: The caption.
         */
         captions[slot]=caption;
-        if (pSlots) {
+        if (pSlots && slot<slots) {
             if (pSlots[slot].isInit) {
                 pSlots[slot].caption=caption;
                 pSlots[slot].hasChanged=true;
@@ -956,16 +948,13 @@ class GfxPanel {
         */
         pSched = _pSched;
 #endif
-        Serial.println("settings topics and captions");
         for (uint16_t i=0; i<_slots; i++) {
             String s=_topics[i];
             topics.add(s);
             String c=_captions[i];
             captions.add(c);
         }
-        Serial.println("Start getConfigFromLayout");
         getConfigFromLayout(name, combined_layout);
-        Serial.println("End getConfigFromLayout");
         commonBegin();
     }
 
