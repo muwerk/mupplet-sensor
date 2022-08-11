@@ -342,6 +342,7 @@ class GfxPanel {
     String name;
     GfxDrivers::DisplayType displayType;
     uint16_t resX, resY;
+    uint16_t slotResX, slotResY;
     uint8_t i2cAddress;
     TwoWire *pWire;
     uint8_t csPin, dcPin, rstPin;
@@ -354,13 +355,19 @@ class GfxPanel {
 #endif
 
     enum SlotType {NUMBER, TEXT, GRAPH};
-    uint32_t defaultColor = GfxDrivers::RGB(0xff,0xff,0xff);
-    uint32_t defaultBgColor = GfxDrivers::RGB(0x00,0x00,0x00);
-    uint16_t defaultHistLen=64;
-    uint32_t defaultHistDeltaMs=24*3600*1000/64;  // 24 hours in ms for entire history
+    uint32_t defaultColor;
+    uint32_t defaultBgColor;
+    uint32_t defaultSeparatorColor;
+    uint32_t defaultAccentColor;
+    uint32_t defaultIncreaseColor;
+    uint32_t defaultConstColor;
+    uint32_t defaultDecreaseColor;
+    uint16_t defaultHistLen;
+    uint32_t defaultHistDeltaMs;  // 24 hours in ms for entire history
     typedef struct t_slot {
         bool isInit;
         bool isValid;
+        bool hasChanged;
         time_t lastUpdate;
         SlotType slotType;
 
@@ -434,7 +441,7 @@ class GfxPanel {
             default:
                 pDisplay=nullptr;
         }
-        //_init_theme();
+        _common_init();
     }
 
     GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin, uint8_t dcPin, uint8_t rstPin=-1, String locale="C"):
@@ -457,13 +464,27 @@ class GfxPanel {
             default:
                 pDisplay=nullptr;
         }
-        //_init_theme();
+        _common_init();
     }
 
     ~GfxPanel() {
     }
 
   private:
+    void _common_init() {
+        slotResX=64;
+        slotResY=32;
+        defaultColor = GfxDrivers::RGB(0xff,0xff,0xff);
+        defaultBgColor = GfxDrivers::RGB(0x00,0x00,0x00);
+        defaultSeparatorColor = GfxDrivers::RGB(0x80,0x80,0x80);
+        defaultAccentColor = GfxDrivers::RGB(0xb0, 0xb0, 0xb0);
+        defaultIncreaseColor = GfxDrivers::RGB(0xff, 0x80, 0x80);
+        defaultConstColor = GfxDrivers::RGB(0xc0, 0xc0, 0xc0);
+        defaultDecreaseColor = GfxDrivers::RGB(0x80, 0x80, 0xff);
+        defaultHistLen=64;
+        defaultHistDeltaMs=3600*1000/64;  // 1 hr in ms for entire history
+    }
+
     bool splitCombinedLayout(String combined_layout) {
         bool layout_valid=true;
         bool parsing=true;
@@ -1030,8 +1051,120 @@ class GfxPanel {
         }
     }
 
-    void newUpdateDisplay(bool forceUpdate=false) {
+    void boldParser(String msg, String &first, String &sec) {
+        bool isBold=true;
+        for (unsigned int i=0; i<msg.length(); i++) {
+            if (msg[i]=='_') {
+                isBold=!isBold;
+                continue;
+            }
+            if (isBold) {
+                first+=msg[i];
+                sec+=msg[i];
+            } else {
+                first+=msg[i];
+                sec+=' ';
+            }
+        }
+    }
 
+    bool displaySlot(uint16_t slot) {
+        if (slot>=slots) return false;
+
+        uint8_t x0=0, y0=0, x1=0, y1=0, xa=0, ya=0;
+        uint8_t xm0, ym0, xm1,ym1;
+
+        // Caption font start x0,y0
+        x0=pSlots[slot].slotX*slotResX+14;
+        y0=pSlots[slot].slotY*slotResY+3;
+        x1=pSlots[slot].slotX*slotResX+14;
+        y1=pSlots[slot].slotY*slotResY+slotResY-3;
+        xa=pSlots[slot].slotX*slotResX+5;
+        ya=pSlots[slot].slotY*slotResY+14;
+        xm0=pSlots[slot].slotX*slotResX+1;
+        ym0=pSlots[slot].slotY*slotResY+1;
+        xm1=(pSlots[slot].slotX+1)*slotResX-2+(pSlots[slot].slotLenX-1)*slotResX;
+        ym1=(pSlots[slot].slotY+1)*slotResY-2+(pSlots[slot].slotLenY-1)*slotResY;
+
+        // caption
+        pDisplay->setFont();
+        pDisplay->setTextColor(defaultAccentColor);
+        pDisplay->setTextSize(1);
+        String first="", second="";
+        boldParser(pSlots[slot].caption, first, second);
+        pDisplay->setCursor(x0,y0);
+        pDisplay->println(first);
+        pDisplay->setCursor(x0+1,y0);
+        pDisplay->println(second);
+
+        if (pSlots[slot].slotType==SlotType::GRAPH) {
+            // Main text
+            pDisplay->setFont(&FreeSans12pt7b);
+            pDisplay->setTextColor(defaultColor);
+            pDisplay->setTextSize(1);
+            pDisplay->setCursor(x1,y1);
+            pDisplay->println(pSlots[slot].currentText);
+            pDisplay->setCursor(x1+1,y1);
+            pDisplay->println(pSlots[slot].currentText);
+            // arrow
+            if (pSlots[slot].deltaDir != 0.0) {
+                drawArrow(xa,ya,(pSlots[slot].deltaDir>0.0),8,3,7);
+            }
+        } else {
+            // Graph
+            double min=100000, max=-100000;
+            for (uint16_t x=0; x<GFX_MAX_HIST; x++) {
+                if (pSlots[slot].pHist[x]>max) max=pSlots[slot].pHist[x];
+                if (pSlots[slot].pHist[x]<min) min=pSlots[slot].pHist[x];
+            }
+            double deltaY=max-min;
+            if (deltaY<0.0001) deltaY=1;
+            double deltaX=(double)(xm1-xm0)/(double)(GFX_MAX_HIST);
+            int lx0,ly0,lx1,ly1;
+            int gHeight=(ym1-ym0)-11; // font size of caption.
+            for (uint16_t i=1; i<GFX_MAX_HIST; i++) {
+                lx0=xm0+(int)((double)(i-1)*deltaX); lx1=xm0+(int)((double)i*deltaX);
+                ly0=ym1-(int)((pSlots[slot].pHist[i-1]-min)/deltaY*(double)(gHeight));
+                ly1=ym1-(int)((pSlots[slot].pHist[i]-min)/deltaY*(double)(gHeight));
+                uint32_t col;
+                if (ly1<ly0) col=defaultIncreaseColor;
+                else {
+                    if (ly1==ly0) col=defaultConstColor;
+                    else col=defaultDecreaseColor;
+                }
+                pDisplay->drawLine(lx0, ly0, lx1, ly1, col);
+            }
+        }
+        pSlots[slot].hasChanged=false;
+        return true;
+    }
+
+    void newUpdateDisplay(bool forceUpdate=false) {
+        if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L)) {
+            delayedUpdate=true;
+            return;
+        }
+        lastRefresh=micros();
+        delayedUpdate=false;
+        uint16_t maxSlotX=0, maxSlotY=0;
+        for (uint16_t slot=0; slot<slots; slot++) {
+            if (pSlots[slot].slotX>maxSlotX) maxSlotX=pSlots[slot].slotX;
+            if (pSlots[slot].slotY>maxSlotY) maxSlotY=pSlots[slot].slotY;
+        }
+        uint16_t y;
+        for (uint16_t ly=0; ly<=maxSlotY; ly++) {
+            y=ly*slotResY;
+            if (y==resY) --y;
+            // XXX slotLenY==1! (maybe implicitly solved by rect fill)
+            pDisplay->drawLine(0,y,resX-1,y, defaultSeparatorColor);
+        }
+        bool update=false;
+        for (uint16_t slot=0; slot<slots; slot++) {
+            if (displaySlot(slot)) update=true;
+        }
+        if (update) {
+            pDisplay->display();
+        }
     }
 
     void updateDisplay(bool forceUpdate=false) {
@@ -1126,6 +1259,7 @@ class GfxPanel {
                 }
                 break;
         }
+        pSlots[slot].hasChanged=changed;
         return changed;
     }
 
