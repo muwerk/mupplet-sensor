@@ -448,6 +448,7 @@ class GfxPanel {
 
     uint32_t lastRefresh;
     bool delayedUpdate;
+    uint32_t minUpdateIntervalMs;
     
     String valid_formats=" SIPFDTG";    
     String valid_formats_long=" SIPFDTG";
@@ -699,7 +700,7 @@ class GfxPanel {
         }
         pSlots[slot].topic=topics[slot];
         pSlots[slot].caption=captions[slot];
-        pSlots[slot].lastUpdate=0;
+        pSlots[slot].lastUpdate=time(nullptr);
         pSlots[slot].lastHistUpdate=0;
         pSlots[slot].histSampleRateMs=defaultHistSampleRateMs;
         pSlots[slot].currentValue=0.0;
@@ -757,7 +758,7 @@ class GfxPanel {
                 pSlots[i].isValid=false;
             }
         }
-        if (delayedUpdate && timeDiff(lastRefresh, micros())>800000L) {
+        if (delayedUpdate && timeDiff(lastRefresh, millis())>minUpdateIntervalMs*0.9) {
             updateDisplay(true);
         }
     }
@@ -768,7 +769,8 @@ class GfxPanel {
         auto fntsk = [=]() {
             _sensorLoop();
         };
-        int tID = pSched->add(fntsk, name, 1000000);
+        minUpdateIntervalMs=1000;
+        int tID = pSched->add(fntsk, name, minUpdateIntervalMs*1000L);
         auto fnsub = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
         };
@@ -903,6 +905,9 @@ class GfxPanel {
         @param rate: The sample rate in milliseconds.
         */
         if (slot<slots) {
+            if (rate<minUpdateIntervalMs) {
+                minUpdateIntervalMs=rate;
+            }
             pSlots[slot].histSampleRateMs=rate;
         }
     }
@@ -1120,12 +1125,13 @@ class GfxPanel {
         return true;
     }
 
+  public:
     void updateDisplay(bool forceUpdate=false) {
-        if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, micros()) < 1000000L)) {
+        if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
             delayedUpdate=true;
             return;
         }
-        lastRefresh=micros();
+        lastRefresh=millis();
         delayedUpdate=false;
         uint16_t maxSlotX=0, maxSlotY=0;
 
@@ -1151,7 +1157,7 @@ class GfxPanel {
             pDisplay->display();
         }
     }
-
+  private:
 
     bool updateSlot(uint16_t slot, String msg) {
         bool changed=false;
