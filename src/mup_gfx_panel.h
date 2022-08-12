@@ -536,7 +536,7 @@ class GfxPanel {
         defaultIncreaseColor = GfxDrivers::RGB(0xff, 0x80, 0x80);
         defaultConstColor = GfxDrivers::RGB(0xc0, 0xc0, 0xc0);
         defaultDecreaseColor = GfxDrivers::RGB(0x80, 0x80, 0xff);
-        defaultHistLen=64;
+        defaultHistLen=128;
         defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
 
@@ -1080,12 +1080,12 @@ class GfxPanel {
         uint8_t xm0, ym0, xm1,ym1;
 
         // Blank
-        uint16_t xf0, xf1, yf0, yf1;
+        uint16_t xf0, yf0, xl, yl;
         xf0=pSlots[slot].slotX*slotResX;
-        xf1=pSlots[slot].slotX*slotResX+slotResX*pSlots[slot].slotLenX-1;
-        yf0=pSlots[slot].slotY*slotResY;
-        yf1=pSlots[slot].slotY*slotResY+slotResY*pSlots[slot].slotLenY-1;
-        pDisplay->fillRect(xf0, yf0, xf1, yf1, pSlots[slot].bgColor);
+        xl=slotResX*pSlots[slot].slotLenX-1;
+        yf0=pSlots[slot].slotY*slotResY+1;
+        yl=slotResY*pSlots[slot].slotLenY-1;
+        pDisplay->fillRect(xf0, yf0, xl, yl, pSlots[slot].bgColor);
         // Caption font start x0,y0
         x0=pSlots[slot].slotX*slotResX+14;
         y0=pSlots[slot].slotY*slotResY+3;
