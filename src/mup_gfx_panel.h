@@ -435,6 +435,8 @@ class GfxPanel {
         float scalingFactor;
         float offset;
         float deltaDir;
+        uint32_t lastFrame;
+        uint32_t frameRate;
     } T_SLOT;
     uint16_t slots;
     T_SLOT *pSlots;
@@ -710,6 +712,8 @@ class GfxPanel {
         pSlots[slot].isValid=false;
         pSlots[slot].color=defaultColor;
         pSlots[slot].bgColor=defaultBgColor;
+        pSlots[slot].lastFrame=0;
+        pSlots[slot].frameRate=1000;
         return true;
     }
 
@@ -906,6 +910,7 @@ class GfxPanel {
         */
         if (slot<slots) {
             pSlots[slot].histSampleRateMs=rate;
+            pSlots[slot].frameRate=rate;
         }
     }
 
@@ -1128,6 +1133,7 @@ class GfxPanel {
             delayedUpdate=true;
             return;
         }
+        bool update=false;
         lastRefresh=millis();
         delayedUpdate=false;
         uint16_t maxSlotX=0, maxSlotY=0;
@@ -1146,7 +1152,6 @@ class GfxPanel {
             // XXX slotLenY==1! (maybe implicitly solved by rect fill)
             pDisplay->drawLine(0,y,resX-1,y, defaultSeparatorColor);
         }
-        bool update=false;
         for (uint16_t slot=0; slot<slots; slot++) {
             if (displaySlot(slot)) update=true;
         }
@@ -1157,8 +1162,9 @@ class GfxPanel {
   private:
 
     bool updateSlot(uint16_t slot, String msg) {
-        bool changed=false;
         if (slot>=slots) return false;
+        if (timeDiff(pSlots[slot].lastFrame, millis()) < pSlots[slot].frameRate) return false;
+        bool changed=false;
         float k=pSlots[slot].scalingFactor;
         float o=pSlots[slot].offset;
         switch (pSlots[slot].slotType) {
@@ -1169,12 +1175,14 @@ class GfxPanel {
                 pSlots[slot].currentText=msg;
                 pSlots[slot].isValid=true;
                 pSlots[slot].lastUpdate=time(nullptr);
+                pSlots[slot].lastFrame=millis();
                 break;
             case SlotType::NUMBER:
             case SlotType::GRAPH:
                 pSlots[slot].currentValue=msg.toFloat()*k+o;
                 pSlots[slot].isValid=true;
                 pSlots[slot].lastUpdate=time(nullptr);
+                pSlots[slot].lastFrame=millis();
                 String newVal=String(pSlots[slot].currentValue,(uint16_t)pSlots[slot].digits);
                 if (pSlots[slot].currentText!=newVal) {
                     changed=true;

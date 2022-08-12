@@ -31,8 +31,6 @@ void setup() {
     Serial.begin(115200);
     Serial.println("Starting up...");
 #endif  // USE_SERIAL_DBG
-
-
     const char *topics1[]={"sensor/data1", "sensor/data1", "sensor/data2"};
     const char *captions1[]={"Data 1 _N", "Data 1 _N", "(will be set dyn.)"};
 #ifdef USE_OLED
