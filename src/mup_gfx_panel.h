@@ -940,7 +940,7 @@ class GfxPanel {
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
