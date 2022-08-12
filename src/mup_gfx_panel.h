@@ -1083,6 +1083,34 @@ class GfxPanel {
         pDisplay->setCursor(x0+1,y0);
         pDisplay->println(second);
 
+        float gmin, gmax, dmin, dmax;
+        float avg, navg;
+        dmin= 100000.0;
+        dmax=-100000.0;
+        gmax=-100000.0;
+        gmin= 100000.0;
+        avg=0.0;
+        navg=0.0;
+        if (pSlots[slot].slotType!=SlotType::TEXT) {
+            if (pSlots[slot].pHist && pSlots[slot].histLen) {
+                for (uint16_t x=0; x<pSlots[slot].histLen; x++) {
+                    if (pSlots[slot].pHist[x]>gmax) gmax=pSlots[slot].pHist[x];
+                    if (pSlots[slot].pHist[x]<gmin) gmin=pSlots[slot].pHist[x];
+                    if (x>pSlots[slot].histLen-10) {
+                        avg += pSlots[slot].pHist[x];
+                        navg++;
+                        if (pSlots[slot].pHist[x]>dmax) dmax=pSlots[slot].pHist[x];
+                        if (pSlots[slot].pHist[x]<dmin) dmin=pSlots[slot].pHist[x];
+                    }
+                }
+                float ref;
+                if (navg>0.0) ref=avg/navg;
+                else ref=0.0;
+                if (slot==0)
+                    Serial.println(String(pSlots[slot].currentValue-ref)+" "+String(ref)+" "+String(dmin)+" "+String(dmax));
+                pSlots[slot].deltaDir=pSlots[slot].currentValue-ref;
+            }
+        }
         if (pSlots[slot].slotType!=SlotType::GRAPH) {
             // Main text
             pDisplay->setFont(&FreeSans12pt7b);
@@ -1092,27 +1120,24 @@ class GfxPanel {
             pDisplay->println(pSlots[slot].currentText);
             pDisplay->setCursor(x1+1,y1);
             pDisplay->println(pSlots[slot].currentText);
-            // arrow
-            if (pSlots[slot].deltaDir != 0.0) {
-                drawArrow(xa,ya,(pSlots[slot].deltaDir>0.0),8,3,7);
+            if (pSlots[slot].slotType!=SlotType::TEXT) {
+                // arrow
+                if (pSlots[slot].deltaDir != 0.0) {
+                    drawArrow(xa,ya,(pSlots[slot].deltaDir>0.0),8,3,7);
+                }
             }
         } else {
             // Graph
             if (pSlots[slot].pHist && pSlots[slot].histLen) {
-                double min=100000, max=-100000;
-                for (uint16_t x=0; x<pSlots[slot].histLen; x++) {
-                    if (pSlots[slot].pHist[x]>max) max=pSlots[slot].pHist[x];
-                    if (pSlots[slot].pHist[x]<min) min=pSlots[slot].pHist[x];
-                }
-                double deltaY=max-min;
+                double deltaY=gmax-gmin;
                 if (deltaY<0.0001) deltaY=1;
                 double deltaX=(double)(xm1-xm0)/(double)(pSlots[slot].histLen);
                 int lx0,ly0,lx1,ly1;
                 int gHeight=(ym1-ym0)-11; // font size of caption.
                 for (uint16_t i=1; i<pSlots[slot].histLen; i++) {
                     lx0=xm0+(int)((double)(i-1)*deltaX); lx1=xm0+(int)((double)i*deltaX);
-                    ly0=ym1-(int)((pSlots[slot].pHist[i-1]-min)/deltaY*(double)(gHeight));
-                    ly1=ym1-(int)((pSlots[slot].pHist[i]-min)/deltaY*(double)(gHeight));
+                    ly0=ym1-(int)((pSlots[slot].pHist[i-1]-gmin)/deltaY*(double)(gHeight));
+                    ly1=ym1-(int)((pSlots[slot].pHist[i]-gmin)/deltaY*(double)(gHeight));
                     uint32_t col;
                     if (ly1<ly0) col=defaultIncreaseColor;
                     else {
