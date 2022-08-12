@@ -60,7 +60,7 @@ class GfxDrivers {
     ~GfxDrivers() {
     }
 
-    void begin(bool _useCanvas=true) {
+    void begin(bool _useCanvas=false) {
         useCanvas=_useCanvas;
         if (validDisplay) {
             switch (displayType) {
@@ -763,8 +763,8 @@ class GfxPanel {
         }
     }
 
-    void commonBegin() {
-        pDisplay->begin();
+    void commonBegin(bool useCanvas=false) {
+        pDisplay->begin(useCanvas);
 
         auto fntsk = [=]() {
             _sensorLoop();
@@ -921,7 +921,7 @@ class GfxPanel {
         }
     }
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, bool _useCanvas=false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -930,7 +930,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched) {
+    void begin(ustd::Scheduler *_pSched, bool _useCanvas=false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -938,7 +938,7 @@ class GfxPanel {
         pSched = _pSched;
 #endif
         getConfigFromFS(name);
-        commonBegin();
+        commonBegin(_useCanvas);
         updateDisplay();
     }
 
