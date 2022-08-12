@@ -769,7 +769,7 @@ class GfxPanel {
         auto fntsk = [=]() {
             _sensorLoop();
         };
-        minUpdateIntervalMs=1000;
+        minUpdateIntervalMs=50;
         int tID = pSched->add(fntsk, name, minUpdateIntervalMs*1000L);
         auto fnsub = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -905,9 +905,6 @@ class GfxPanel {
         @param rate: The sample rate in milliseconds.
         */
         if (slot<slots) {
-            if (rate<minUpdateIntervalMs) {
-                minUpdateIntervalMs=rate;
-            }
             pSlots[slot].histSampleRateMs=rate;
         }
     }
@@ -955,7 +952,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -973,12 +970,12 @@ class GfxPanel {
         }
 
         getConfigFromLayout(name, combined_layout);
-        commonBegin();
+        commonBegin(_useCanvas);
         updateDisplay(true);
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[]) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -991,7 +988,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[]) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1009,7 +1006,7 @@ class GfxPanel {
             captions.add(c);
         }
         getConfigFromLayout(name, combined_layout);
-        commonBegin();
+        commonBegin(_useCanvas);
     }
 
   private:
