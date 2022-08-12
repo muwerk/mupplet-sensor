@@ -163,6 +163,25 @@ class GfxDrivers {
         }
     }
 
+    void fillRect(uint16_t x0, uint16_t y0, uint16_t lx, uint16_t ly, uint32_t rgb) {
+        if (validDisplay) {
+            switch (displayType) {
+                case DisplayType::SSD1306:
+                    pDisplaySSD->fillRect(x0,y0,lx,ly,rgbColor(rgb));
+                    break;
+                case DisplayType::ST7735:
+                    if (useCanvas) {
+                        pCanvas->fillRect(x0,y0,lx,ly,rgbColor(rgb));
+                    } else {
+                        pDisplayST->fillRect(x0,y0,lx,ly,rgbColor(rgb));
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     void setFont(const GFXfont *gfxFont = NULL) {
         if (validDisplay) {
             switch (displayType) {
@@ -763,7 +782,7 @@ class GfxPanel {
             }
         }
         if (delayedUpdate && timeDiff(lastRefresh, millis())>minUpdateIntervalMs*0.9) {
-            updateDisplay(true);
+            updateDisplay(true, false);
         }
     }
 
@@ -835,7 +854,7 @@ class GfxPanel {
                 pSlots[slot].hasChanged=true;
             }
         }
-        updateDisplay(true);
+        updateDisplay(true, false);
     }
 
     void publishSlotCaption(uint16_t slot) {
@@ -894,7 +913,7 @@ class GfxPanel {
         */
         if (slot<slots && format.length()==1) {
             formats[slot]=format[0];
-            updateDisplay(true);
+            updateDisplay(true, false);
         }
     }
     void publishSlotFormat(uint16_t slot) {
@@ -941,7 +960,7 @@ class GfxPanel {
 #endif
         getConfigFromFS(name);
         commonBegin(_useCanvas);
-        updateDisplay();
+        updateDisplay(true, true);
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
@@ -976,7 +995,7 @@ class GfxPanel {
 
         getConfigFromLayout(name, combined_layout);
         commonBegin(_useCanvas);
-        updateDisplay(true);
+        updateDisplay(true, true);
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
@@ -1060,6 +1079,13 @@ class GfxPanel {
         uint8_t x0=0, y0=0, x1=0, y1=0, xa=0, ya=0;
         uint8_t xm0, ym0, xm1,ym1;
 
+        // Blank
+        uint16_t xf0, xf1, yf0, yf1;
+        xf0=pSlots[slot].slotX*slotResX;
+        xf1=pSlots[slot].slotX*slotResX+slotResX*pSlots[slot].slotLenX-1;
+        yf0=pSlots[slot].slotY*slotResY;
+        yf1=pSlots[slot].slotY*slotResY+slotResY*pSlots[slot].slotLenY-1;
+        pDisplay->fillRect(xf0, yf0, xf1, yf1, pSlots[slot].bgColor);
         // Caption font start x0,y0
         x0=pSlots[slot].slotX*slotResX+14;
         y0=pSlots[slot].slotY*slotResY+3;
@@ -1153,7 +1179,7 @@ class GfxPanel {
     }
 
   public:
-    void updateDisplay(bool forceUpdate=false) {
+    void updateDisplay(bool forceUpdate=false, bool forceRedraw=false) {
         if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
             delayedUpdate=true;
             return;
@@ -1163,8 +1189,7 @@ class GfxPanel {
         delayedUpdate=false;
         uint16_t maxSlotX=0, maxSlotY=0;
 
-        // XXX bulk erase!
-        pDisplay->clearDisplay();
+        if (forceRedraw) pDisplay->clearDisplay();
 
         for (uint16_t slot=0; slot<slots; slot++) {
             if (pSlots[slot].slotX>maxSlotX) maxSlotX=pSlots[slot].slotX;
@@ -1248,7 +1273,7 @@ class GfxPanel {
                 //Serial.println("update slot: "+String(slot)+" "+topic+" "+msg+" "+String(changed));
             }
         }
-        if (changed) updateDisplay();
+        if (changed) updateDisplay(true, false);
     }
 
     void subsMsg(String topic, String msg, String originator) {
