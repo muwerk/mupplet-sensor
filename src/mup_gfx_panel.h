@@ -4,6 +4,7 @@
 #include <Fonts/FreeSans12pt7b.h>
 #include <Adafruit_ST7735.h>
 #include <Adafruit_SSD1306.h>
+#include "jsonfile.h"
 
 ustd::jsonfile jf;
 
@@ -125,17 +126,20 @@ class GfxDrivers {
         return rgbColor(red, green, blue);
     }
 
-    void clearDisplay() {
+    void clearDisplay(uint32_t bgColor=RGB(0,0,0)) {
         if (validDisplay) {
             switch (displayType) {
                 case DisplayType::SSD1306:
                     pDisplaySSD->clearDisplay();
+                    pDisplaySSD->fillRect(0, 0, resX, resY, bgColor);
                     break;
                 case DisplayType::ST7735:
                     if (useCanvas) {
-                        pCanvas->fillScreen(ST77XX_BLACK);
+                        pCanvas->fillScreen(bgColor);
+                        //pCanvas->fillRect(0, 0, resX, resY, bgColor);
                     } else {
-                        pDisplayST->fillScreen(ST77XX_BLACK);
+                        pDisplayST->fillScreen(bgColor);
+                        //pDisplayST->fillRect(0, 0, resX, resY, bgColor);
                     }
                     break;
                 default:
@@ -525,17 +529,50 @@ class GfxPanel {
     }
 
   private:
+    String themeName;
+    enum Theme {ThemeDark, ThemeLight, ThemeGruvbox, ThemeSolarizedDark, ThemeSolarizedLight};
+    void setTheme(Theme theme) {
+        switch (theme) {
+            case ThemeLight:
+                themeName="light";
+                defaultColor = GfxDrivers::RGB(0x00,0x00,0x00);
+                defaultBgColor = GfxDrivers::RGB(0xff,0xff,0xff);
+                defaultSeparatorColor = GfxDrivers::RGB(0x80,0x80,0x80);
+                defaultAccentColor = GfxDrivers::RGB(0x40, 0x40, 0x40);
+                defaultIncreaseColor = GfxDrivers::RGB(0xff, 0xa0, 0xa0);
+                defaultConstColor = GfxDrivers::RGB(0x30, 0x30, 0x30);
+                defaultDecreaseColor = GfxDrivers::RGB(0xa0, 0xa0, 0xff);
+                break;
+            case ThemeSolarizedLight:
+                themeName="solarizedlight";
+                defaultColor = GfxDrivers::RGB(0x00,0x2b,0x36);
+                defaultBgColor = GfxDrivers::RGB(0xee,0xe8,0x95);
+                defaultSeparatorColor = GfxDrivers::RGB(0x58,0x6e,0x05);
+                defaultAccentColor = GfxDrivers::RGB(0x67, 0x76, 0x02);
+                defaultIncreaseColor = GfxDrivers::RGB(0xeb, 0x4b, 0x16);
+                defaultConstColor = GfxDrivers::RGB(0x50, 0x50, 0x30);
+                defaultDecreaseColor = GfxDrivers::RGB(0x43, 0x64, 0xe6);
+                break;
+            case ThemeDark:
+            default:
+                themeName="dark";
+                defaultColor = GfxDrivers::RGB(0xff,0xff,0xff);
+                defaultBgColor = GfxDrivers::RGB(0x00,0x00,0x00);
+                defaultSeparatorColor = GfxDrivers::RGB(0x80,0x80,0x80);
+                defaultAccentColor = GfxDrivers::RGB(0xb0, 0xb0, 0xb0);
+                defaultIncreaseColor = GfxDrivers::RGB(0xff, 0x80, 0x80);
+                defaultConstColor = GfxDrivers::RGB(0xc0, 0xc0, 0xc0);
+                defaultDecreaseColor = GfxDrivers::RGB(0x80, 0x80, 0xff);
+                break;
+        }
+
+
+    }
     void _common_init() {
         active=false;
         slotResX=64;
         slotResY=32;
-        defaultColor = GfxDrivers::RGB(0xff,0xff,0xff);
-        defaultBgColor = GfxDrivers::RGB(0x00,0x00,0x00);
-        defaultSeparatorColor = GfxDrivers::RGB(0x80,0x80,0x80);
-        defaultAccentColor = GfxDrivers::RGB(0xb0, 0xb0, 0xb0);
-        defaultIncreaseColor = GfxDrivers::RGB(0xff, 0x80, 0x80);
-        defaultConstColor = GfxDrivers::RGB(0xc0, 0xc0, 0xc0);
-        defaultDecreaseColor = GfxDrivers::RGB(0x80, 0x80, 0xff);
+        setTheme(ThemeSolarizedLight);
         defaultHistLen=128;
         defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
@@ -1189,7 +1226,7 @@ class GfxPanel {
         delayedUpdate=false;
         uint16_t maxSlotX=0, maxSlotY=0;
 
-        if (forceRedraw) pDisplay->clearDisplay();
+        if (forceRedraw) pDisplay->clearDisplay(defaultBgColor);
 
         for (uint16_t slot=0; slot<slots; slot++) {
             if (pSlots[slot].slotX>maxSlotX) maxSlotX=pSlots[slot].slotX;
