@@ -1,6 +1,7 @@
+#define __ESP__
+
 #include "ustd_platform.h"
 #include "scheduler.h"
-#include "jsonfile.h"
 
 #include "../../../src/mup_gfx_panel.h"
 
