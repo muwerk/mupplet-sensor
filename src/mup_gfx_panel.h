@@ -163,6 +163,25 @@ class GfxDrivers {
         }
     }
 
+    void fillRect(uint16_t x0, uint16_t y0, uint16_t lx, uint16_t ly, uint32_t rgb) {
+        if (validDisplay) {
+            switch (displayType) {
+                case DisplayType::SSD1306:
+                    pDisplaySSD->fillRect(x0,y0,lx,ly,rgbColor(rgb));
+                    break;
+                case DisplayType::ST7735:
+                    if (useCanvas) {
+                        pCanvas->fillRect(x0,y0,lx,ly,rgbColor(rgb));
+                    } else {
+                        pDisplayST->fillRect(x0,y0,lx,ly,rgbColor(rgb));
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     void setFont(const GFXfont *gfxFont = NULL) {
         if (validDisplay) {
             switch (displayType) {
@@ -435,6 +454,8 @@ class GfxPanel {
         float scalingFactor;
         float offset;
         float deltaDir;
+        uint32_t lastFrame;
+        uint32_t frameRate;
     } T_SLOT;
     uint16_t slots;
     T_SLOT *pSlots;
@@ -515,7 +536,7 @@ class GfxPanel {
         defaultIncreaseColor = GfxDrivers::RGB(0xff, 0x80, 0x80);
         defaultConstColor = GfxDrivers::RGB(0xc0, 0xc0, 0xc0);
         defaultDecreaseColor = GfxDrivers::RGB(0x80, 0x80, 0xff);
-        defaultHistLen=64;
+        defaultHistLen=128;
         defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
 
@@ -710,6 +731,8 @@ class GfxPanel {
         pSlots[slot].isValid=false;
         pSlots[slot].color=defaultColor;
         pSlots[slot].bgColor=defaultBgColor;
+        pSlots[slot].lastFrame=0;
+        pSlots[slot].frameRate=1000;
         return true;
     }
 
@@ -759,7 +782,7 @@ class GfxPanel {
             }
         }
         if (delayedUpdate && timeDiff(lastRefresh, millis())>minUpdateIntervalMs*0.9) {
-            updateDisplay(true);
+            updateDisplay(true, false);
         }
     }
 
@@ -769,7 +792,7 @@ class GfxPanel {
         auto fntsk = [=]() {
             _sensorLoop();
         };
-        minUpdateIntervalMs=1000;
+        minUpdateIntervalMs=50;
         int tID = pSched->add(fntsk, name, minUpdateIntervalMs*1000L);
         auto fnsub = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -831,7 +854,7 @@ class GfxPanel {
                 pSlots[slot].hasChanged=true;
             }
         }
-        updateDisplay(true);
+        updateDisplay(true, false);
     }
 
     void publishSlotCaption(uint16_t slot) {
@@ -890,7 +913,7 @@ class GfxPanel {
         */
         if (slot<slots && format.length()==1) {
             formats[slot]=format[0];
-            updateDisplay(true);
+            updateDisplay(true, false);
         }
     }
     void publishSlotFormat(uint16_t slot) {
@@ -905,10 +928,8 @@ class GfxPanel {
         @param rate: The sample rate in milliseconds.
         */
         if (slot<slots) {
-            if (rate<minUpdateIntervalMs) {
-                minUpdateIntervalMs=rate;
-            }
             pSlots[slot].histSampleRateMs=rate;
+            pSlots[slot].frameRate=rate;
         }
     }
 
@@ -939,11 +960,11 @@ class GfxPanel {
 #endif
         getConfigFromFS(name);
         commonBegin(_useCanvas);
-        updateDisplay();
+        updateDisplay(true, true);
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -955,7 +976,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -973,12 +994,12 @@ class GfxPanel {
         }
 
         getConfigFromLayout(name, combined_layout);
-        commonBegin();
-        updateDisplay(true);
+        commonBegin(_useCanvas);
+        updateDisplay(true, true);
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[]) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -991,7 +1012,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[]) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1009,7 +1030,7 @@ class GfxPanel {
             captions.add(c);
         }
         getConfigFromLayout(name, combined_layout);
-        commonBegin();
+        commonBegin(_useCanvas);
     }
 
   private:
@@ -1058,6 +1079,13 @@ class GfxPanel {
         uint8_t x0=0, y0=0, x1=0, y1=0, xa=0, ya=0;
         uint8_t xm0, ym0, xm1,ym1;
 
+        // Blank
+        uint16_t xf0, yf0, xl, yl;
+        xf0=pSlots[slot].slotX*slotResX;
+        xl=slotResX*pSlots[slot].slotLenX-1;
+        yf0=pSlots[slot].slotY*slotResY+1;
+        yl=slotResY*pSlots[slot].slotLenY-1;
+        pDisplay->fillRect(xf0, yf0, xl, yl, pSlots[slot].bgColor);
         // Caption font start x0,y0
         x0=pSlots[slot].slotX*slotResX+14;
         y0=pSlots[slot].slotY*slotResY+3;
@@ -1081,6 +1109,34 @@ class GfxPanel {
         pDisplay->setCursor(x0+1,y0);
         pDisplay->println(second);
 
+        float gmin, gmax, dmin, dmax;
+        float avg, navg;
+        dmin= 100000.0;
+        dmax=-100000.0;
+        gmax=-100000.0;
+        gmin= 100000.0;
+        avg=0.0;
+        navg=0.0;
+        if (pSlots[slot].slotType!=SlotType::TEXT) {
+            if (pSlots[slot].pHist && pSlots[slot].histLen) {
+                for (uint16_t x=0; x<pSlots[slot].histLen; x++) {
+                    if (pSlots[slot].pHist[x]>gmax) gmax=pSlots[slot].pHist[x];
+                    if (pSlots[slot].pHist[x]<gmin) gmin=pSlots[slot].pHist[x];
+                    if (x>pSlots[slot].histLen-10) {
+                        avg += pSlots[slot].pHist[x];
+                        navg++;
+                        if (pSlots[slot].pHist[x]>dmax) dmax=pSlots[slot].pHist[x];
+                        if (pSlots[slot].pHist[x]<dmin) dmin=pSlots[slot].pHist[x];
+                    }
+                }
+                float ref;
+                if (navg>0.0) ref=avg/navg;
+                else ref=0.0;
+                if (slot==0)
+                    Serial.println(String(pSlots[slot].currentValue-ref)+" "+String(ref)+" "+String(dmin)+" "+String(dmax));
+                pSlots[slot].deltaDir=pSlots[slot].currentValue-ref;
+            }
+        }
         if (pSlots[slot].slotType!=SlotType::GRAPH) {
             // Main text
             pDisplay->setFont(&FreeSans12pt7b);
@@ -1090,27 +1146,24 @@ class GfxPanel {
             pDisplay->println(pSlots[slot].currentText);
             pDisplay->setCursor(x1+1,y1);
             pDisplay->println(pSlots[slot].currentText);
-            // arrow
-            if (pSlots[slot].deltaDir != 0.0) {
-                drawArrow(xa,ya,(pSlots[slot].deltaDir>0.0),8,3,7);
+            if (pSlots[slot].slotType!=SlotType::TEXT) {
+                // arrow
+                if (pSlots[slot].deltaDir != 0.0) {
+                    drawArrow(xa,ya,(pSlots[slot].deltaDir>0.0),8,3,7);
+                }
             }
         } else {
             // Graph
             if (pSlots[slot].pHist && pSlots[slot].histLen) {
-                double min=100000, max=-100000;
-                for (uint16_t x=0; x<pSlots[slot].histLen; x++) {
-                    if (pSlots[slot].pHist[x]>max) max=pSlots[slot].pHist[x];
-                    if (pSlots[slot].pHist[x]<min) min=pSlots[slot].pHist[x];
-                }
-                double deltaY=max-min;
+                double deltaY=gmax-gmin;
                 if (deltaY<0.0001) deltaY=1;
                 double deltaX=(double)(xm1-xm0)/(double)(pSlots[slot].histLen);
                 int lx0,ly0,lx1,ly1;
                 int gHeight=(ym1-ym0)-11; // font size of caption.
                 for (uint16_t i=1; i<pSlots[slot].histLen; i++) {
                     lx0=xm0+(int)((double)(i-1)*deltaX); lx1=xm0+(int)((double)i*deltaX);
-                    ly0=ym1-(int)((pSlots[slot].pHist[i-1]-min)/deltaY*(double)(gHeight));
-                    ly1=ym1-(int)((pSlots[slot].pHist[i]-min)/deltaY*(double)(gHeight));
+                    ly0=ym1-(int)((pSlots[slot].pHist[i-1]-gmin)/deltaY*(double)(gHeight));
+                    ly1=ym1-(int)((pSlots[slot].pHist[i]-gmin)/deltaY*(double)(gHeight));
                     uint32_t col;
                     if (ly1<ly0) col=defaultIncreaseColor;
                     else {
@@ -1126,17 +1179,17 @@ class GfxPanel {
     }
 
   public:
-    void updateDisplay(bool forceUpdate=false) {
+    void updateDisplay(bool forceUpdate=false, bool forceRedraw=false) {
         if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
             delayedUpdate=true;
             return;
         }
+        bool update=false;
         lastRefresh=millis();
         delayedUpdate=false;
         uint16_t maxSlotX=0, maxSlotY=0;
 
-        // XXX bulk erase!
-        pDisplay->clearDisplay();
+        if (forceRedraw) pDisplay->clearDisplay();
 
         for (uint16_t slot=0; slot<slots; slot++) {
             if (pSlots[slot].slotX>maxSlotX) maxSlotX=pSlots[slot].slotX;
@@ -1149,7 +1202,6 @@ class GfxPanel {
             // XXX slotLenY==1! (maybe implicitly solved by rect fill)
             pDisplay->drawLine(0,y,resX-1,y, defaultSeparatorColor);
         }
-        bool update=false;
         for (uint16_t slot=0; slot<slots; slot++) {
             if (displaySlot(slot)) update=true;
         }
@@ -1160,8 +1212,9 @@ class GfxPanel {
   private:
 
     bool updateSlot(uint16_t slot, String msg) {
-        bool changed=false;
         if (slot>=slots) return false;
+        if (timeDiff(pSlots[slot].lastFrame, millis()) < pSlots[slot].frameRate) return false;
+        bool changed=false;
         float k=pSlots[slot].scalingFactor;
         float o=pSlots[slot].offset;
         switch (pSlots[slot].slotType) {
@@ -1172,12 +1225,14 @@ class GfxPanel {
                 pSlots[slot].currentText=msg;
                 pSlots[slot].isValid=true;
                 pSlots[slot].lastUpdate=time(nullptr);
+                pSlots[slot].lastFrame=millis();
                 break;
             case SlotType::NUMBER:
             case SlotType::GRAPH:
                 pSlots[slot].currentValue=msg.toFloat()*k+o;
                 pSlots[slot].isValid=true;
                 pSlots[slot].lastUpdate=time(nullptr);
+                pSlots[slot].lastFrame=millis();
                 String newVal=String(pSlots[slot].currentValue,(uint16_t)pSlots[slot].digits);
                 if (pSlots[slot].currentText!=newVal) {
                     changed=true;
@@ -1218,7 +1273,7 @@ class GfxPanel {
                 //Serial.println("update slot: "+String(slot)+" "+topic+" "+msg+" "+String(changed));
             }
         }
-        if (changed) updateDisplay();
+        if (changed) updateDisplay(true, false);
     }
 
     void subsMsg(String topic, String msg, String originator) {
