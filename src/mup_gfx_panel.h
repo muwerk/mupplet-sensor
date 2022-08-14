@@ -25,6 +25,7 @@ class GfxDrivers {
     String name;
     DisplayType displayType;
     uint16_t resX, resY;
+    uint8_t bwTreshold;
     uint8_t i2cAddress;
     TwoWire *pWire;
     uint8_t csPin, dcPin, rstPin;
@@ -42,6 +43,7 @@ class GfxDrivers {
         if (displayType==DisplayType::SSD1306) {
             validDisplay=true;
             busType=BusType::I2CBUS;
+            bwTreshold=20;
         } else {
             validDisplay=false;
         }
@@ -53,6 +55,7 @@ class GfxDrivers {
         if (displayType==DisplayType::ST7735) {
             validDisplay=true;
             busType=BusType::SPIBUS;
+            bwTreshold=0x80;
         } else {
             validDisplay=false;
         }
@@ -97,6 +100,10 @@ class GfxDrivers {
         }
     }
 
+    void setBWTreshold(uint8_t _bwTreshold) {
+        bwTreshold=_bwTreshold;
+    }
+
     static uint32_t RGB(uint8_t red, uint8_t green, uint8_t blue) {
         uint32_t rgb=(((uint32_t)red)<<16)+(((uint32_t)green)<<8)+((uint32_t)blue);
         return rgb;
@@ -111,7 +118,7 @@ class GfxDrivers {
     uint16_t rgbColor(uint8_t red, uint8_t green, uint8_t blue) {
         switch (displayType) {
             case DisplayType::SSD1306: // Black or white
-                if ((red!=0) || (green!=0) || (blue!=0)) return 1;
+                if ((red>=bwTreshold) || (green>=bwTreshold) || (blue>=bwTreshold)) return 1;
                 else return 0;
             case DisplayType::ST7735: // RGB565 standard
                 return (((red & 0xf8)<<8) + ((green & 0xfc)<<3)+(blue>>3));
@@ -594,7 +601,7 @@ class GfxPanel {
         slotResY=32;
         brightness=0.5;
         contrast=0.5;
-        _setTheme(Theme::ThemeSolarizedLight, brightness, contrast);
+        _setTheme(Theme::ThemeDark, brightness, contrast);
         defaultHistLen=128;
         defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
@@ -1236,8 +1243,6 @@ class GfxPanel {
                 float ref;
                 if (navg>0.0) ref=avg/navg;
                 else ref=0.0;
-                if (slot==0)
-                    Serial.println(String(pSlots[slot].currentValue-ref)+" "+String(ref)+" "+String(dmin)+" "+String(dmax));
                 pSlots[slot].deltaDir=pSlots[slot].currentValue-ref;
             }
         }
