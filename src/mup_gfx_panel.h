@@ -33,9 +33,9 @@ class GfxDrivers {
     BusType busType;
     bool validDisplay;
     bool useCanvas;
-    Adafruit_ST7735 *pDisplayST;   // Subclasses of Adafruit_GFX, doesn't help much, an Interface would be really handy.
-    Adafruit_SSD1306 *pDisplaySSD; // Inheritance is C++ language's design failure no.1
-                                   // So un-inheritance.
+    bool hasBegun;
+    Adafruit_ST7735 *pDisplayST;
+    Adafruit_SSD1306 *pDisplaySSD;
     GFXcanvas16 *pCanvas;
 
     GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire):
@@ -44,6 +44,7 @@ class GfxDrivers {
         pDisplayST=nullptr;
         pDisplaySSD=nullptr;
         pCanvas=nullptr;
+        hasBegun=false;
         if (displayType==DisplayType::SSD1306) {
             validDisplay=true;
             busType=BusType::I2CBUS;
@@ -59,6 +60,7 @@ class GfxDrivers {
         pDisplayST=nullptr;
         pDisplaySSD=nullptr;
         pCanvas=nullptr;
+        hasBegun=false;
         if (displayType==DisplayType::ST7735) {
             validDisplay=true;
             busType=BusType::SPIBUS;
@@ -68,19 +70,21 @@ class GfxDrivers {
         }
     }
 
-    ~GfxDrivers() {
-        if (pDisplayST) {
-            // delete pDisplayST;  // undefined behavior.
-        }
-        if (pDisplaySSD) {
-            // delete pDisplaySSD;  // undefined behavior.
-        }
-        if (pCanvas) {
-            // delete pCanvas;  // undefined behavior.
-        }
+    ~GfxDrivers() { // undefined behavior for delete display objects.
     }
 
-    void begin(bool _useCanvas=true) {
+    void begin(bool _useCanvas=false) {
+        /*! Initialize the display.
+         * Note: Using canvas uses a lot of memory! Use with ESP32 or better kind of chips.
+         *  @param _useCanvas If true, use a canvas for drawing. If false, use the display directly.
+         */            
+        if (hasBegun) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("ERROR GfxDrivers::begin() - already begun");    
+#endif
+            return;
+        }
+        hasBegun=true;
         useCanvas=_useCanvas;
         if (validDisplay) {
             switch (displayType) {
@@ -93,13 +97,19 @@ class GfxDrivers {
                     pDisplaySSD->cp437(true);
                     break;
                 case DisplayType::ST7735:
-                    pDisplayST=new Adafruit_ST7735(csPin, dcPin, rstPin); 
                     //pDisplayST->initR(INITR_BLACKTAB);
                     if (resX==128 && resY==128) {
+                        pDisplayST=new Adafruit_ST7735(csPin, dcPin, rstPin); 
                         pDisplayST->initR(INITR_144GREENTAB);   // 1.4" thingy?
-                    }
-                    if (resX==128 && resY==160) {
+                    } else if (resX==128 && resY==160) {
+                        pDisplayST=new Adafruit_ST7735(csPin, dcPin, rstPin); 
                         pDisplayST->initR(INITR_BLACKTAB);   // 1.8" thingy?
+                    } else {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("ERROR GfxDrivers::begin() - unknown/invalid display resolution");
+#endif
+                    hasBegun=false;
+                    return;
                     }
                     if (useCanvas) {
                         pCanvas=new GFXcanvas16(resX, resY);
@@ -185,15 +195,27 @@ class GfxDrivers {
 
     void drawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint32_t rgb) {
         if (validDisplay) {
+            if (!hasBegun) {
+#ifdef USE_SERIAL_DBG
+                Serial.println("ERROR GfxDrivers::drawLine() - not begun");
+#endif
+                return;
+            }
             switch (displayType) {
                 case DisplayType::SSD1306:
                     pDisplaySSD->drawLine(x0,y0,x1,y1,rgbColor(rgb));
                     break;
                 case DisplayType::ST7735:
-                    if (useCanvas) {
-                        pCanvas->drawLine(x0,y0,x1,y1,rgbColor(rgb));
+                    if (useCanvas && pCanvas) {
+                        if (y0==y1) {
+                            pCanvas->drawFastHLine(x0, y0, x1-x0, rgbColor(rgb));
+                        } else {
+                            pCanvas->drawLine(x0,y0,x1,y1,rgbColor(rgb));
+                        }
                     } else {
-                        pDisplayST->drawLine(x0,y0,x1,y1,rgbColor(rgb));
+                        if (pDisplayST) {
+                            pDisplayST->drawLine(x0,y0,x1,y1,rgbColor(rgb));
+                        }
                     }
                     break;
                 default:
@@ -653,9 +675,9 @@ class GfxPanel {
 #if USTD_FEATURE_MEMORY >= USTD_FEATURE_MEM_128K
         defaultHistLen=128;
 #elif USTD_FEATURE_MEMORY >= USTD_FEATURE_MEM_32K
-        defaultHistLen=64;
-#else
         defaultHistLen=32;
+#else
+        defaultHistLen=16;
 #endif
         defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
@@ -906,7 +928,7 @@ class GfxPanel {
         }
     }
 
-    void commonBegin(bool useCanvas=true) {
+    void commonBegin(bool useCanvas=false) {
         pDisplay->begin(useCanvas);
 
         auto fntsk = [=]() {
@@ -962,11 +984,13 @@ class GfxPanel {
         shortConfig2Slots();
         active=true;
         _setTheme(Theme::ThemeDark);
+        updateDisplay(true, true);
     }
 
   public:
 
     void setBrightness(float _brightness=0.5) {
+        if (!active) return;
         if (_brightness<0.0) _brightness=0.0;
         if (_brightness>1.0) _brightness=1.0;
         brightness=_brightness;
@@ -975,10 +999,12 @@ class GfxPanel {
     }
 
     void publishBrightness() {
+        if (!active) return;
         pSched->publish(name+"/display/brightness", String(brightness,3));
     }
 
     void setContrast(float _contrast=0.5) {
+        if (!active) return;
         if (_contrast<0.0) _contrast=0.0;
         if (_contrast>1.0) _contrast=1.0;
         contrast=_contrast;
@@ -987,10 +1013,12 @@ class GfxPanel {
     }
 
     void publishContrast() {
+        if (!active) return;
         pSched->publish(name+"/display/contrast", String(contrast,3));
     }
 
     void setTheme(String _theme) {
+        if (!active) return;
         bool upd=false;
         contrast=0.5;
         brightness=0.5;
@@ -1009,6 +1037,7 @@ class GfxPanel {
     }
     
     void publishTheme() {
+        if (!active) return;
         pSched->publish(name+"/display/theme", themeName);
     }
 
@@ -1017,6 +1046,7 @@ class GfxPanel {
         @param slot: The slot number.
         @param caption: The caption.
         */
+        if (!active) return;
         captions[slot]=caption;
         if (pSlots && slot<slots) {
             if (pSlots[slot].isInit) {
@@ -1024,13 +1054,14 @@ class GfxPanel {
                 pSlots[slot].hasChanged=true;
             }
         }
-        updateDisplay(true, false);
+        updateDisplay(false, false);
     }
 
     void publishSlotCaption(uint16_t slot) {
         /*! Publish the caption for a slot.
         @param slot: The slot number, 0..<slots.
         */
+        if (!active) return;
         String cap="";
         bool done=false;
         if (slot<slots) {
@@ -1052,6 +1083,7 @@ class GfxPanel {
         @param slot: The slot number.
         @param text: The text.
         */
+        if (!active) return;
         if (slot<slots) {
             // XXX
         }
@@ -1060,6 +1092,7 @@ class GfxPanel {
         /*! Publish the text for a slot.
         @param slot: The slot number, 0..<slots.
         */
+        if (!active) return;
         if (slot<slots) {
             // pSched->publish(name+"/display/slot/"+String(slot), xxx[slot]);
         }
@@ -1070,26 +1103,31 @@ class GfxPanel {
         @param slot: The slot number.
         @param topic: The topic.
         */
+        if (!active) return;
     }
     void publishSlotTopic(uint16_t slot) {
         /*! Publish the topic for a slot.
         @param slot: The slot number, 0..<slots.
         */
+        if (!active) return;
     }
     void setSlotFormat(uint16_t slot, String format) {
         /*! Set the format for a slot.
         @param slot: The slot number.
         @param format: The format.
         */
+        if (!active) return;
         if (slot<slots && format.length()==1) {
             formats[slot]=format[0];
-            updateDisplay(true, false);
+            pSlots[slot].hasChanged=true;
+            updateDisplay(false, false);
         }
     }
     void publishSlotFormat(uint16_t slot) {
         /*! Publish the format for a slot.
         @param slot: The slot number, 0..<slots.
         */
+        if (!active) return;
     }
 
     void setSlotHistorySampleRateMs(uint16_t slot, uint32_t rate) {
@@ -1097,6 +1135,7 @@ class GfxPanel {
         @param slot: The slot number.
         @param rate: The sample rate in milliseconds.
         */
+        if (!active) return;
         if (slot<slots) {
             pSlots[slot].histSampleRateMs=rate;
             pSlots[slot].frameRate=rate;
@@ -1107,12 +1146,13 @@ class GfxPanel {
         /*! Publish the history sample rate for a slot.
         @param slot: The slot number, 0..<slots.
         */
+        if (!active) return;
         if (slot<slots) {
             pSched->publish(name+"/display/slot/"+String(slot)+"/histosrysampleratems", String(pSlots[slot].histSampleRateMs));
         }
     }
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, bool _useCanvas=true) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, bool _useCanvas=false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1121,7 +1161,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, bool _useCanvas=true) {
+    void begin(ustd::Scheduler *_pSched, bool _useCanvas=false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1130,11 +1170,10 @@ class GfxPanel {
 #endif
         getConfigFromFS(name);
         commonBegin(_useCanvas);
-        updateDisplay(true, true);
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=true) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1146,7 +1185,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=true) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1165,11 +1204,10 @@ class GfxPanel {
 
         getConfigFromLayout(name, combined_layout);
         commonBegin(_useCanvas);
-        updateDisplay(true, true);
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=true) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1182,7 +1220,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=true) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1223,8 +1261,6 @@ class GfxPanel {
             pDisplay->drawLine(x+1, y+len+delta_down, x+wid+1, y+len-wid+delta_down, blue);
         }
     }
-
-
 
     void boldParser(String msg, String &first, String &sec) {
         bool isBold=true;
@@ -1349,8 +1385,8 @@ class GfxPanel {
     }
 
   public:
-    void updateDisplay(bool forceUpdate=false, bool forceRedraw=false) {
-        if (!forceUpdate && (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
+    void updateDisplay(bool updateNow, bool forceRedraw=false) {
+        if (!updateNow && (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
             delayedUpdate=true;
             return;
         }
@@ -1359,26 +1395,30 @@ class GfxPanel {
         delayedUpdate=false;
         uint16_t maxSlotX=0, maxSlotY=0;
 
-        if (forceRedraw) pDisplay->clearDisplay(defaultBgColor);
-
+        if (forceRedraw) {
+            pDisplay->clearDisplay(defaultBgColor);
+            for (uint16_t slot=0; slot<slots; slot++) {
+                if (pSlots[slot].slotX>maxSlotX) maxSlotX=pSlots[slot].slotX;
+                if (pSlots[slot].slotY>maxSlotY) maxSlotY=pSlots[slot].slotY;
+            }
+            uint16_t y;
+            for (uint16_t ly=0; ly<=maxSlotY+1; ly++) {
+                y=ly*slotResY;
+                if (y>=resY) y=resY-1;
+                // XXX slotLenY==1! (maybe implicitly solved by rect fill)
+                pDisplay->drawLine(0,y,resX-1,y, defaultSeparatorColor);
+            }
+        }
         for (uint16_t slot=0; slot<slots; slot++) {
-            if (pSlots[slot].slotX>maxSlotX) maxSlotX=pSlots[slot].slotX;
-            if (pSlots[slot].slotY>maxSlotY) maxSlotY=pSlots[slot].slotY;
+            if (pSlots[slot].hasChanged || forceRedraw) {
+                if (displaySlot(slot)) update=true;
+            }
         }
-        uint16_t y;
-        for (uint16_t ly=0; ly<=maxSlotY+1; ly++) {
-            y=ly*slotResY;
-            if (y==resY) --y;
-            // XXX slotLenY==1! (maybe implicitly solved by rect fill)
-            pDisplay->drawLine(0,y,resX-1,y, defaultSeparatorColor);
-        }
-        for (uint16_t slot=0; slot<slots; slot++) {
-            if (displaySlot(slot)) update=true;
-        }
-        if (update) {
+        if (update || forceRedraw) {
             pDisplay->display();
         }
     }
+
   private:
 
     bool updateSlot(uint16_t slot, String msg) {
@@ -1440,10 +1480,9 @@ class GfxPanel {
         for (uint16_t slot=0; slot<slots; slot++) {
             if (pSlots[slot].topic==topic) {
                 if (updateSlot(slot, msg)) changed=true;
-                //Serial.println("update slot: "+String(slot)+" "+topic+" "+msg+" "+String(changed));
             }
         }
-        if (changed) updateDisplay(true, false);
+        if (changed) updateDisplay(false, false);
     }
 
     void subsMsg(String topic, String msg, String originator) {
