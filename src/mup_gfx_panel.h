@@ -650,15 +650,12 @@ class GfxPanel {
         slotResY=32;
         brightness=0.5;
         contrast=0.5;
-#if USTD_FEATURE_MEMORY < USTD_FEATURE_MEM_32K
-        defaultHistLen=4;
-#elif USTD_FEATURE_MEMORY < USTD_FEATURE_MEM_128K
+#if USTD_FEATURE_MEMORY >= USTD_FEATURE_MEM_128K
+        defaultHistLen=128;
+#elif USTD_FEATURE_MEMORY >= USTD_FEATURE_MEM_32K
         defaultHistLen=64;
 #else
-        defaultHistLen=128;
-#endif
-#ifdef USE_SERIAL_DBG
-        Serial.println("_common_init: defaultHistLen="+String(defaultHistLen));
+        defaultHistLen=32;
 #endif
         defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
@@ -958,7 +955,9 @@ class GfxPanel {
         Serial.print("Layout: ");
         Serial.print(layout);
         Serial.print(" formats: ");
-        Serial.println(formats);
+        Serial.print(formats);
+        Serial.print(" histLen: ");
+        Serial.println(defaultHistLen);
 #endif  // USE_SERIAL_DBG
         shortConfig2Slots();
         active=true;
@@ -1293,7 +1292,9 @@ class GfxPanel {
                 for (uint16_t x=0; x<pSlots[slot].histLen; x++) {
                     if (pSlots[slot].pHist[x]>gmax) gmax=pSlots[slot].pHist[x];
                     if (pSlots[slot].pHist[x]<gmin) gmin=pSlots[slot].pHist[x];
-                    if (x>pSlots[slot].histLen-10) {
+                    uint16_t backView=0;
+                    if (pSlots[slot].histLen>=10) backView=pSlots[slot].histLen-10;
+                    if (x>=backView) {
                         avg += pSlots[slot].pHist[x];
                         navg++;
                         if (pSlots[slot].pHist[x]>dmax) dmax=pSlots[slot].pHist[x];
