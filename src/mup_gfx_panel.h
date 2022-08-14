@@ -25,7 +25,8 @@ class GfxDrivers {
     String name;
     DisplayType displayType;
     uint16_t resX, resY;
-    uint8_t bwTreshold;
+    uint32_t bgColor;
+    bool isLightTheme;
     uint8_t i2cAddress;
     TwoWire *pWire;
     uint8_t csPin, dcPin, rstPin;
@@ -43,7 +44,7 @@ class GfxDrivers {
         if (displayType==DisplayType::SSD1306) {
             validDisplay=true;
             busType=BusType::I2CBUS;
-            bwTreshold=20;
+            bgColor=SSD1306_BLACK;
         } else {
             validDisplay=false;
         }
@@ -55,7 +56,7 @@ class GfxDrivers {
         if (displayType==DisplayType::ST7735) {
             validDisplay=true;
             busType=BusType::SPIBUS;
-            bwTreshold=0x80;
+            bgColor=RGB(0,0,0);
         } else {
             validDisplay=false;
         }
@@ -64,7 +65,7 @@ class GfxDrivers {
     ~GfxDrivers() {
     }
 
-    void begin(bool _useCanvas=false) {
+    void begin(bool _useCanvas=true) {
         useCanvas=_useCanvas;
         if (validDisplay) {
             switch (displayType) {
@@ -100,8 +101,15 @@ class GfxDrivers {
         }
     }
 
-    void setBWTreshold(uint8_t _bwTreshold) {
-        bwTreshold=_bwTreshold;
+    void setBGColor(uint32_t _bgColor) {
+        uint8_t r,g,b;
+        splitRGB(_bgColor, &r, &g, &b);
+        if (r+b+g>256+128) {
+            isLightTheme=true;
+        } else {
+            isLightTheme=false;
+        }
+        bgColor=_bgColor;
     }
 
     static uint32_t RGB(uint8_t red, uint8_t green, uint8_t blue) {
@@ -118,8 +126,13 @@ class GfxDrivers {
     uint16_t rgbColor(uint8_t red, uint8_t green, uint8_t blue) {
         switch (displayType) {
             case DisplayType::SSD1306: // Black or white
-                if ((red>=bwTreshold) || (green>=bwTreshold) || (blue>=bwTreshold)) return 1;
-                else return 0;
+                if (RGB(red, green, blue)==bgColor) {
+                    if (isLightTheme) return SSD1306_WHITE;
+                    else return SSD1306_BLACK;
+                } else {
+                    if (isLightTheme) return SSD1306_BLACK;
+                    else return SSD1306_WHITE;
+                }
             case DisplayType::ST7735: // RGB565 standard
                 return (((red & 0xf8)<<8) + ((green & 0xfc)<<3)+(blue>>3));
             default:
@@ -133,7 +146,7 @@ class GfxDrivers {
         return rgbColor(red, green, blue);
     }
 
-    void clearDisplay(uint32_t bgColor=RGB(0,0,0)) {
+    void clearDisplay(uint32_t bgColor) {
         if (validDisplay) {
             switch (displayType) {
                 case DisplayType::SSD1306:
@@ -539,15 +552,15 @@ class GfxPanel {
 
     uint32_t relRGB(uint8_t r,uint8_t g, uint8_t b, float brightness, float contrast) {
         int16_t rt, gt, bt;
-        rt=((r-0x80)*contrast*2.0+0x80)*brightness*2.0;
-        if (rt>0xff) rt=0xff;
-        if (rt<0) rt=0;
-        gt=((g-0x80)*contrast*2.0+0x80)*brightness*2.0;
-        if (gt>0xff) gt=0xff;
-        if (gt<0) gt=0;
-        bt=((b-0x80)*contrast*2.0+0x80)*brightness*2.0;
-        if (bt>0xff) bt=0xff;
-        if (bt<0) bt=0;
+        rt=(int16_t)((((float)r-128.0f)*contrast*2.0f+128.0f)*brightness*2.0f);
+        if (rt>(int16_t)0xff) rt=0xff;
+        if (rt<(int16_t)0) rt=0;
+        gt=(int16_t)((((float)g-128.0f)*contrast*2.0f+128.0f)*brightness*2.0f);
+        if (gt>(int16_t)0xff) gt=0xff;
+        if (gt<(int16_t)0) gt=0;
+        bt=(int16_t)((((float)b-128.0f)*contrast*2.0f+128.0f)*brightness*2.0f);
+        if (bt>(int16_t)0xff) bt=0xff;
+        if (bt<(int16_t)0) bt=0;
         return GfxDrivers::RGB((uint8_t)rt, (uint8_t)gt, (uint8_t)bt);
     }
 
@@ -555,7 +568,7 @@ class GfxPanel {
     float brightness, contrast;
     enum Theme {ThemeDark, ThemeLight, ThemeGruvbox, ThemeSolarizedDark, ThemeSolarizedLight};
     Theme themeType;
-    void _setTheme(Theme theme, float brightness=0.5, float contrast=0.5) {
+    void _setTheme(Theme theme) {
         themeType=Theme::ThemeDark;
         switch (theme) {
             case ThemeLight:
@@ -593,6 +606,14 @@ class GfxPanel {
                 defaultDecreaseColor = relRGB(0x80, 0x80, 0xff,brightness,contrast);
                 break;
         }
+        for (uint16_t slot=0; slot<slots; slot++) {
+            pSlots[slot].color=defaultColor;
+            pSlots[slot].bgColor=defaultBgColor;
+        }
+    pDisplay->setBGColor(defaultBgColor);
+    #ifdef USE_SERIAL_DBG
+        Serial.println("setTheme: "+themeName);
+    #endif
     }
 
     void _common_init() {
@@ -601,8 +622,7 @@ class GfxPanel {
         slotResY=32;
         brightness=0.5;
         contrast=0.5;
-        _setTheme(Theme::ThemeDark, brightness, contrast);
-        defaultHistLen=128;
+        defaultHistLen=64;
         defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
 
@@ -852,7 +872,7 @@ class GfxPanel {
         }
     }
 
-    void commonBegin(bool useCanvas=false) {
+    void commonBegin(bool useCanvas=true) {
         pDisplay->begin(useCanvas);
 
         auto fntsk = [=]() {
@@ -905,52 +925,55 @@ class GfxPanel {
 #endif  // USE_SERIAL_DBG
         shortConfig2Slots();
         active=true;
+        _setTheme(Theme::ThemeDark);
     }
 
   public:
 
     void setBrightness(float _brightness=0.5) {
+        if (_brightness<0.0) _brightness=0.0;
+        if (_brightness>1.0) _brightness=1.0;
         brightness=_brightness;
-        _setTheme(themeType, brightness, contrast);
+        _setTheme(themeType);
         updateDisplay(true, true);
     }
 
     void publishBrightness() {
-        pSched->publish("display/brightness", String(brightness));
+        pSched->publish(name+"/display/brightness", String(brightness,3));
     }
 
     void setContrast(float _contrast=0.5) {
+        if (_contrast<0.0) _contrast=0.0;
+        if (_contrast>1.0) _contrast=1.0;
         contrast=_contrast;
-        _setTheme(themeType, brightness, contrast);
+        _setTheme(themeType);
         updateDisplay(true, true);
     }
 
     void publishContrast() {
-        pSched->publish("display/contrast", String(contrast));
+        pSched->publish(name+"/display/contrast", String(contrast,3));
     }
 
     void setTheme(String _theme) {
         bool upd=false;
+        contrast=0.5;
+        brightness=0.5;
         if (_theme=="light") {
-            _setTheme(Theme::ThemeLight, brightness, contrast);
-            upd=true;
-        }
-        if (_theme=="light") {
-            _setTheme(Theme::ThemeLight, brightness, contrast);
+            _setTheme(Theme::ThemeLight);
             upd=true;
         }
         if (_theme=="solarizedlight") {
-            _setTheme(Theme::ThemeLight, brightness, contrast);
+            _setTheme(Theme::ThemeSolarizedLight);
             upd=true;
         }
         if (!upd) {
-            _setTheme(Theme::ThemeDark, brightness, contrast);
+            _setTheme(Theme::ThemeDark);
         }
         updateDisplay(true, true);
     }
     
     void publishTheme() {
-        pSched->publish("display/theme", themeName);
+        pSched->publish(name+"/display/theme", themeName);
     }
 
     void setSlotCaption(uint16_t slot, String caption) {
@@ -1053,7 +1076,7 @@ class GfxPanel {
         }
     }
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, bool _useCanvas=true) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1062,7 +1085,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, bool _useCanvas=true) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1075,7 +1098,7 @@ class GfxPanel {
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=true) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1087,7 +1110,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=true) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1110,7 +1133,7 @@ class GfxPanel {
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=true) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1123,7 +1146,7 @@ class GfxPanel {
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=true) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1146,8 +1169,8 @@ class GfxPanel {
 
   private:
     void drawArrow(uint16_t x, uint16_t y, bool up=true, uint16_t len=8, uint16_t wid=3, int16_t delta_down=0) {
-        uint32_t red=pDisplay->RGB(0xff,0,0);
-        uint32_t blue=pDisplay->RGB(0,0,0xff);
+        uint32_t red=defaultIncreaseColor;
+        uint32_t blue=defaultDecreaseColor;
         if (up) {
             pDisplay->drawLine(x,y+len, x, y, red);
             pDisplay->drawLine(x+1,y+len, x+1, y, red);
@@ -1193,7 +1216,7 @@ class GfxPanel {
         // Blank
         uint16_t xf0, yf0, xl, yl;
         xf0=pSlots[slot].slotX*slotResX;
-        xl=slotResX*pSlots[slot].slotLenX-1;
+        xl=slotResX*pSlots[slot].slotLenX;
         yf0=pSlots[slot].slotY*slotResY+1;
         yl=slotResY*pSlots[slot].slotLenY-1;
         pDisplay->fillRect(xf0, yf0, xl, yl, pSlots[slot].bgColor);
@@ -1437,7 +1460,7 @@ class GfxPanel {
         if (topic==name+"/display/brightness/get") {
             publishBrightness();
         }
-        if (topic==name+"display/constrast/set") {
+        if (topic==name+"/display/contrast/set") {
             float c=msg.toFloat();
             if (c<0.0) c=0.0;
             if (c>1.0) c=1.0;

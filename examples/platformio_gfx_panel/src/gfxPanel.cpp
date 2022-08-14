@@ -3,12 +3,14 @@
 
 #include "ustd_platform.h"
 #include "scheduler.h"
+#include "console.h"
 
 #include "../../../src/mup_gfx_panel.h"
 
 void appLoop();
 
 ustd::Scheduler sched(10, 16, 32);
+ustd::SerialConsole con;
 
 #define USE_OLED
 #define USE_TFT
@@ -33,12 +35,13 @@ void setup() {
     Serial.begin(115200);
     Serial.println("Starting up...");
 #endif  // USE_SERIAL_DBG
+    con.begin(&sched);
     const char *topics1[]={"sensor/data1", "sensor/data1", "sensor/data2"};
     const char *captions1[]={"Data 1 _N", "Data 1 _N", "(will be set dyn.)"};
 #ifdef USE_OLED
 Serial.println("Starting OLED display");
-    displayOled.begin(&sched,"dg|G",3,topics1,captions1); // "f: small slot .2 float data1, g: small graph data1, next line: large graph for data2.
-    displayOled.setTheme("light");
+    displayOled.begin(&sched,"dg|G",3,topics1,captions1,false); // "f: small slot .2 float data1, g: small graph data1, next line: large graph for data2.
+    //displayTft.setTheme("light");
     displayOled.setSlotHistorySampleRateMs(1,250);
     displayOled.setSlotHistorySampleRateMs(2,300);
 Serial.println("Display OLED started");
@@ -48,6 +51,7 @@ Serial.println("Display OLED started");
 #ifdef USE_TFT
 Serial.println("Starting TFT display");
     displayTft.begin(&sched, "dg|G|dg|G", 6, topics2, captions2,true);
+    //displayTft.setTheme("light");
     displayTft.setSlotHistorySampleRateMs(1,250);
     displayTft.setSlotHistorySampleRateMs(2,300);
     displayTft.setSlotHistorySampleRateMs(4,250);
