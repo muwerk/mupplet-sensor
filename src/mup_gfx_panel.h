@@ -41,6 +41,9 @@ class GfxDrivers {
     GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire):
         name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire)
     {   
+        pDisplayST=nullptr;
+        pDisplaySSD=nullptr;
+        pCanvas=nullptr;
         if (displayType==DisplayType::SSD1306) {
             validDisplay=true;
             busType=BusType::I2CBUS;
@@ -53,6 +56,9 @@ class GfxDrivers {
     GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin, uint8_t dcPin, uint8_t rstPin=-1):
         name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin), rstPin(rstPin)
     {   
+        pDisplayST=nullptr;
+        pDisplaySSD=nullptr;
+        pCanvas=nullptr;
         if (displayType==DisplayType::ST7735) {
             validDisplay=true;
             busType=BusType::SPIBUS;
@@ -63,6 +69,15 @@ class GfxDrivers {
     }
 
     ~GfxDrivers() {
+        if (pDisplayST) {
+            // delete pDisplayST;  // undefined behavior.
+        }
+        if (pDisplaySSD) {
+            // delete pDisplaySSD;  // undefined behavior.
+        }
+        if (pCanvas) {
+            // delete pCanvas;  // undefined behavior.
+        }
     }
 
     void begin(bool _useCanvas=true) {
@@ -546,6 +561,19 @@ class GfxPanel {
     }
 
     ~GfxPanel() {
+        if (pDisplay) {
+            delete pDisplay;
+        }
+        if (pSlots) {
+            for (uint16_t i=0; i<slots; i++) {
+                if (pSlots[i].pHist) {
+                    delete pSlots[i].pHist;
+                }
+            }
+        }
+        if (pSlots) {
+            delete[] pSlots;
+        }
     }
 
   private:
@@ -622,7 +650,16 @@ class GfxPanel {
         slotResY=32;
         brightness=0.5;
         contrast=0.5;
+#if USTD_FEATURE_MEMORY < USTD_FEATURE_MEM_32K
+        defaultHistLen=4;
+#elif USTD_FEATURE_MEMORY < USTD_FEATURE_MEM_128K
         defaultHistLen=64;
+#else
+        defaultHistLen=128;
+#endif
+#ifdef USE_SERIAL_DBG
+        Serial.println("_common_init: defaultHistLen="+String(defaultHistLen));
+#endif
         defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
 
