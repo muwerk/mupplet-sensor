@@ -161,7 +161,7 @@ class IlluminanceTSL2561 {
 
         pWire->begin();  // required!
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 15000000);  // 500us
+        tID = pSched->add(ft, name, 1000000);  // 1s
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
