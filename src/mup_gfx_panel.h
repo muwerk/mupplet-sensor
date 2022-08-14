@@ -529,50 +529,72 @@ class GfxPanel {
     }
 
   private:
+
+    uint32_t relRGB(uint8_t r,uint8_t g, uint8_t b, float brightness, float contrast) {
+        int16_t rt, gt, bt;
+        rt=((r-0x80)*contrast*2.0+0x80)*brightness*2.0;
+        if (rt>0xff) rt=0xff;
+        if (rt<0) rt=0;
+        gt=((g-0x80)*contrast*2.0+0x80)*brightness*2.0;
+        if (gt>0xff) gt=0xff;
+        if (gt<0) gt=0;
+        bt=((b-0x80)*contrast*2.0+0x80)*brightness*2.0;
+        if (bt>0xff) bt=0xff;
+        if (bt<0) bt=0;
+        return GfxDrivers::RGB((uint8_t)rt, (uint8_t)gt, (uint8_t)bt);
+    }
+
     String themeName;
+    float brightness, contrast;
     enum Theme {ThemeDark, ThemeLight, ThemeGruvbox, ThemeSolarizedDark, ThemeSolarizedLight};
-    void setTheme(Theme theme) {
+    Theme themeType;
+    void _setTheme(Theme theme, float brightness=0.5, float contrast=0.5) {
+        themeType=Theme::ThemeDark;
         switch (theme) {
             case ThemeLight:
                 themeName="light";
-                defaultColor = GfxDrivers::RGB(0x00,0x00,0x00);
-                defaultBgColor = GfxDrivers::RGB(0xff,0xff,0xff);
-                defaultSeparatorColor = GfxDrivers::RGB(0x80,0x80,0x80);
-                defaultAccentColor = GfxDrivers::RGB(0x40, 0x40, 0x40);
-                defaultIncreaseColor = GfxDrivers::RGB(0xff, 0xa0, 0xa0);
-                defaultConstColor = GfxDrivers::RGB(0x30, 0x30, 0x30);
-                defaultDecreaseColor = GfxDrivers::RGB(0xa0, 0xa0, 0xff);
+                themeType=theme;
+                defaultColor = relRGB(0x00,0x00,0x00,brightness,contrast);
+                defaultBgColor = relRGB(0xff,0xff,0xff,brightness,contrast);
+                defaultSeparatorColor = relRGB(0x80,0x80,0x80,brightness,contrast);
+                defaultAccentColor = relRGB(0x40, 0x40, 0x40,brightness,contrast);
+                defaultIncreaseColor = relRGB(0xff, 0xa0, 0xa0,brightness,contrast);
+                defaultConstColor = relRGB(0x30, 0x30, 0x30,brightness,contrast);
+                defaultDecreaseColor = relRGB(0xa0, 0xa0, 0xff,brightness,contrast);
                 break;
             case ThemeSolarizedLight:
                 themeName="solarizedlight";
-                defaultColor = GfxDrivers::RGB(0x00,0x2b,0x36);
-                defaultBgColor = GfxDrivers::RGB(0xee,0xe8,0x95);
-                defaultSeparatorColor = GfxDrivers::RGB(0x58,0x6e,0x05);
-                defaultAccentColor = GfxDrivers::RGB(0x67, 0x76, 0x02);
-                defaultIncreaseColor = GfxDrivers::RGB(0xeb, 0x4b, 0x16);
-                defaultConstColor = GfxDrivers::RGB(0x50, 0x50, 0x30);
-                defaultDecreaseColor = GfxDrivers::RGB(0x43, 0x64, 0xe6);
+                themeType=theme;
+                defaultColor = relRGB(0x00,0x2b,0x36,brightness,contrast);
+                defaultBgColor = relRGB(0xee,0xe8,0x95,brightness,contrast);
+                defaultSeparatorColor = relRGB(0x58,0x6e,0x05,brightness,contrast);
+                defaultAccentColor = relRGB(0x67, 0x76, 0x02,brightness,contrast);
+                defaultIncreaseColor = relRGB(0xeb, 0x4b, 0x16,brightness,contrast);
+                defaultConstColor = relRGB(0x50, 0x50, 0x30,brightness,contrast);
+                defaultDecreaseColor = relRGB(0x43, 0x64, 0xe6,brightness,contrast);
                 break;
             case ThemeDark:
             default:
                 themeName="dark";
-                defaultColor = GfxDrivers::RGB(0xff,0xff,0xff);
-                defaultBgColor = GfxDrivers::RGB(0x00,0x00,0x00);
-                defaultSeparatorColor = GfxDrivers::RGB(0x80,0x80,0x80);
-                defaultAccentColor = GfxDrivers::RGB(0xb0, 0xb0, 0xb0);
-                defaultIncreaseColor = GfxDrivers::RGB(0xff, 0x80, 0x80);
-                defaultConstColor = GfxDrivers::RGB(0xc0, 0xc0, 0xc0);
-                defaultDecreaseColor = GfxDrivers::RGB(0x80, 0x80, 0xff);
+                themeType=Theme::ThemeDark;
+                defaultColor = relRGB(0xff,0xff,0xff,brightness,contrast);
+                defaultBgColor = relRGB(0x00,0x00,0x00,brightness,contrast);
+                defaultSeparatorColor = relRGB(0x80,0x80,0x80,brightness,contrast);
+                defaultAccentColor = relRGB(0xb0, 0xb0, 0xb0,brightness,contrast);
+                defaultIncreaseColor = relRGB(0xff, 0x80, 0x80,brightness,contrast);
+                defaultConstColor = relRGB(0xc0, 0xc0, 0xc0,brightness,contrast);
+                defaultDecreaseColor = relRGB(0x80, 0x80, 0xff,brightness,contrast);
                 break;
         }
-
-
     }
+
     void _common_init() {
         active=false;
         slotResX=64;
         slotResY=32;
-        setTheme(ThemeSolarizedLight);
+        brightness=0.5;
+        contrast=0.5;
+        _setTheme(Theme::ThemeSolarizedLight, brightness, contrast);
         defaultHistLen=128;
         defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
     }
@@ -879,6 +901,51 @@ class GfxPanel {
     }
 
   public:
+
+    void setBrightness(float _brightness=0.5) {
+        brightness=_brightness;
+        _setTheme(themeType, brightness, contrast);
+        updateDisplay(true, true);
+    }
+
+    void publishBrightness() {
+        pSched->publish("display/brightness", String(brightness));
+    }
+
+    void setContrast(float _contrast=0.5) {
+        contrast=_contrast;
+        _setTheme(themeType, brightness, contrast);
+        updateDisplay(true, true);
+    }
+
+    void publishContrast() {
+        pSched->publish("display/contrast", String(contrast));
+    }
+
+    void setTheme(String _theme) {
+        bool upd=false;
+        if (_theme=="light") {
+            _setTheme(Theme::ThemeLight, brightness, contrast);
+            upd=true;
+        }
+        if (_theme=="light") {
+            _setTheme(Theme::ThemeLight, brightness, contrast);
+            upd=true;
+        }
+        if (_theme=="solarizedlight") {
+            _setTheme(Theme::ThemeLight, brightness, contrast);
+            upd=true;
+        }
+        if (!upd) {
+            _setTheme(Theme::ThemeDark, brightness, contrast);
+        }
+        updateDisplay(true, true);
+    }
+    
+    void publishTheme() {
+        pSched->publish("display/theme", themeName);
+    }
+
     void setSlotCaption(uint16_t slot, String caption) {
         /*! Set the caption for a slot.
         @param slot: The slot number.
@@ -1356,6 +1423,31 @@ class GfxPanel {
                  }
             }
         }
+        if (topic==name+"/display/brightness/set") {
+            float br=msg.toFloat();
+            if (br<0.0) br=0.0;
+            if (br>1.0) br=1.0;
+            setBrightness(br);
+        }
+        if (topic==name+"/display/brightness/get") {
+            publishBrightness();
+        }
+        if (topic==name+"display/constrast/set") {
+            float c=msg.toFloat();
+            if (c<0.0) c=0.0;
+            if (c>1.0) c=1.0;
+            setContrast(c);
+        }
+        if (topic==name+"/display/contrast/get") {
+            publishContrast();
+        }
+        if (topic==name+"/display/theme/set") {
+            setTheme(msg);
+        }
+        if (topic==name+"/display/theme/get") {
+            publishTheme();
+        }
+
     }
 
 }; // SensorDisplay
