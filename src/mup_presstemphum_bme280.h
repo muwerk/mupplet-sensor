@@ -349,7 +349,7 @@ class PressTempHumBME280 {
             temperatureSensor.reset();
             pressureSensor.smoothInterval = 1;
             pressureSensor.pollTimeSec = 2;
-            pressureSensor.eps = 0.1;
+            pressureSensor.eps = 0.001;
             pressureSensor.reset();
             break;
         case MEDIUM:
@@ -378,6 +378,10 @@ class PressTempHumBME280 {
         }
         if (!silent)
             publishFilterMode();
+    }
+
+    void setPollRateMs(uint32_t pollRateMs) {
+        pollRateUs = pollRateMs * 1000;
     }
 
   private:
@@ -534,6 +538,12 @@ class PressTempHumBME280 {
         char buf[32];
         sprintf(buf, "%6.2f", humidityValue);
         pSched->publish(name + "/sensor/humidity", buf);
+    }
+
+    void publishPollRateMs() {
+        char buf[32];
+        sprintf(buf, "%ld", pollRateUs/1000L);
+        pSched->publish(name + "/sensor/pollratems", buf);
     }
 
     void publishError(String errMsg) {
@@ -808,6 +818,12 @@ class PressTempHumBME280 {
         }
         if (topic == name + "/sensor/oversampling/get") {
             publishOversampling();
+        }
+        if (topic == name + "/sensor/pollratems/set") {
+            setPollRateMs(msg.toInt());
+        }
+        if (topic == name + "/sensor/pollratems/get") {
+            publishPollRateMs();
         }
         if (topic == name + "/sensor/referencealtitude/set") {
             double alt=atof(msg.c_str());

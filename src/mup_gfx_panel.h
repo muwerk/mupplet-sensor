@@ -675,7 +675,7 @@ class GfxPanel {
 #if USTD_FEATURE_MEMORY >= USTD_FEATURE_MEM_128K
         defaultHistLen=128;
 #elif USTD_FEATURE_MEMORY >= USTD_FEATURE_MEM_32K
-        defaultHistLen=32;
+        defaultHistLen=64;
 #else
         defaultHistLen=16;
 #endif
