@@ -28,6 +28,8 @@ messages are prefixed by `omu/<hostname>`:
 | ----- | ------------ | ------- |
 | `<mupplet-name>/sensor/illuminance` | illumance in lux | Float value encoded as string, sent periodically as available |
 | `<mupplet-name>/sensor/unitilluminance` | normalized illumance 0.0(dark)..1.0(max light)  | Float value encoded as string, sent periodically as available |
+| `<mupplet-name>/sensor/lightch0` | raw sensor value photo diode ch0 visible light  | Float value encoded as string, sent periodically as available |
+| `<mupplet-name>/sensor/irch1` | raw sensor value photo diode ch1 IR light  | Float value encoded as string, sent periodically as available |
 | `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for sensor values, external, additional integration |
 
 #### Messages received by illuminance_tsl2561 mupplet:
@@ -38,6 +40,8 @@ Need to be prefixed by `<hostname>/`:
 | ----- | ------------ | ------- |
 | `<mupplet-name>/sensor/illuminance/get` | - | Causes current value to be sent. |
 | `<mupplet-name>/sensor/unitilluminance/get` | - | Causes current value to be sent. |
+| `<mupplet-name>/sensor/lightch0/get` | - | Causes current value to be sent. |
+| `<mupplet-name>/sensor/irch1/get` | - | Causes current value to be sent. |
 | `<mupplet-name>/sensor/mode/get` | - | Returns filterMode: `FAST`, `MEDIUM`, or `LONGTERM` |
 | `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set external additional filter values |
 
@@ -98,7 +102,7 @@ class IlluminanceTSL2561 {
     TwoWire *pWire;
     int tID;
     String name;
-    double illuminanceValue, unitIlluminanceValue;
+    double illuminanceValue, unitIlluminanceValue, lightCh0Value, IRCh1Value;
 
   public:
     enum TSLError { UNDEFINED, OK, I2C_HW_ERROR, I2C_WRONG_HARDWARE_AT_ADDRESS, I2C_DEVICE_NOT_AT_ADDRESS, I2C_REGISTER_WRITE_ERROR,
@@ -124,6 +128,8 @@ class IlluminanceTSL2561 {
     uint8_t i2c_address;
     ustd::sensorprocessor illuminanceSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor unitIlluminanceSensor = ustd::sensorprocessor(4, 600, 0.005);
+    ustd::sensorprocessor lightCh0Sensor = ustd::sensorprocessor(4, 600, 0.005);
+    ustd::sensorprocessor IRCh1Sensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive=false;
 
     IlluminanceTSL2561(String name, FilterMode filterMode = FilterMode::FAST, uint8_t i2c_address=0x39)
@@ -217,6 +223,14 @@ class IlluminanceTSL2561 {
             unitIlluminanceSensor.pollTimeSec = 2;
             unitIlluminanceSensor.eps = 0.1;
             unitIlluminanceSensor.reset();
+            lightCh0Sensor.smoothInterval = 1;
+            lightCh0Sensor.pollTimeSec = 2;
+            lightCh0Sensor.eps = 0.1;
+            lightCh0Sensor.reset();
+            IRCh1Sensor.smoothInterval = 1;
+            IRCh1Sensor.pollTimeSec = 2;
+            IRCh1Sensor.eps = 0.1;
+            IRCh1Sensor.reset();
             break;
         case MEDIUM:
             filterMode = MEDIUM;
@@ -228,6 +242,14 @@ class IlluminanceTSL2561 {
             unitIlluminanceSensor.pollTimeSec = 30;
             unitIlluminanceSensor.eps = 0.5;
             unitIlluminanceSensor.reset();
+            lightCh0Sensor.smoothInterval = 4;
+            lightCh0Sensor.pollTimeSec = 30;
+            lightCh0Sensor.eps = 0.5;
+            lightCh0Sensor.reset();
+            IRCh1Sensor.smoothInterval = 4;
+            IRCh1Sensor.pollTimeSec = 30;
+            IRCh1Sensor.eps = 0.5;
+            IRCh1Sensor.reset();
             break;
         case LONGTERM:
         default:
@@ -240,6 +262,14 @@ class IlluminanceTSL2561 {
             unitIlluminanceSensor.pollTimeSec = 600;
             unitIlluminanceSensor.eps = 0.5;
             unitIlluminanceSensor.reset();
+            lightCh0Sensor.smoothInterval = 50;
+            lightCh0Sensor.pollTimeSec = 600;
+            lightCh0Sensor.eps = 0.5;
+            lightCh0Sensor.reset();
+            IRCh1Sensor.smoothInterval = 50;
+            IRCh1Sensor.pollTimeSec = 600;
+            IRCh1Sensor.eps = 0.5;
+            IRCh1Sensor.reset();
             break;
         }
         if (!silent)
@@ -388,6 +418,18 @@ class IlluminanceTSL2561 {
         return i2c_endTransmission(releaseBus);
     }
 
+    void publishLightCh0() {
+        char buf[32];
+        sprintf(buf, "%6.3f", lightCh0Value);
+        pSched->publish(name + "/sensor/lightch0", buf);
+    }
+
+    void publishIRCh1() {
+        char buf[32];
+        sprintf(buf, "%6.3f", IRCh1Value);
+        pSched->publish(name + "/sensor/irch1", buf);
+    }
+
     void publishIlluminance() {
         char buf[32];
         sprintf(buf, "%6.3f", illuminanceValue);
@@ -442,6 +484,29 @@ class IlluminanceTSL2561 {
         return true;       
     }
 
+    double calculateLux(uint16_t ch0, uint16_t ch1) {
+        /*! Calculate Lux from CH0 and CH1
+         * @param ch0 CH0 value
+         * @param ch1 CH1 value
+         * @return Lux value
+         */
+        if (ch0==0) return 0;
+        double lux;
+        double ratio = (double)ch1 / (double)ch0;
+        if (ratio <= 0.5) {
+            lux=0.0304*(double)ch0 - 0.062*(double)ch0*pow(ratio, 1.4);
+        } else if (ratio <= 0.61) {
+            lux=0.0224*(double)ch0 - 0.031*(double)ch1;
+        } else if (ratio <= 0.80) {
+            lux=0.0128*(double)ch0 - 0.0153*(double)ch1;
+        } else if (ratio <= 1.30) {
+            lux=0.00146*(double)ch0 - 0.00112*(double)ch1;
+        } else {
+            lux=0;
+        }
+        return lux;
+    }
+
     bool readTSLSensorMeasurement(uint8_t reg, double *pMeas) {
         uint16_t data;
         *pMeas=0.0;
@@ -464,18 +529,34 @@ class IlluminanceTSL2561 {
         }
     }
 
-    bool readTSLSensor(double *pIlluminanceCh0, double *pIlluminanceCh1) {
+    bool readTSLSensor(double *pIlluminanceCh0, double *pIlluminanceCh1, 
+                       double *pLux, double *pUnitIlluminance) {
         *pIlluminanceCh0=0.0;
         *pIlluminanceCh1=0.0;
+        *pLux=0.0;
+        *pUnitIlluminance=0.0;
         if (!readTSLSensorMeasurement(0xac, pIlluminanceCh0)) return false;
         if (!readTSLSensorMeasurement(0xae, pIlluminanceCh1)) return false;
+        *pLux=calculateLux(*pIlluminanceCh0, *pIlluminanceCh1);
+        double ui=(*pIlluminanceCh0+*pIlluminanceCh1)/1500.0;
+        if (ui<0.0) ui=0.0;
+        if (ui>1.0) ui=1.0;
+        *pUnitIlluminance=ui;
         return true;
     } 
 
     void loop() {
-        double illuminanceVal, unitIlluminanceVal;
+        double illuminanceVal, unitIlluminanceVal, lightCh0Val, IRCh1Val;
         if (bActive) {
-            if (readTSLSensor(&illuminanceVal, &unitIlluminanceVal)) {
+            if (readTSLSensor(&lightCh0Val, &IRCh1Val, &illuminanceVal, &unitIlluminanceVal)) {
+                if (lightCh0Sensor.filter(&lightCh0Val)) {
+                    lightCh0Value = lightCh0Val;
+                    publishLightCh0();
+                }
+                if (IRCh1Sensor.filter(&IRCh1Val)) {
+                    IRCh1Value = IRCh1Val;
+                    publishIRCh1();
+                }
                 if (illuminanceSensor.filter(&illuminanceVal)) {
                     illuminanceValue = illuminanceVal;
                     publishIlluminance();
@@ -494,6 +575,12 @@ class IlluminanceTSL2561 {
         }
         if (topic == name + "/sensor/unitilluminance/get") {
             publishUnitIlluminance();
+        }
+        if (topic == name + "/sensor/lightch0/get") {
+            publishLightCh0();
+        }
+        if (topic == name + "/sensor/irch1/get") {
+            publishIRCh1();
         }
         if (topic == name + "/sensor/mode/get") {
             publishFilterMode();
