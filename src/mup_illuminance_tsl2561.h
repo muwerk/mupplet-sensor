@@ -172,7 +172,7 @@ class IlluminanceTSL2561 {
         if (lastError==TSLError::OK) {
             uint8_t id, rev;
             if (TSLSensorGetRevID(&id, &rev)) {
-                if (id==1) { // TSL2561
+                if (id==5 || id==1) { // TSL2561 id should be either 5 (reality) or 1 (datasheet)
                     if (TSLSensorPower(true)) {
                         sensorState=TSLSensorState::IDLE;
                         bActive=true;
@@ -420,9 +420,9 @@ class IlluminanceTSL2561 {
 
     bool TSLSensorPower(bool powerOn) {
         if (powerOn) {
-            if (!i2c_writeRegisterByte(0xa0, 0x03, true)) return false;
+            if (!i2c_writeRegisterByte(0x80, 0x03, true)) return false;
         } else {
-            if (!i2c_writeRegisterByte(0xa0, 0x00, true)) return false;
+            if (!i2c_writeRegisterByte(0x80, 0x00, true)) return false;
         }
         return true;
     }
@@ -436,7 +436,7 @@ class IlluminanceTSL2561 {
         *pId=0;
         *pRev=0;
         uint8_t idbyte=0;
-        if (!i2c_readRegisterByte(0xaa, &idbyte)) return false;
+        if (!i2c_readRegisterByte(0x8a, &idbyte)) return false;
         *pId=idbyte>>4;
         *pRev=idbyte&0x0f;
         return true;       
