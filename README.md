@@ -81,7 +81,7 @@ References
 [TempHum_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1TempHumDHT.html
 [TempHum_Notes]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/temphum-dht-notes.md
 [Gfx_panel_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1GfxPanel.html
-[Gfx_panel_NOTES]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/glx-panel-notes.md
+[Gfx_panel_NOTES]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/gfx-panel-notes.md
 
 [gh_ustd]: https://github.com/muwerk/ustd
 [gh_muwerk]: https://github.com/muwerk/muwerk
