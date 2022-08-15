@@ -73,144 +73,144 @@ $(function() {
 <div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="comment">// mup_illuminance_ldr.h</span></div>
 <div class="line"><a id="l00002" name="l00002"></a><span class="lineno">    2</span><span class="preprocessor">#pragma once</span></div>
 <div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span> </div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="preprocessor">#include &quot;scheduler.h&quot;</span></div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="preprocessor">#include &quot;sensors.h&quot;</span></div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span> </div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="keyword">namespace </span>ustd {</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="preprocessor">#include &quot;scheduler.h&quot;</span></div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="preprocessor">#include &quot;sensors.h&quot;</span></div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span> </div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="comment">// clang - format off</span></div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span><span class="comment"></span><span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno"><a class="line" href="classustd_1_1IlluminanceLdr.html">   94</a></span><span class="keyword">class </span><a class="code hl_class" href="classustd_1_1IlluminanceLdr.html">IlluminanceLdr</a> {</div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    String LDR_VERSION = <span class="stringliteral">&quot;0.1.0&quot;</span>;</div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>    Scheduler *pSched;</div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>    <span class="keywordtype">int</span> tID;</div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>    String name;</div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>    uint8_t port;</div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>    <span class="keywordtype">double</span> ldrvalue;</div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    <span class="keywordtype">bool</span> bActive=<span class="keyword">false</span>;</div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="preprocessor">#ifdef __ESP32__</span></div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>    <span class="keywordtype">double</span> adRange = 4096.0;  <span class="comment">// 12 bit default</span></div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="preprocessor">#else</span></div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    <span class="keywordtype">double</span> adRange = 1024.0;  <span class="comment">// 10 bit default</span></div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span> </div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>  <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>    <span class="keyword">enum</span> FilterMode { FAST, MEDIUM, LONGTERM };</div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>    FilterMode filterMode;</div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>    ustd::sensorprocessor illuminanceSensor = ustd::sensorprocessor(4, 600, 0.005);</div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span> </div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno"><a class="line" href="classustd_1_1IlluminanceLdr.html#ac8382d3eae8c36fc22e080b88ae876be">  114</a></span>    <a class="code hl_function" href="classustd_1_1IlluminanceLdr.html#ac8382d3eae8c36fc22e080b88ae876be">IlluminanceLdr</a>(String name, uint8_t port, FilterMode filterMode = FilterMode::MEDIUM)</div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>        : name(name), port(port), filterMode(filterMode) {</div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>       setFilterMode(filterMode, <span class="keyword">true</span>);</div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>    }</div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span> </div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>    <a class="code hl_class" href="classustd_1_1IlluminanceLdr.html">~IlluminanceLdr</a>() {</div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>    }</div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span> </div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno"><a class="line" href="classustd_1_1IlluminanceLdr.html#a3d0241c360159a8de4fc2dadcd31bfd5">  127</a></span>    <span class="keywordtype">double</span> <a class="code hl_function" href="classustd_1_1IlluminanceLdr.html#a3d0241c360159a8de4fc2dadcd31bfd5">getUnitIlluminance</a>() {</div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>        <span class="keywordflow">return</span> ldrvalue;</div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    }</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span> </div>
-<div class="line"><a id="l00134" name="l00134"></a><span class="lineno"><a class="line" href="classustd_1_1IlluminanceLdr.html#a78a79beb9a1dbcda930fa0b76ddc2508">  134</a></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="classustd_1_1IlluminanceLdr.html#a78a79beb9a1dbcda930fa0b76ddc2508">begin</a>(Scheduler *_pSched) {</div>
-<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>        pSched = _pSched;</div>
-<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span> </div>
-<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>        <span class="keyword">auto</span> ft = [=]() { this-&gt;loop(); };</div>
-<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>        tID = pSched-&gt;add(ft, name, 200000);  <span class="comment">// 200ms</span></div>
-<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span> </div>
-<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>        <span class="keyword">auto</span> fnall = [=](String topic, String msg, String originator) {</div>
-<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>            this-&gt;subsMsg(topic, msg, originator);</div>
-<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>        };</div>
-<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>        pSched-&gt;subscribe(tID, name + <span class="stringliteral">&quot;/sensor/#&quot;</span>, fnall);</div>
-<div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>        bActive = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>    }</div>
-<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span> </div>
-<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>    <span class="keywordtype">void</span> setFilterMode(FilterMode mode, <span class="keywordtype">bool</span> silent = <span class="keyword">false</span>) {</div>
-<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>        <span class="keywordflow">switch</span> (mode) {</div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>        <span class="keywordflow">case</span> FAST:</div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>            filterMode = FAST;</div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>            illuminanceSensor.smoothInterval = 1;</div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>            illuminanceSensor.pollTimeSec = 15;</div>
-<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>            illuminanceSensor.eps = 0.001;</div>
-<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>            illuminanceSensor.reset();</div>
-<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span>        <span class="keywordflow">case</span> MEDIUM:</div>
-<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span>            filterMode = MEDIUM;</div>
-<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>            illuminanceSensor.smoothInterval = 4;</div>
-<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span>            illuminanceSensor.pollTimeSec = 300;</div>
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>            illuminanceSensor.eps = 0.005;</div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>            illuminanceSensor.reset();</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>        <span class="keywordflow">case</span> LONGTERM:</div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>        <span class="keywordflow">default</span>:</div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>            filterMode = LONGTERM;</div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>            illuminanceSensor.smoothInterval = 50;</div>
-<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>            illuminanceSensor.pollTimeSec = 600;</div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>            illuminanceSensor.eps = 0.01;</div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>            illuminanceSensor.reset();</div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>        }</div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>        <span class="keywordflow">if</span> (!silent)</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>            publishFilterMode();</div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    }</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span> </div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>    <span class="keywordtype">void</span> publishIlluminance() {</div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>        <span class="keywordtype">char</span> buf[32];</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>        sprintf(buf, <span class="stringliteral">&quot;%5.3f&quot;</span>, ldrvalue);</div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>        pSched-&gt;publish(name + <span class="stringliteral">&quot;/sensor/unitilluminance&quot;</span>, buf);</div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>    }</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span> </div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    <span class="keywordtype">void</span> publishFilterMode() {</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>        <span class="keywordflow">switch</span> (filterMode) {</div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>        <span class="keywordflow">case</span> FilterMode::FAST:</div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>            pSched-&gt;publish(name + <span class="stringliteral">&quot;/sensor/mode&quot;</span>, <span class="stringliteral">&quot;FAST&quot;</span>);</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>        <span class="keywordflow">case</span> FilterMode::MEDIUM:</div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>            pSched-&gt;publish(name + <span class="stringliteral">&quot;/sensor/mode&quot;</span>, <span class="stringliteral">&quot;MEDIUM&quot;</span>);</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>        <span class="keywordflow">case</span> FilterMode::LONGTERM:</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>            pSched-&gt;publish(name + <span class="stringliteral">&quot;/sensor/mode&quot;</span>, <span class="stringliteral">&quot;LONGTERM&quot;</span>);</div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        }</div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>    }</div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span> </div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>    <span class="keywordtype">void</span> loop() {</div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>        <span class="keywordflow">if</span> (bActive) {</div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>            <span class="keywordtype">double</span> val = 1.0 - (analogRead(port) / (adRange - 1.0));</div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>            <span class="keywordflow">if</span> (illuminanceSensor.filter(&amp;val)) {</div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>                ldrvalue = val;</div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>                publishIlluminance();</div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>            }</div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>        }</div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>    }</div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span> </div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>    <span class="keywordtype">void</span> subsMsg(String topic, String msg, String originator) {</div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>        <span class="keywordflow">if</span> (topic == name + <span class="stringliteral">&quot;/sensor/unitilluminance/get&quot;</span>) {</div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>            publishIlluminance();</div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>        }</div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>        <span class="keywordflow">if</span> (topic == name + <span class="stringliteral">&quot;/sensor/mode/get&quot;</span>) {</div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>            publishFilterMode();</div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>        }</div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>        <span class="keywordflow">if</span> (topic == name + <span class="stringliteral">&quot;/sensor/mode/set&quot;</span>) {</div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>            <span class="keywordflow">if</span> (msg == <span class="stringliteral">&quot;fast&quot;</span> || msg == <span class="stringliteral">&quot;FAST&quot;</span>) {</div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>                setFilterMode(FilterMode::FAST);</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>            } <span class="keywordflow">else</span> {</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>                <span class="keywordflow">if</span> (msg == <span class="stringliteral">&quot;medium&quot;</span> || msg == <span class="stringliteral">&quot;MEDIUM&quot;</span>) {</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>                    setFilterMode(FilterMode::MEDIUM);</div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>                } <span class="keywordflow">else</span> {</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>                    setFilterMode(FilterMode::LONGTERM);</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>                }</div>
-<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>            }</div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>        }</div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    };</div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>};  <span class="comment">// IlluminanceLdr</span></div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span> </div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>}  <span class="comment">// namespace ustd</span></div>
-<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html">ustd::IlluminanceLdr</a></div><div class="ttdoc">mupplet-sensor analog LDR illumance sensor</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:94</div></div>
-<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html_a3d0241c360159a8de4fc2dadcd31bfd5"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html#a3d0241c360159a8de4fc2dadcd31bfd5">ustd::IlluminanceLdr::getUnitIlluminance</a></div><div class="ttdeci">double getUnitIlluminance()</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:127</div></div>
-<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html_a78a79beb9a1dbcda930fa0b76ddc2508"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html#a78a79beb9a1dbcda930fa0b76ddc2508">ustd::IlluminanceLdr::begin</a></div><div class="ttdeci">void begin(Scheduler *_pSched)</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:134</div></div>
-<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html_ac8382d3eae8c36fc22e080b88ae876be"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html#ac8382d3eae8c36fc22e080b88ae876be">ustd::IlluminanceLdr::IlluminanceLdr</a></div><div class="ttdeci">IlluminanceLdr(String name, uint8_t port, FilterMode filterMode=FilterMode::MEDIUM)</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:114</div></div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="keyword">namespace </span>ustd {</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="comment">// clang - format off</span></div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="comment"></span><span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno"><a class="line" href="classustd_1_1IlluminanceLdr.html">   96</a></span><span class="keyword">class </span><a class="code hl_class" href="classustd_1_1IlluminanceLdr.html">IlluminanceLdr</a> {</div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>    String LDR_VERSION = <span class="stringliteral">&quot;0.1.0&quot;</span>;</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>    Scheduler *pSched;</div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>    <span class="keywordtype">int</span> tID;</div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>    String name;</div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    uint8_t port;</div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>    <span class="keywordtype">double</span> ldrvalue;</div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>    <span class="keywordtype">bool</span> bActive=<span class="keyword">false</span>;</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="preprocessor">#ifdef __ESP32__</span></div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    <span class="keywordtype">double</span> adRange = 4096.0;  <span class="comment">// 12 bit default</span></div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>    <span class="keywordtype">double</span> adRange = 1024.0;  <span class="comment">// 10 bit default</span></div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span> </div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>  <span class="keyword">public</span>:</div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>    <span class="keyword">enum</span> FilterMode { FAST, MEDIUM, LONGTERM };</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>    FilterMode filterMode;</div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>    ustd::sensorprocessor illuminanceSensor = ustd::sensorprocessor(4, 600, 0.005);</div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span> </div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno"><a class="line" href="classustd_1_1IlluminanceLdr.html#ac8382d3eae8c36fc22e080b88ae876be">  116</a></span>    <a class="code hl_function" href="classustd_1_1IlluminanceLdr.html#ac8382d3eae8c36fc22e080b88ae876be">IlluminanceLdr</a>(String name, uint8_t port, FilterMode filterMode = FilterMode::MEDIUM)</div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>        : name(name), port(port), filterMode(filterMode) {</div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>       setFilterMode(filterMode, <span class="keyword">true</span>);</div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>    }</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span> </div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>    <a class="code hl_class" href="classustd_1_1IlluminanceLdr.html">~IlluminanceLdr</a>() {</div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>    }</div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span> </div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno"><a class="line" href="classustd_1_1IlluminanceLdr.html#a3d0241c360159a8de4fc2dadcd31bfd5">  129</a></span>    <span class="keywordtype">double</span> <a class="code hl_function" href="classustd_1_1IlluminanceLdr.html#a3d0241c360159a8de4fc2dadcd31bfd5">getUnitIlluminance</a>() {</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>        <span class="keywordflow">return</span> ldrvalue;</div>
+<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>    }</div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span> </div>
+<div class="line"><a id="l00136" name="l00136"></a><span class="lineno"><a class="line" href="classustd_1_1IlluminanceLdr.html#a78a79beb9a1dbcda930fa0b76ddc2508">  136</a></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="classustd_1_1IlluminanceLdr.html#a78a79beb9a1dbcda930fa0b76ddc2508">begin</a>(Scheduler *_pSched) {</div>
+<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>        pSched = _pSched;</div>
+<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span> </div>
+<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>        <span class="keyword">auto</span> ft = [=]() { this-&gt;loop(); };</div>
+<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>        tID = pSched-&gt;add(ft, name, 200000);  <span class="comment">// 200ms</span></div>
+<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span> </div>
+<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>        <span class="keyword">auto</span> fnall = [=](String topic, String msg, String originator) {</div>
+<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>            this-&gt;subsMsg(topic, msg, originator);</div>
+<div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>        };</div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>        pSched-&gt;subscribe(tID, name + <span class="stringliteral">&quot;/sensor/#&quot;</span>, fnall);</div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span>        bActive = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>    }</div>
+<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span> </div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>    <span class="keywordtype">void</span> setFilterMode(FilterMode mode, <span class="keywordtype">bool</span> silent = <span class="keyword">false</span>) {</div>
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>        <span class="keywordflow">switch</span> (mode) {</div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>        <span class="keywordflow">case</span> FAST:</div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>            filterMode = FAST;</div>
+<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>            illuminanceSensor.smoothInterval = 1;</div>
+<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>            illuminanceSensor.pollTimeSec = 15;</div>
+<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>            illuminanceSensor.eps = 0.001;</div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span>            illuminanceSensor.reset();</div>
+<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>        <span class="keywordflow">case</span> MEDIUM:</div>
+<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span>            filterMode = MEDIUM;</div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>            illuminanceSensor.smoothInterval = 4;</div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>            illuminanceSensor.pollTimeSec = 300;</div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>            illuminanceSensor.eps = 0.005;</div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>            illuminanceSensor.reset();</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>        <span class="keywordflow">case</span> LONGTERM:</div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>        <span class="keywordflow">default</span>:</div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>            filterMode = LONGTERM;</div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>            illuminanceSensor.smoothInterval = 50;</div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>            illuminanceSensor.pollTimeSec = 600;</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>            illuminanceSensor.eps = 0.01;</div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>            illuminanceSensor.reset();</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>        }</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>        <span class="keywordflow">if</span> (!silent)</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>            publishFilterMode();</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>    }</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span> </div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>    <span class="keywordtype">void</span> publishIlluminance() {</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>        <span class="keywordtype">char</span> buf[32];</div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>        sprintf(buf, <span class="stringliteral">&quot;%5.3f&quot;</span>, ldrvalue);</div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>        pSched-&gt;publish(name + <span class="stringliteral">&quot;/sensor/unitilluminance&quot;</span>, buf);</div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    }</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span> </div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>    <span class="keywordtype">void</span> publishFilterMode() {</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>        <span class="keywordflow">switch</span> (filterMode) {</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>        <span class="keywordflow">case</span> FilterMode::FAST:</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>            pSched-&gt;publish(name + <span class="stringliteral">&quot;/sensor/mode&quot;</span>, <span class="stringliteral">&quot;FAST&quot;</span>);</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>        <span class="keywordflow">case</span> FilterMode::MEDIUM:</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>            pSched-&gt;publish(name + <span class="stringliteral">&quot;/sensor/mode&quot;</span>, <span class="stringliteral">&quot;MEDIUM&quot;</span>);</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>        <span class="keywordflow">case</span> FilterMode::LONGTERM:</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>            pSched-&gt;publish(name + <span class="stringliteral">&quot;/sensor/mode&quot;</span>, <span class="stringliteral">&quot;LONGTERM&quot;</span>);</div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>        }</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>    }</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span> </div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>    <span class="keywordtype">void</span> loop() {</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>        <span class="keywordflow">if</span> (bActive) {</div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>            <span class="keywordtype">double</span> val = 1.0 - (analogRead(port) / (adRange - 1.0));</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>            <span class="keywordflow">if</span> (illuminanceSensor.filter(&amp;val)) {</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>                ldrvalue = val;</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>                publishIlluminance();</div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>            }</div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>        }</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>    }</div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span> </div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>    <span class="keywordtype">void</span> subsMsg(String topic, String msg, String originator) {</div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>        <span class="keywordflow">if</span> (topic == name + <span class="stringliteral">&quot;/sensor/unitilluminance/get&quot;</span>) {</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>            publishIlluminance();</div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>        }</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>        <span class="keywordflow">if</span> (topic == name + <span class="stringliteral">&quot;/sensor/mode/get&quot;</span>) {</div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>            publishFilterMode();</div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>        }</div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>        <span class="keywordflow">if</span> (topic == name + <span class="stringliteral">&quot;/sensor/mode/set&quot;</span>) {</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>            <span class="keywordflow">if</span> (msg == <span class="stringliteral">&quot;fast&quot;</span> || msg == <span class="stringliteral">&quot;FAST&quot;</span>) {</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>                setFilterMode(FilterMode::FAST);</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>            } <span class="keywordflow">else</span> {</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>                <span class="keywordflow">if</span> (msg == <span class="stringliteral">&quot;medium&quot;</span> || msg == <span class="stringliteral">&quot;MEDIUM&quot;</span>) {</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>                    setFilterMode(FilterMode::MEDIUM);</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>                } <span class="keywordflow">else</span> {</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>                    setFilterMode(FilterMode::LONGTERM);</div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>                }</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>            }</div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>        }</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    };</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>};  <span class="comment">// IlluminanceLdr</span></div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span> </div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>}  <span class="comment">// namespace ustd</span></div>
+<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html">ustd::IlluminanceLdr</a></div><div class="ttdoc">mupplet-sensor analog LDR illumance sensor</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:96</div></div>
+<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html_a3d0241c360159a8de4fc2dadcd31bfd5"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html#a3d0241c360159a8de4fc2dadcd31bfd5">ustd::IlluminanceLdr::getUnitIlluminance</a></div><div class="ttdeci">double getUnitIlluminance()</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:129</div></div>
+<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html_a78a79beb9a1dbcda930fa0b76ddc2508"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html#a78a79beb9a1dbcda930fa0b76ddc2508">ustd::IlluminanceLdr::begin</a></div><div class="ttdeci">void begin(Scheduler *_pSched)</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:136</div></div>
+<div class="ttc" id="aclassustd_1_1IlluminanceLdr_html_ac8382d3eae8c36fc22e080b88ae876be"><div class="ttname"><a href="classustd_1_1IlluminanceLdr.html#ac8382d3eae8c36fc22e080b88ae876be">ustd::IlluminanceLdr::IlluminanceLdr</a></div><div class="ttdeci">IlluminanceLdr(String name, uint8_t port, FilterMode filterMode=FilterMode::MEDIUM)</div><div class="ttdef"><b>Definition:</b> mup_illuminance_ldr.h:116</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

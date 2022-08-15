@@ -81,7 +81,7 @@ $(function() {
 </ul>
 <p ><img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled.png" alt="" align="right" width="7%" height="7%" class="inline"/></p>
 <ul>
-<li><a href="https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1SensorDisplay.html">mup_gfx_panel</a> The <code>Oled</code> mupplet allows to display 2-4 sensor values on an Oled display. The values displayed can either be generated locally or imported via MQTT. A JSON file discribes format and data sources. See <a href="https://github.com/muwerk/mupplet-sensor/blob/master/extras/glx-panel-notes.md">GFX Panel Application Notes</a>.</li>
+<li><a href="https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1GfxPanel.html">mup_gfx_panel</a> The <code>Oled</code> mupplet allows to display 2-4 sensor values on an Oled display. The values displayed can either be generated locally or imported via MQTT. A JSON file discribes format and data sources. See <a href="https://github.com/muwerk/mupplet-sensor/blob/master/extras/glx-panel-notes.md">GFX Panel Application Notes</a>.</li>
 </ul>
 <h2>Dependencies </h2>
 <ul>
@@ -106,6 +106,8 @@ $(function() {
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>mup_temphum_dht</code>   </td><td class="markdownTableBodyNone">Temperature, humidity   </td><td class="markdownTableBodyNone">DHT22   </td><td class="markdownTableBodyNone">none    </td></tr>
 <tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>mup_gamma_gdk101</code>   </td><td class="markdownTableBodyNone">Gamma radiation uS/h   </td><td class="markdownTableBodyNone">GDK101   </td><td class="markdownTableBodyNone">Wire    </td></tr>
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>mup_gfx_panel</code>   </td><td class="markdownTableBodyNone">Oled or TFT display for sensor values and plots   </td><td class="markdownTableBodyNone">SSD1306, ST7735   </td><td class="markdownTableBodyNone">Wire, SPI, Adafruit BusIO, Adafruit GFX Library, Adafruit SSD1306, Adafruit ST7735 and ST7789 Library   </td></tr>
 </table>
 <h2>History </h2>
