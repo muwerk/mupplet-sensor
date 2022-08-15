@@ -47,6 +47,7 @@ Note: third-party libraries may be subject to different licensing conditions.
 | `mup_presstemp_bmp280.h` | Pressure, temperature | Bosch BMP280 | Wire |
 | `mup_presstemp_bme280.h` | Pressure, temperature, humidity | Bosch BME280 | Wire |
 | `mup_temphum_dht` | Temperature, humidity | DHT22 | none |
+| `mup_gamma_gdk101` | Gamma radiation uS/h | GDK101 | Wire |
 | `mup_gfx_panel` | Oled or TFT display for sensor values and plots | SSD1306, ST7735 | Wire, SPI, Adafruit BusIO, Adafruit GFX Library, Adafruit SSD1306, Adafruit ST7735 and ST7789 Library |
 
 History
@@ -79,7 +80,7 @@ References
 [IlluminanceLdr_NOTES]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/illuminance-ldr-notes.md
 [TempHum_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1TempHumDHT.html
 [TempHum_Notes]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/temphum-dht-notes.md
-[Gfx_panel_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1SensorDisplay.html
+[Gfx_panel_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1GfxPanel.html
 [Gfx_panel_NOTES]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/glx-panel-notes.md
 
 [gh_ustd]: https://github.com/muwerk/ustd
