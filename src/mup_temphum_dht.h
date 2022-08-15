@@ -12,25 +12,20 @@ namespace ustd {
 #define G_INT_ATTR
 #endif
 
-#define USTD_DHT_MAX_PIRQS                                                                         \
-    (10)  ///< Number of different interrupts supported across all mupplets. The interval 0..9
-          ///< defines the possible interrupt indices used during instantiation.
+#define USTD_DHT_MAX_PIRQS (10)  ///< Number of different interrupts supported across all mupplets. The interval 0..9 defines the possible interrupt indices used during instantiation.
 
 /*! States of the interrupt handler protocol automat */
 enum DhtProtState {
-    NONE,               ///< idle, no operation
-    START_PULSE_START,  ///< start of (1) [see state diagram below], mcu starts write +-20ms
-                        ///< low-pulse
-    START_PULSE_END,    ///< end of (1), a short high pulse is sent by MCU before switching to input
-                        ///< and activating IRQ handler
-    REPL_PULSE_START,   ///< start of (3.1), preamble, dht writes 80us low pulse
+    NONE,                          ///< idle, no operation
+    START_PULSE_START,             ///< start of (1) [see state diagram below], mcu starts write +-20ms low-pulse
+    START_PULSE_END,               ///< end of (1), a short high pulse is sent by MCU before switching to input and activating IRQ handler
+    REPL_PULSE_START,              ///< start of (3.1), preamble, dht writes 80us low pulse
     REPL_PULSE_START_H,            ///< start of (3.2), preamble, dht writes 80us high pulse
     DATA_ACQUISITION_INTRO_START,  ///< start of (4), lead-in for data-bit
     DATA_ACQUISITION_INTRO_END,    ///< end of (4), starting to receive data bit
     DATA_ACQUISITION,              ///< end of (5), either 0bit(27us) or 1bit(70us) received
-    DATA_ABORT,  ///< error condition, timeout, or illegal state, state machine aborted, no valid
-                 ///< result
-    DATA_OK      ///< five data bits have been received and can be decoded
+    DATA_ABORT,                    ///< error condition, timeout, or illegal state, state machine aborted, no valid result
+    DATA_OK                        ///< five data bits have been received and can be decoded
 };
 
 /*! Error states with DHT sensor */
@@ -45,29 +40,22 @@ enum DhtFailureCode {
     BAD_DATA_BIT_LENGTH = 7           ///< (5) Bad pulse length for either high or low bit
 };
 
-volatile DhtProtState pDhtState[USTD_DHT_MAX_PIRQS] = {
-    DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE,
-    DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE,
-    DhtProtState::NONE, DhtProtState::NONE};
+volatile DhtProtState pDhtState[USTD_DHT_MAX_PIRQS] = {DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE,
+                                                       DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE, DhtProtState::NONE};
 volatile unsigned long pDhtBeginIrqTimer[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t pDhtPortIrq[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t pDhtBitCounter[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-volatile DhtFailureCode pDhtFailureCode[USTD_DHT_MAX_PIRQS] = {
-    DhtFailureCode::OK, DhtFailureCode::OK, DhtFailureCode::OK, DhtFailureCode::OK,
-    DhtFailureCode::OK, DhtFailureCode::OK, DhtFailureCode::OK, DhtFailureCode::OK,
-    DhtFailureCode::OK, DhtFailureCode::OK};
+volatile DhtFailureCode pDhtFailureCode[USTD_DHT_MAX_PIRQS] = {DhtFailureCode::OK, DhtFailureCode::OK, DhtFailureCode::OK,
+                                                               DhtFailureCode::OK, DhtFailureCode::OK, DhtFailureCode::OK, DhtFailureCode::OK, DhtFailureCode::OK, DhtFailureCode::OK,
+                                                               DhtFailureCode::OK};
 volatile int pDhtFailureData[USTD_DHT_MAX_PIRQS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 volatile uint8_t sensorDataBytes[USTD_DHT_MAX_PIRQS * 5];
 
-unsigned long dhtWakeUpPulse = 22000;  // (1) The intial low-pulse of 22ms that awakens the DHT.
-                                       // Note: manufacturer doc is wrong! Says 2ms.
-int dhtInitialDelay = 20;  // (2) after about 20ms(!) low by mcpu, at least dhtInitialDelay uS high
-                           // is set by mcu before switching to input.
-int dhtSignalInitDelta = 25;   // (3.1, 3.2) deviation for initial 80us low + high by dht,
-                               // initialDeals uS get substracted from this.
-int dhtSignalIntroDelta = 25;  // (4) deviation for initial 50us low by dht
-int dhtSignalDelta = 15;  // (5) uS count for max signal length deviation, 27+-dhtSignalDelta is
-                          // low, 70+-dhtSignalDelta is high-bit
+unsigned long dhtWakeUpPulse = 22000;  // (1) The intial low-pulse of 22ms that awakens the DHT. Note: manufacturer doc is wrong! Says 2ms.
+int dhtInitialDelay = 20;              // (2) after about 20ms(!) low by mcpu, at least dhtInitialDelay uS high is set by mcu before switching to input.
+int dhtSignalInitDelta = 25;           // (3.1, 3.2) deviation for initial 80us low + high by dht, initialDeals uS get substracted from this.
+int dhtSignalIntroDelta = 25;          // (4) deviation for initial 50us low by dht
+int dhtSignalDelta = 15;               // (5) uS count for max signal length deviation, 27+-dhtSignalDelta is low, 70+-dhtSignalDelta is high-bit
 
 void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     long dt;
@@ -92,9 +80,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     case DhtProtState::REPL_PULSE_START:  // start of (3.2)
         if (digitalRead(pDhtPortIrq[irqno]) == HIGH) {
             dt = timeDiff(pDhtBeginIrqTimer[irqno], micros());
-            if (dt > 80 - dhtInitialDelay - dhtSignalInitDelta &&
-                dt < 80 + dhtSignalInitDelta) {  // First alive signal of 80us LOW +-
-                                                 // dhtSignalInitDelta uS.
+            if (dt > 80 - dhtInitialDelay - dhtSignalInitDelta && dt < 80 + dhtSignalInitDelta) {  // First alive signal of 80us LOW +- dhtSignalInitDelta uS.
                 pDhtBeginIrqTimer[irqno] = micros();
                 pDhtState[irqno] = DhtProtState::REPL_PULSE_START_H;
                 return;
@@ -111,9 +97,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     case DhtProtState::REPL_PULSE_START_H:  // end of (3.2), start of data transmission (4)
         if (digitalRead(pDhtPortIrq[irqno]) == LOW) {
             dt = timeDiff(pDhtBeginIrqTimer[irqno], micros());
-            if (dt > 80 - dhtSignalInitDelta &&
-                dt < 80 + dhtSignalInitDelta) {  // Sec alive signal of 80us HIGH +-
-                                                 // dhtSignalInitDelta uS.
+            if (dt > 80 - dhtSignalInitDelta && dt < 80 + dhtSignalInitDelta) {  // Sec alive signal of 80us HIGH +- dhtSignalInitDelta uS.
                 pDhtBeginIrqTimer[irqno] = micros();
                 pDhtState[irqno] = DhtProtState::DATA_ACQUISITION_INTRO_END;
                 return;
@@ -136,9 +120,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
     case DhtProtState::DATA_ACQUISITION_INTRO_END:  // end of (4)
         if (digitalRead(pDhtPortIrq[irqno]) == HIGH) {
             dt = timeDiff(pDhtBeginIrqTimer[irqno], micros());
-            if (dt > 50 - dhtSignalIntroDelta &&
-                dt <
-                    50 + dhtSignalIntroDelta) {  // Intro-marker 50us LOW +- dhtSignalIntroDelta uS.
+            if (dt > 50 - dhtSignalIntroDelta && dt < 50 + dhtSignalIntroDelta) {  // Intro-marker 50us LOW +- dhtSignalIntroDelta uS.
                 pDhtBeginIrqTimer[irqno] = micros();
                 pDhtState[irqno] = DhtProtState::DATA_ACQUISITION;
                 return;
@@ -149,8 +131,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
             }
         }
         break;
-    case DhtProtState::DATA_ACQUISITION:  // end of (5), data bit of either 27us (0bit) or 70us
-                                          // (1bit) received.
+    case DhtProtState::DATA_ACQUISITION:  // end of (5), data bit of either 27us (0bit) or 70us (1bit) received.
         if (digitalRead(pDhtPortIrq[irqno]) == LOW) {
             dt = timeDiff(pDhtBeginIrqTimer[irqno], micros());
             if (dt > 27 - dhtSignalDelta && dt < 27 + dhtSignalDelta) {  // Zero-bit 26-28uS
@@ -168,8 +149,7 @@ void G_INT_ATTR ustd_dht_pirq_master(uint8_t irqno) {
                 }
             }
             ++pDhtBitCounter[irqno];
-            if (pDhtBitCounter[irqno] == 40) {  // after 40 bit received, data (2byte humidity,
-                                                // 2byte temperature, 1byte crc) complete.
+            if (pDhtBitCounter[irqno] == 40) {  // after 40 bit received, data (2byte humidity, 2byte temperature, 1byte crc) complete.
                 pDhtState[irqno] = DhtProtState::DATA_OK;
             } else {
                 pDhtBeginIrqTimer[irqno] = micros();
@@ -213,9 +193,9 @@ void G_INT_ATTR ustd_dht_pirq9() {
     ustd_dht_pirq_master(9);
 }
 
-void (*ustd_dht_irq_table[USTD_DHT_MAX_PIRQS])() = {
-    ustd_dht_pirq0, ustd_dht_pirq1, ustd_dht_pirq2, ustd_dht_pirq3, ustd_dht_pirq4,
-    ustd_dht_pirq5, ustd_dht_pirq6, ustd_dht_pirq7, ustd_dht_pirq8, ustd_dht_pirq9};
+void (*ustd_dht_irq_table[USTD_DHT_MAX_PIRQS])() = {ustd_dht_pirq0, ustd_dht_pirq1, ustd_dht_pirq2, ustd_dht_pirq3,
+                                                    ustd_dht_pirq4, ustd_dht_pirq5, ustd_dht_pirq6, ustd_dht_pirq7,
+                                                    ustd_dht_pirq8, ustd_dht_pirq9};
 
 // clang-format off
 /*! \brief mupplet-sensor temperature and humidity with DHT11/22
@@ -305,22 +285,22 @@ class TempHumDHT {
     uint8_t iPin = 255;
 
   public:
-    enum DHTType { DHT11, DHT22 };
+    enum DHTType { DHT11,
+                   DHT22 };
     DHTType dhtType;
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
     FilterMode filterMode;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor humiditySensor = ustd::sensorprocessor(4, 600, 0.005);
 
-    TempHumDHT(String name, uint8_t port, uint8_t interruptIndex, DHTType dhtType = DHTType::DHT22,
-               FilterMode filterMode = FilterMode::MEDIUM)
-        : name(name), port(port), interruptIndex(interruptIndex), dhtType(dhtType),
-          filterMode(filterMode) {
+    TempHumDHT(String name, uint8_t port, uint8_t interruptIndex, DHTType dhtType = DHTType::DHT22, FilterMode filterMode = FilterMode::MEDIUM)
+        : name(name), port(port), interruptIndex(interruptIndex), dhtType(dhtType), filterMode(filterMode) {
         /*! Instantiate an DHT sensor mupplet
         @param name Name used for pub/sub messages
         @param port GPIO port with A/D converter capabilities.
-        @param interruptIndex A unique index [0..9] for the interrupt used. If multiple mupplets use
-        interrupts, this index must be unique for each mupplet.
+        @param interruptIndex A unique index [0..9] for the interrupt used. If multiple mupplets use interrupts, this index must be unique for each mupplet.
         @param dhtType DHT11, DHT22
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
         */
@@ -455,9 +435,7 @@ class TempHumDHT {
             pDhtFailureData[interruptIndex] = 0;
             break;
         case DhtProtState::START_PULSE_START:
-            if (timeDiff(startPulseStartUs, micros()) >
-                dhtWakeUpPulse) {  // should be >18ms (Note: original manufacturer doc is WRONG,
-                                   // says 2ms)
+            if (timeDiff(startPulseStartUs, micros()) > dhtWakeUpPulse) {  // should be >18ms (Note: original manufacturer doc is WRONG, says 2ms)
                 digitalWrite(port, HIGH);
                 delayMicroseconds(dhtInitialDelay);
                 startPulseStartUs = 0;
@@ -479,12 +457,8 @@ class TempHumDHT {
             crc += sensorDataBytes[interruptIndex * 5 + i];
         if (crc % 256 != sensorDataBytes[interruptIndex * 5 + 4]) {
             ++errs;
-            sprintf(
-                msg, "CRC_ERROR! (%d) Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]",
-                (crc % 256), errs, int(pDhtFailureCode[interruptIndex]),
-                pDhtFailureData[interruptIndex], sensorDataBytes[interruptIndex * 5 + 0],
-                sensorDataBytes[interruptIndex * 5 + 1], sensorDataBytes[interruptIndex * 5 + 2],
-                sensorDataBytes[interruptIndex * 5 + 3], sensorDataBytes[interruptIndex * 5 + 4]);
+            sprintf(msg, "CRC_ERROR! (%d) Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]", (crc % 256), errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
+                    sensorDataBytes[interruptIndex * 5 + 0], sensorDataBytes[interruptIndex * 5 + 1], sensorDataBytes[interruptIndex * 5 + 2], sensorDataBytes[interruptIndex * 5 + 3], sensorDataBytes[interruptIndex * 5 + 4]);
             publishError(msg);
             noInterrupts();
             pDhtState[interruptIndex] = DhtProtState::NONE;
@@ -493,20 +467,13 @@ class TempHumDHT {
 
         } else {
             ++oks;
-            sprintf(
-                msg, "OK! Oks: %ld Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]", oks,
-                errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
-                sensorDataBytes[interruptIndex * 5 + 0], sensorDataBytes[interruptIndex * 5 + 1],
-                sensorDataBytes[interruptIndex * 5 + 2], sensorDataBytes[interruptIndex * 5 + 3],
-                sensorDataBytes[interruptIndex * 5 + 4]);
+            sprintf(msg, "OK! Oks: %ld Errs: %ld, Code: %d, ErrData %d, bytes:[%d,%d,%d,%d,%d]", oks, errs, int(pDhtFailureCode[interruptIndex]), pDhtFailureData[interruptIndex],
+                    sensorDataBytes[interruptIndex * 5 + 0], sensorDataBytes[interruptIndex * 5 + 1], sensorDataBytes[interruptIndex * 5 + 2], sensorDataBytes[interruptIndex * 5 + 3], sensorDataBytes[interruptIndex * 5 + 4]);
             // publishError(msg);
-            int t = ((sensorDataBytes[interruptIndex * 5 + 2] & 0x7f) << 8) |
-                    sensorDataBytes[interruptIndex * 5 + 3];
-            if (sensorDataBytes[interruptIndex * 5 + 2] & 0x80)
-                t = t * (-1);
+            int t = ((sensorDataBytes[interruptIndex * 5 + 2] & 0x7f) << 8) | sensorDataBytes[interruptIndex * 5 + 3];
+            if (sensorDataBytes[interruptIndex * 5 + 2] & 0x80) t = t * (-1);
             *tempVal = (double)t / 10.0;
-            int h = ((sensorDataBytes[interruptIndex * 5 + 0]) << 8) |
-                    sensorDataBytes[interruptIndex * 5 + 1];
+            int h = ((sensorDataBytes[interruptIndex * 5 + 0]) << 8) | sensorDataBytes[interruptIndex * 5 + 1];
             *humiVal = (double)h / 10.0;
             return true;
         }
@@ -551,8 +518,7 @@ class TempHumDHT {
                 char msg[128];
                 errratio = (double)errs / (errs + oks) * 100.0;
                 ++errs;
-                sprintf(msg, "Errs: %ld, err-rate: %6.2f Code: %d, Data %d", errs, errratio,
-                        pDhtFailureCode[interruptIndex], pDhtFailureData[interruptIndex]);
+                sprintf(msg, "Errs: %ld, err-rate: %6.2f Code: %d, Data %d", errs, errratio, pDhtFailureCode[interruptIndex], pDhtFailureData[interruptIndex]);
                 publishError(msg);
                 noInterrupts();
                 pDhtState[interruptIndex] = DhtProtState::NONE;

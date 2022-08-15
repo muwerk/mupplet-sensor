@@ -12,8 +12,15 @@ namespace ustd {
 
 class GfxDrivers {
   public:
-    enum DisplayType { SSD1306, ST7735 };
-    enum BusType { GPIOBUS, I2CBUS, SPIBUS };
+    enum DisplayType {
+        SSD1306,
+        ST7735
+    };
+    enum BusType {
+        GPIOBUS,
+        I2CBUS,
+        SPIBUS
+    };
 
     String name;
     DisplayType displayType;
@@ -31,10 +38,8 @@ class GfxDrivers {
     Adafruit_SSD1306 *pDisplaySSD;
     GFXcanvas16 *pCanvas;
 
-    GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY,
-               uint8_t i2cAddress, TwoWire *pWire = &Wire)
-        : name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress),
-          pWire(pWire) {
+    GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire = &Wire)
+        : name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire) {
         pDisplayST = nullptr;
         pDisplaySSD = nullptr;
         pCanvas = nullptr;
@@ -48,10 +53,8 @@ class GfxDrivers {
         }
     }
 
-    GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin,
-               uint8_t dcPin, uint8_t rstPin = -1)
-        : name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin),
-          rstPin(rstPin) {
+    GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin, uint8_t dcPin, uint8_t rstPin = -1)
+        : name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin), rstPin(rstPin) {
         pDisplayST = nullptr;
         pDisplaySSD = nullptr;
         pCanvas = nullptr;
@@ -101,8 +104,7 @@ class GfxDrivers {
                     pDisplayST->initR(INITR_BLACKTAB);  // 1.8" thingy?
                 } else {
 #ifdef USE_SERIAL_DBG
-                    Serial.println(
-                        "ERROR GfxDrivers::begin() - unknown/invalid display resolution");
+                    Serial.println("ERROR GfxDrivers::begin() - unknown/invalid display resolution");
 #endif
                     hasBegun = false;
                     return;
@@ -476,7 +478,9 @@ class GfxPanel {
     ustd::Mqtt *pMqtt;
 #endif
 
-    enum SlotType { NUMBER, TEXT, GRAPH };
+    enum SlotType { NUMBER,
+                    TEXT,
+                    GRAPH };
     uint32_t defaultColor;
     uint32_t defaultBgColor;
     uint32_t defaultSeparatorColor;
@@ -536,15 +540,11 @@ class GfxPanel {
     String valid_formats_small = " sipfdtg";
     char oldTimeString[64] = "";
 
-    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY,
-             uint8_t i2cAddress, TwoWire *pWire = &Wire, String locale = "C")
-        : name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress),
-          pWire(pWire), locale(locale)
+    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire = &Wire, String locale = "C")
+        : name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire), locale(locale)
     /*!
-    @param name The display's `name`. A file `name`.json must exist in the format above to define
-    the display slots and corresponding MQTT messages.
-    @param displayType A GfxDrivers::DisplayType, e.g. GfxDrivers::DisplayType::SSD1306,
-    GfxDrivers::DisplayType::ST7735.
+    @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
+    @param displayType A GfxDrivers::DisplayType, e.g. GfxDrivers::DisplayType::SSD1306, GfxDrivers::DisplayType::ST7735.
     @param resX Horizontal resolution.
     @param resY Vertical resolution.
     @param i2cAddress I2C address of display
@@ -562,15 +562,11 @@ class GfxPanel {
         _common_init();
     }
 
-    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY,
-             uint8_t csPin, uint8_t dcPin, uint8_t rstPin = -1, String locale = "C")
-        : name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin),
-          rstPin(rstPin), locale(locale)
+    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin, uint8_t dcPin, uint8_t rstPin = -1, String locale = "C")
+        : name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin), rstPin(rstPin), locale(locale)
     /*!
-    @param name The display's `name`. A file `name`.json must exist in the format above to define
-    the display slots and corresponding MQTT messages.
-    @param displayType A DisplayDriver DisplayType, e.g. GfxDrivers::DisplayType::SSD1306,
-    GfxDrivers::DisplayType::ST7735.
+    @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
+    @param displayType A DisplayDriver DisplayType, e.g. GfxDrivers::DisplayType::SSD1306, GfxDrivers::DisplayType::ST7735.
     @param resX Horizontal resolution.
     @param resY Vertical resolution.
     @param csPin CS Pin for SPI.
@@ -609,26 +605,24 @@ class GfxPanel {
     uint32_t relRGB(uint8_t r, uint8_t g, uint8_t b, float brightness, float contrast) {
         int16_t rt, gt, bt;
         rt = (int16_t)((((float)r - 128.0f) * contrast * 2.0f + 128.0f) * brightness * 2.0f);
-        if (rt > (int16_t)0xff)
-            rt = 0xff;
-        if (rt < (int16_t)0)
-            rt = 0;
+        if (rt > (int16_t)0xff) rt = 0xff;
+        if (rt < (int16_t)0) rt = 0;
         gt = (int16_t)((((float)g - 128.0f) * contrast * 2.0f + 128.0f) * brightness * 2.0f);
-        if (gt > (int16_t)0xff)
-            gt = 0xff;
-        if (gt < (int16_t)0)
-            gt = 0;
+        if (gt > (int16_t)0xff) gt = 0xff;
+        if (gt < (int16_t)0) gt = 0;
         bt = (int16_t)((((float)b - 128.0f) * contrast * 2.0f + 128.0f) * brightness * 2.0f);
-        if (bt > (int16_t)0xff)
-            bt = 0xff;
-        if (bt < (int16_t)0)
-            bt = 0;
+        if (bt > (int16_t)0xff) bt = 0xff;
+        if (bt < (int16_t)0) bt = 0;
         return GfxDrivers::RGB((uint8_t)rt, (uint8_t)gt, (uint8_t)bt);
     }
 
     String themeName;
     float brightness, contrast;
-    enum Theme { ThemeDark, ThemeLight, ThemeGruvbox, ThemeSolarizedDark, ThemeSolarizedLight };
+    enum Theme { ThemeDark,
+                 ThemeLight,
+                 ThemeGruvbox,
+                 ThemeSolarizedDark,
+                 ThemeSolarizedLight };
     Theme themeType;
     void _setTheme(Theme theme) {
         themeType = Theme::ThemeDark;
@@ -729,8 +723,7 @@ class GfxPanel {
                     ++slots;
                 }
             }
-            if (!layout_valid)
-                break;
+            if (!layout_valid) break;
             if (combined_layout != "") {
                 layout += "|";
             } else {
@@ -918,8 +911,7 @@ class GfxPanel {
         struct tm *plt;
         time_t t;
         char buf[64];
-        if (!active)
-            return;
+        if (!active) return;
         // scruffy old c time functions
         t = time(nullptr);
         plt = localtime(&t);
@@ -947,7 +939,9 @@ class GfxPanel {
     void commonBegin(bool useCanvas = false) {
         pDisplay->begin(useCanvas);
 
-        auto fntsk = [=]() { _sensorLoop(); };
+        auto fntsk = [=]() {
+            _sensorLoop();
+        };
         minUpdateIntervalMs = 50;
         int tID = pSched->add(fntsk, name, minUpdateIntervalMs * 1000L);
         auto fnsub = [=](String topic, String msg, String originator) {
@@ -1003,44 +997,35 @@ class GfxPanel {
 
   public:
     void setBrightness(float _brightness = 0.5) {
-        if (!active)
-            return;
-        if (_brightness < 0.0)
-            _brightness = 0.0;
-        if (_brightness > 1.0)
-            _brightness = 1.0;
+        if (!active) return;
+        if (_brightness < 0.0) _brightness = 0.0;
+        if (_brightness > 1.0) _brightness = 1.0;
         brightness = _brightness;
         _setTheme(themeType);
         updateDisplay(true, true);
     }
 
     void publishBrightness() {
-        if (!active)
-            return;
+        if (!active) return;
         pSched->publish(name + "/display/brightness", String(brightness, 3));
     }
 
     void setContrast(float _contrast = 0.5) {
-        if (!active)
-            return;
-        if (_contrast < 0.0)
-            _contrast = 0.0;
-        if (_contrast > 1.0)
-            _contrast = 1.0;
+        if (!active) return;
+        if (_contrast < 0.0) _contrast = 0.0;
+        if (_contrast > 1.0) _contrast = 1.0;
         contrast = _contrast;
         _setTheme(themeType);
         updateDisplay(true, true);
     }
 
     void publishContrast() {
-        if (!active)
-            return;
+        if (!active) return;
         pSched->publish(name + "/display/contrast", String(contrast, 3));
     }
 
     void setTheme(String _theme) {
-        if (!active)
-            return;
+        if (!active) return;
         bool upd = false;
         contrast = 0.5;
         brightness = 0.5;
@@ -1059,8 +1044,7 @@ class GfxPanel {
     }
 
     void publishTheme() {
-        if (!active)
-            return;
+        if (!active) return;
         pSched->publish(name + "/display/theme", themeName);
     }
 
@@ -1069,8 +1053,7 @@ class GfxPanel {
         @param slot: The slot number.
         @param caption: The caption.
         */
-        if (!active)
-            return;
+        if (!active) return;
         captions[slot] = caption;
         if (pSlots && slot < slots) {
             if (pSlots[slot].isInit) {
@@ -1085,8 +1068,7 @@ class GfxPanel {
         /*! Publish the caption for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active)
-            return;
+        if (!active) return;
         String cap = "";
         bool done = false;
         if (slot < slots) {
@@ -1108,8 +1090,7 @@ class GfxPanel {
         @param slot: The slot number.
         @param text: The text.
         */
-        if (!active)
-            return;
+        if (!active) return;
         if (slot < slots) {
             // XXX
         }
@@ -1118,8 +1099,7 @@ class GfxPanel {
         /*! Publish the text for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active)
-            return;
+        if (!active) return;
         if (slot < slots) {
             // pSched->publish(name+"/display/slot/"+String(slot), xxx[slot]);
         }
@@ -1130,23 +1110,20 @@ class GfxPanel {
         @param slot: The slot number.
         @param topic: The topic.
         */
-        if (!active)
-            return;
+        if (!active) return;
     }
     void publishSlotTopic(uint16_t slot) {
         /*! Publish the topic for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active)
-            return;
+        if (!active) return;
     }
     void setSlotFormat(uint16_t slot, String format) {
         /*! Set the format for a slot.
         @param slot: The slot number.
         @param format: The format.
         */
-        if (!active)
-            return;
+        if (!active) return;
         if (slot < slots && format.length() == 1) {
             formats[slot] = format[0];
             pSlots[slot].hasChanged = true;
@@ -1157,8 +1134,7 @@ class GfxPanel {
         /*! Publish the format for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active)
-            return;
+        if (!active) return;
     }
 
     void setSlotHistorySampleRateMs(uint16_t slot, uint32_t rate) {
@@ -1166,8 +1142,7 @@ class GfxPanel {
         @param slot: The slot number.
         @param rate: The sample rate in milliseconds.
         */
-        if (!active)
-            return;
+        if (!active) return;
         if (slot < slots) {
             pSlots[slot].histSampleRateMs = rate;
             pSlots[slot].frameRate = rate;
@@ -1178,11 +1153,9 @@ class GfxPanel {
         /*! Publish the history sample rate for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active)
-            return;
+        if (!active) return;
         if (slot < slots) {
-            pSched->publish(name + "/display/slot/" + String(slot) + "/histosrysampleratems",
-                            String(pSlots[slot].histSampleRateMs));
+            pSched->publish(name + "/display/slot/" + String(slot) + "/histosrysampleratems", String(pSlots[slot].histSampleRateMs));
         }
     }
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
@@ -1190,8 +1163,7 @@ class GfxPanel {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
-        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in
-        `'display-name'.json` file.
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
@@ -1208,35 +1180,25 @@ class GfxPanel {
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout,
-               ustd::array<String> _topics, ustd::array<String> _captions,
-               bool _useCanvas = false) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas = false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
-        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in
-        `'display-name'.json` file.
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
-        @param _topics std::array<String> of topics to subscribe to. The number of topics must match
-        the number of captions and the number of slot-qualifiers in the combined_layout string.
-        @param _captions std::array<String> of captions to display for the topics. The number of
-        captions must match the number of topics and the number of slot-qualifiers in the
-        combined_layout string.
+        @param _topics std::array<String> of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions std::array<String> of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics,
-               ustd::array<String> _captions, bool _useCanvas = false) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas = false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
-        @param _topics std::array<String> of topics to subscribe to. The number of topics must match
-        the number of captions and the number of slot-qualifiers in the combined_layout string.
-        @param _captions std::array<String> of captions to display for the topics. The number of
-        captions must match the number of topics and the number of slot-qualifiers in the
-        combined_layout string.
+        @param _topics std::array<String> of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions std::array<String> of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
         */
         pSched = _pSched;
 #endif
@@ -1252,37 +1214,27 @@ class GfxPanel {
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout,
-               uint16_t _slots, const char *_topics[], const char *_captions[],
-               bool _useCanvas = false) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas = false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
-        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in
-        `'display-name'.json` file.
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
         @param _slots Number of slots to use, must be array dimension of both _captions and topics.
-        @param _topics const char *[] of topics to subscribe to. The number of topics must match the
-        number of captions and the number of slot-qualifiers in the combined_layout string.
-        @param _captions const char *[] of captions to display for the topics. The number of
-        captions must match the number of topics and the number of slot-qualifiers in the
-        combined_layout string.
+        @param _topics const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots,
-               const char *_topics[], const char *_captions[], bool _useCanvas = false) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas = false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
         @param _slots Number of slots to use, must be array dimension of both _captions and topics.
-        @param _topics const char *[] of topics to subscribe to. The number of topics must match the
-        number of captions and the number of slot-qualifiers in the combined_layout string.
-        @param _captions const char *[] of captions to display for the topics. The number of
-        captions must match the number of topics and the number of slot-qualifiers in the
-        combined_layout string.
+        @param _topics const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
         */
         pSched = _pSched;
 #endif
@@ -1297,8 +1249,7 @@ class GfxPanel {
     }
 
   private:
-    void drawArrow(uint16_t x, uint16_t y, bool up = true, uint16_t len = 8, uint16_t wid = 3,
-                   int16_t delta_down = 0) {
+    void drawArrow(uint16_t x, uint16_t y, bool up = true, uint16_t len = 8, uint16_t wid = 3, int16_t delta_down = 0) {
         uint32_t red = defaultIncreaseColor;
         uint32_t blue = defaultDecreaseColor;
         if (up) {
@@ -1313,10 +1264,8 @@ class GfxPanel {
             pDisplay->drawLine(x + 1, y + len + delta_down, x + 1, y + delta_down, blue);
             pDisplay->drawLine(x, y + len + delta_down, x - wid, y + len - wid + delta_down, blue);
             pDisplay->drawLine(x, y + len + delta_down, x + wid, y + len - wid + delta_down, blue);
-            pDisplay->drawLine(x + 1, y + len + delta_down, x - wid + 1, y + len - wid + delta_down,
-                               blue);
-            pDisplay->drawLine(x + 1, y + len + delta_down, x + wid + 1, y + len - wid + delta_down,
-                               blue);
+            pDisplay->drawLine(x + 1, y + len + delta_down, x - wid + 1, y + len - wid + delta_down, blue);
+            pDisplay->drawLine(x + 1, y + len + delta_down, x + wid + 1, y + len - wid + delta_down, blue);
         }
     }
 
@@ -1338,8 +1287,7 @@ class GfxPanel {
     }
 
     bool displaySlot(uint16_t slot) {
-        if (slot >= slots)
-            return false;
+        if (slot >= slots) return false;
 
         uint8_t x0 = 0, y0 = 0, x1 = 0, y1 = 0, xa = 0, ya = 0;
         uint8_t xm0, ym0, xm1, ym1;
@@ -1385,20 +1333,15 @@ class GfxPanel {
         if (pSlots[slot].slotType != SlotType::TEXT) {
             if (pSlots[slot].pHist && pSlots[slot].histLen) {
                 for (uint16_t x = 0; x < pSlots[slot].histLen; x++) {
-                    if (pSlots[slot].pHist[x] > gmax)
-                        gmax = pSlots[slot].pHist[x];
-                    if (pSlots[slot].pHist[x] < gmin)
-                        gmin = pSlots[slot].pHist[x];
+                    if (pSlots[slot].pHist[x] > gmax) gmax = pSlots[slot].pHist[x];
+                    if (pSlots[slot].pHist[x] < gmin) gmin = pSlots[slot].pHist[x];
                     uint16_t backView = 0;
-                    if (pSlots[slot].histLen >= 10)
-                        backView = pSlots[slot].histLen - 10;
+                    if (pSlots[slot].histLen >= 10) backView = pSlots[slot].histLen - 10;
                     if (x >= backView) {
                         avg += pSlots[slot].pHist[x];
                         navg++;
-                        if (pSlots[slot].pHist[x] > dmax)
-                            dmax = pSlots[slot].pHist[x];
-                        if (pSlots[slot].pHist[x] < dmin)
-                            dmin = pSlots[slot].pHist[x];
+                        if (pSlots[slot].pHist[x] > dmax) dmax = pSlots[slot].pHist[x];
+                        if (pSlots[slot].pHist[x] < dmin) dmin = pSlots[slot].pHist[x];
                     }
                 }
                 float ref;
@@ -1428,16 +1371,14 @@ class GfxPanel {
             // Graph
             if (pSlots[slot].pHist && pSlots[slot].histLen) {
                 double deltaY = gmax - gmin;
-                if (deltaY < 0.0001)
-                    deltaY = 1;
+                if (deltaY < 0.0001) deltaY = 1;
                 double deltaX = (double)(xm1 - xm0) / (double)(pSlots[slot].histLen);
                 int lx0, ly0, lx1, ly1;
                 int gHeight = (ym1 - ym0) - 11;  // font size of caption.
                 for (uint16_t i = 1; i < pSlots[slot].histLen; i++) {
                     lx0 = xm0 + (int)((double)(i - 1) * deltaX);
                     lx1 = xm0 + (int)((double)i * deltaX);
-                    ly0 = ym1 -
-                          (int)((pSlots[slot].pHist[i - 1] - gmin) / deltaY * (double)(gHeight));
+                    ly0 = ym1 - (int)((pSlots[slot].pHist[i - 1] - gmin) / deltaY * (double)(gHeight));
                     ly1 = ym1 - (int)((pSlots[slot].pHist[i] - gmin) / deltaY * (double)(gHeight));
                     uint32_t col;
                     if (ly1 < ly0)
@@ -1458,8 +1399,7 @@ class GfxPanel {
 
   public:
     void updateDisplay(bool updateNow, bool forceRedraw = false) {
-        if (!updateNow &&
-            (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
+        if (!updateNow && (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
             delayedUpdate = true;
             return;
         }
@@ -1471,24 +1411,20 @@ class GfxPanel {
         if (forceRedraw) {
             pDisplay->clearDisplay(defaultBgColor);
             for (uint16_t slot = 0; slot < slots; slot++) {
-                if (pSlots[slot].slotX > maxSlotX)
-                    maxSlotX = pSlots[slot].slotX;
-                if (pSlots[slot].slotY > maxSlotY)
-                    maxSlotY = pSlots[slot].slotY;
+                if (pSlots[slot].slotX > maxSlotX) maxSlotX = pSlots[slot].slotX;
+                if (pSlots[slot].slotY > maxSlotY) maxSlotY = pSlots[slot].slotY;
             }
             uint16_t y;
             for (uint16_t ly = 0; ly <= maxSlotY + 1; ly++) {
                 y = ly * slotResY;
-                if (y >= resY)
-                    y = resY - 1;
+                if (y >= resY) y = resY - 1;
                 // XXX slotLenY==1! (maybe implicitly solved by rect fill)
                 pDisplay->drawLine(0, y, resX - 1, y, defaultSeparatorColor);
             }
         }
         for (uint16_t slot = 0; slot < slots; slot++) {
             if (pSlots[slot].hasChanged || forceRedraw) {
-                if (displaySlot(slot))
-                    update = true;
+                if (displaySlot(slot)) update = true;
             }
         }
         if (update || forceRedraw) {
@@ -1498,10 +1434,8 @@ class GfxPanel {
 
   private:
     bool updateSlot(uint16_t slot, String msg) {
-        if (slot >= slots)
-            return false;
-        if (timeDiff(pSlots[slot].lastFrame, millis()) < pSlots[slot].frameRate)
-            return false;
+        if (slot >= slots) return false;
+        if (timeDiff(pSlots[slot].lastFrame, millis()) < pSlots[slot].frameRate) return false;
         bool changed = false;
         float k = pSlots[slot].scalingFactor;
         float o = pSlots[slot].offset;
@@ -1535,8 +1469,7 @@ class GfxPanel {
                     pSlots[slot].histInit = true;
                     changed = true;
                 } else {
-                    while (timeDiff(pSlots[slot].lastHistUpdate, millis()) >
-                           pSlots[slot].histSampleRateMs) {
+                    while (timeDiff(pSlots[slot].lastHistUpdate, millis()) > pSlots[slot].histSampleRateMs) {
                         for (uint16_t i = 0; i < pSlots[slot].histLen - 1; i++) {
                             pSlots[slot].pHist[i] = pSlots[slot].pHist[i + 1];
                         }
@@ -1554,22 +1487,18 @@ class GfxPanel {
     }
 
     void sensorUpdates(String topic, String msg, String originator) {
-        if (!active)
-            return;
+        if (!active) return;
         bool changed = false;
         for (uint16_t slot = 0; slot < slots; slot++) {
             if (pSlots[slot].topic == topic) {
-                if (updateSlot(slot, msg))
-                    changed = true;
+                if (updateSlot(slot, msg)) changed = true;
             }
         }
-        if (changed)
-            updateDisplay(false, false);
+        if (changed) updateDisplay(false, false);
     }
 
     void subsMsg(String topic, String msg, String originator) {
-        if (!active)
-            return;
+        if (!active) return;
         String toc = name + "/display/slot/";
         if (topic.startsWith(toc)) {
             String sub = topic.substring(toc.length());
@@ -1613,10 +1542,8 @@ class GfxPanel {
         }
         if (topic == name + "/display/brightness/set") {
             float br = msg.toFloat();
-            if (br < 0.0)
-                br = 0.0;
-            if (br > 1.0)
-                br = 1.0;
+            if (br < 0.0) br = 0.0;
+            if (br > 1.0) br = 1.0;
             setBrightness(br);
         }
         if (topic == name + "/display/brightness/get") {
@@ -1624,10 +1551,8 @@ class GfxPanel {
         }
         if (topic == name + "/display/contrast/set") {
             float c = msg.toFloat();
-            if (c < 0.0)
-                c = 0.0;
-            if (c > 1.0)
-                c = 1.0;
+            if (c < 0.0) c = 0.0;
+            if (c > 1.0) c = 1.0;
             setContrast(c);
         }
         if (topic == name + "/display/contrast/get") {

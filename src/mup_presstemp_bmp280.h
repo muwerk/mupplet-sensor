@@ -127,38 +127,33 @@ class PressTempBMP280 {
     uint16_t dig_T1, dig_P1, dig_reserved;
 
   public:
-    enum BMPError {
-        UNDEFINED,
-        OK,
-        I2C_HW_ERROR,
-        I2C_WRONG_HARDWARE_AT_ADDRESS,
-        I2C_DEVICE_NOT_AT_ADDRESS,
-        I2C_REGISTER_WRITE_ERROR,
-        I2C_VALUE_WRITE_ERROR,
-        I2C_WRITE_DATA_TOO_LONG,
-        I2C_WRITE_NACK_ON_ADDRESS,
-        I2C_WRITE_NACK_ON_DATA,
-        I2C_WRITE_ERR_OTHER,
-        I2C_WRITE_TIMEOUT,
-        I2C_WRITE_INVALID_CODE,
-        I2C_READ_REQUEST_FAILED,
-        I2C_CALIBRATION_READ_FAILURE
-    };
-    enum BMPSensorState { UNAVAILABLE, IDLE, MEASUREMENT_WAIT, WAIT_NEXT_MEASUREMENT };
+    enum BMPError { UNDEFINED,
+                    OK,
+                    I2C_HW_ERROR,
+                    I2C_WRONG_HARDWARE_AT_ADDRESS,
+                    I2C_DEVICE_NOT_AT_ADDRESS,
+                    I2C_REGISTER_WRITE_ERROR,
+                    I2C_VALUE_WRITE_ERROR,
+                    I2C_WRITE_DATA_TOO_LONG,
+                    I2C_WRITE_NACK_ON_ADDRESS,
+                    I2C_WRITE_NACK_ON_DATA,
+                    I2C_WRITE_ERR_OTHER,
+                    I2C_WRITE_TIMEOUT,
+                    I2C_WRITE_INVALID_CODE,
+                    I2C_READ_REQUEST_FAILED,
+                    I2C_CALIBRATION_READ_FAILURE };
+    enum BMPSensorState { UNAVAILABLE,
+                          IDLE,
+                          MEASUREMENT_WAIT,
+                          WAIT_NEXT_MEASUREMENT };
 
-    /*! Hardware accuracy modes of BMP280, while the sensor can have different pressure- and
-     * temperature oversampling, we use same for both temp and press. */
+    /*! Hardware accuracy modes of BMP280, while the sensor can have different pressure- and temperature oversampling, we use same for both temp and press. */
     enum BMPSampleMode {
-        ULTRA_LOW_POWER = 1,  ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature
-                              ///< oversampling: x1
-        LOW_POWER = 2,        ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature
-                              ///< oversampling: x1
-        STANDARD = 3,         ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature
-                              ///< oversampling: x1
-        HIGH_RESOLUTION = 4,  ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature
-                              ///< oversampling: x1
-        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec
-                                   ///< temperature oversampling: x2
+        ULTRA_LOW_POWER = 1,       ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature oversampling: x1
+        LOW_POWER = 2,             ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature oversampling: x1
+        STANDARD = 3,              ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature oversampling: x1
+        HIGH_RESOLUTION = 4,       ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1
+        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
     };
     BMPError lastError;
     BMPSensorState sensorState;
@@ -168,7 +163,9 @@ class PressTempBMP280 {
     uint16_t oversampleMode = 3;  // 1..5, see BMPSampleMode.
     uint16_t oversampleModePressure = 3;
     uint16_t oversampleModeTemperature = 1;
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
 #define MUP_BMP_INVALID_ALTITUDE -1000000.0
     double referenceAltitudeMeters;
     FilterMode filterMode;
@@ -177,8 +174,7 @@ class PressTempBMP280 {
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    PressTempBMP280(String name, FilterMode filterMode = FilterMode::MEDIUM,
-                    uint8_t i2c_address = 0x76)
+    PressTempBMP280(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address = 0x76)
         : name(name), filterMode(filterMode), i2c_address(i2c_address) {
         /*! Instantiate an BMP sensor mupplet
         @param name Name used for pub/sub messages
@@ -206,8 +202,8 @@ class PressTempBMP280 {
     void startRelativeAltitude() {
         /*! Store current pressure for a reference altitude to start relative altitude measurement
 
-        Once a reference altitude is defined (see \ref setReferenceAltitude()), measurement of
-        relative altitude can be started by calling this function.
+        Once a reference altitude is defined (see \ref setReferenceAltitude()), measurement of relative
+        altitude can be started by calling this function.
         */
         if (referenceAltitudeMeters != MUP_BMP_INVALID_ALTITUDE) {
             captureRelative = true;
@@ -256,37 +252,24 @@ class PressTempBMP280 {
     bool initBmpSensorConstants() {
         // Bosch made a long, winded paragraph about calibration data,
         // but didn't manage to mention that this uses the other endianness :-/ .
-        if (!i2c_readRegisterWordLE(0x88, (uint16_t *)&dig_T1))
-            return false;
-        if (!i2c_readRegisterWordLE(0x8A, (uint16_t *)&dig_T2))
-            return false;
-        if (!i2c_readRegisterWordLE(0x8C, (uint16_t *)&dig_T3))
-            return false;
-        if (!i2c_readRegisterWordLE(0x8E, (uint16_t *)&dig_P1))
-            return false;
-        if (!i2c_readRegisterWordLE(0x90, (uint16_t *)&dig_P2))
-            return false;
-        if (!i2c_readRegisterWordLE(0x92, (uint16_t *)&dig_P3))
-            return false;
-        if (!i2c_readRegisterWordLE(0x94, (uint16_t *)&dig_P4))
-            return false;
-        if (!i2c_readRegisterWordLE(0x96, (uint16_t *)&dig_P5))
-            return false;
-        if (!i2c_readRegisterWordLE(0x98, (uint16_t *)&dig_P6))
-            return false;
-        if (!i2c_readRegisterWordLE(0x9A, (uint16_t *)&dig_P7))
-            return false;
-        if (!i2c_readRegisterWordLE(0x9C, (uint16_t *)&dig_P8))
-            return false;
-        if (!i2c_readRegisterWordLE(0x9E, (uint16_t *)&dig_P9))
-            return false;
+        if (!i2c_readRegisterWordLE(0x88, (uint16_t *)&dig_T1)) return false;
+        if (!i2c_readRegisterWordLE(0x8A, (uint16_t *)&dig_T2)) return false;
+        if (!i2c_readRegisterWordLE(0x8C, (uint16_t *)&dig_T3)) return false;
+        if (!i2c_readRegisterWordLE(0x8E, (uint16_t *)&dig_P1)) return false;
+        if (!i2c_readRegisterWordLE(0x90, (uint16_t *)&dig_P2)) return false;
+        if (!i2c_readRegisterWordLE(0x92, (uint16_t *)&dig_P3)) return false;
+        if (!i2c_readRegisterWordLE(0x94, (uint16_t *)&dig_P4)) return false;
+        if (!i2c_readRegisterWordLE(0x96, (uint16_t *)&dig_P5)) return false;
+        if (!i2c_readRegisterWordLE(0x98, (uint16_t *)&dig_P6)) return false;
+        if (!i2c_readRegisterWordLE(0x9A, (uint16_t *)&dig_P7)) return false;
+        if (!i2c_readRegisterWordLE(0x9C, (uint16_t *)&dig_P8)) return false;
+        if (!i2c_readRegisterWordLE(0x9E, (uint16_t *)&dig_P9)) return false;
         // if (!i2c_readRegisterWordLE(0xA0,(uint16_t*)&dig_reserved)) return false;
         dig_reserved = 0xffff;  // Don't try to read.
         return true;
     }
 
-    void begin(Scheduler *_pSched, BMPSampleMode _sampleMode = BMPSampleMode::STANDARD,
-               TwoWire *_pWire = &Wire) {
+    void begin(Scheduler *_pSched, BMPSampleMode _sampleMode = BMPSampleMode::STANDARD, TwoWire *_pWire = &Wire) {
         pSched = _pSched;
         pWire = _pWire;
         uint8_t data;
@@ -313,8 +296,7 @@ class PressTempBMP280 {
                 if (data == 0x58) {  // 0x58: signature of BMP280
                     if (!initBmpSensorConstants()) {
 #ifdef USE_SERIAL_DBG
-                        Serial.print(
-                            "Failed to read calibration data for sensor BMP280 at address 0x");
+                        Serial.print("Failed to read calibration data for sensor BMP280 at address 0x");
                         Serial.println(i2c_address, HEX);
 #endif
                         lastError = BMPError::I2C_CALIBRATION_READ_FAILURE;
@@ -438,8 +420,7 @@ class PressTempBMP280 {
             lastError = BMPError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)1, (uint8_t) true);
         if (read_cnt != 1) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -456,8 +437,7 @@ class PressTempBMP280 {
             lastError = BMPError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -477,8 +457,7 @@ class PressTempBMP280 {
             lastError = BMPError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -498,8 +477,7 @@ class PressTempBMP280 {
             lastError = BMPError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)3, (uint8_t) true);
         if (read_cnt != 3) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -585,11 +563,8 @@ class PressTempBMP280 {
 
     void publishCalibrationData() {
         char msg[256];
-        sprintf(msg,
-                "dig_T1=%u, dig_T2=%d, dig_T3=%d, dig_P1=%u, dig_P2=%d, dig_P3=%d, dig_P4=%d, "
-                "dig_P5=%d, dig_P6=%d, dig_P7=%d, dig_P8=%d, dig_P9=%d, dig_reserved=%u",
-                dig_T1, dig_T2, dig_T3, dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7,
-                dig_P8, dig_P9, dig_reserved);
+        sprintf(msg, "dig_T1=%u, dig_T2=%d, dig_T3=%d, dig_P1=%u, dig_P2=%d, dig_P3=%d, dig_P4=%d, dig_P5=%d, dig_P6=%d, dig_P7=%d, dig_P8=%d, dig_P9=%d, dig_reserved=%u",
+                dig_T1, dig_T2, dig_T3, dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9, dig_reserved);
         pSched->publish("sensor/calibrationdata", msg);
     }
 
@@ -638,8 +613,7 @@ class PressTempBMP280 {
                 stateMachineClock = micros();
                 break;
             }
-            reg_data = (oversampleModeTemperature << 5) + (oversampleModePressure << 2) +
-                       0x1;  // 0x3: normal mode, 0x1 one-shot
+            reg_data = (oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x1;  // 0x3: normal mode, 0x1 one-shot
             if (!i2c_writeRegisterByte(measure_mode_register, reg_data)) {
                 ++errs;
                 sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
@@ -659,12 +633,10 @@ class PressTempBMP280 {
                 break;
             }
             status = status & 0x09;
-            if (timeDiff(stateMachineClock, micros()) > 1 &&
-                status == 0) {  // 1ms for meas, no status set.
+            if (timeDiff(stateMachineClock, micros()) > 1 && status == 0) {  // 1ms for meas, no status set.
                 rt = 0;
                 rp = 0;
-                if (i2c_readRegisterTripple(temperature_registers, &rt) &&
-                    i2c_readRegisterTripple(pressure_registers, &rp)) {
+                if (i2c_readRegisterTripple(temperature_registers, &rt) && i2c_readRegisterTripple(pressure_registers, &rp)) {
                     rawTemperature = rt >> 4;
                     rawPressure = rp >> 4;
                     sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
@@ -735,8 +707,7 @@ class PressTempBMP280 {
     void loop() {
         double tempVal, pressVal;
         if (bActive) {
-            if (!sensorStateMachine())
-                return;  // no new data
+            if (!sensorStateMachine()) return;  // no new data
             calibrateRawData();
             tempVal = (double)calibratedTemperature;
             pressVal = (double)calibratedPressure;
@@ -755,8 +726,7 @@ class PressTempBMP280 {
                     }
                 }
                 publishPressure();
-                if (relativeAltitudeStarted)
-                    publishRelativeAltitude();
+                if (relativeAltitudeStarted) publishRelativeAltitude();
             }
         }
     }

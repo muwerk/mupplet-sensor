@@ -103,42 +103,39 @@ class IlluminanceTSL2561 {
     String name;
 
   public:
-    enum TSLError {
-        UNDEFINED,
-        OK,
-        I2C_HW_ERROR,
-        I2C_WRONG_HARDWARE_AT_ADDRESS,
-        I2C_DEVICE_NOT_AT_ADDRESS,
-        I2C_REGISTER_WRITE_ERROR,
-        I2C_VALUE_WRITE_ERROR,
-        I2C_WRITE_DATA_TOO_LONG,
-        I2C_WRITE_NACK_ON_ADDRESS,
-        I2C_WRITE_NACK_ON_DATA,
-        I2C_WRITE_ERR_OTHER,
-        I2C_WRITE_TIMEOUT,
-        I2C_WRITE_INVALID_CODE,
-        I2C_READ_REQUEST_FAILED
-    };
-    enum TSLSensorState { UNAVAILABLE, IDLE, MEASUREMENT_WAIT, WAIT_NEXT_MEASUREMENT };
+    enum TSLError { UNDEFINED,
+                    OK,
+                    I2C_HW_ERROR,
+                    I2C_WRONG_HARDWARE_AT_ADDRESS,
+                    I2C_DEVICE_NOT_AT_ADDRESS,
+                    I2C_REGISTER_WRITE_ERROR,
+                    I2C_VALUE_WRITE_ERROR,
+                    I2C_WRITE_DATA_TOO_LONG,
+                    I2C_WRITE_NACK_ON_ADDRESS,
+                    I2C_WRITE_NACK_ON_DATA,
+                    I2C_WRITE_ERR_OTHER,
+                    I2C_WRITE_TIMEOUT,
+                    I2C_WRITE_INVALID_CODE,
+                    I2C_READ_REQUEST_FAILED };
+    enum TSLSensorState { UNAVAILABLE,
+                          IDLE,
+                          MEASUREMENT_WAIT,
+                          WAIT_NEXT_MEASUREMENT };
 
-    /*! Hardware accuracy modes of TSL2561, while the sensor can have different pressure- and
-     * temperature oversampling, we use same for both temp and press. */
+    /*! Hardware accuracy modes of TSL2561, while the sensor can have different pressure- and temperature oversampling, we use same for both temp and press. */
     enum TSLSampleMode {
-        ULTRA_LOW_POWER = 1,  ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature
-                              ///< oversampling: x1
-        LOW_POWER = 2,        ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature
-                              ///< oversampling: x1
-        STANDARD = 3,         ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature
-                              ///< oversampling: x1
-        HIGH_RESOLUTION = 4,  ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature
-                              ///< oversampling: x1
-        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec
-                                   ///< temperature oversampling: x2
+        ULTRA_LOW_POWER = 1,       ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature oversampling: x1
+        LOW_POWER = 2,             ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature oversampling: x1
+        STANDARD = 3,              ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature oversampling: x1
+        HIGH_RESOLUTION = 4,       ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1
+        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
     };
     TSLError lastError;
     TSLSensorState sensorState;
     unsigned long pollRateUs = 2000000;
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
     String firmwareVersion;
     FilterMode filterMode;
     uint8_t i2c_address;
@@ -151,14 +148,12 @@ class IlluminanceTSL2561 {
     ustd::sensorprocessor IRCh1Sensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    IlluminanceTSL2561(String name, FilterMode filterMode = FilterMode::FAST,
-                       uint8_t i2c_address = 0x39)
+    IlluminanceTSL2561(String name, FilterMode filterMode = FilterMode::FAST, uint8_t i2c_address = 0x39)
         : name(name), filterMode(filterMode), i2c_address(i2c_address) {
         /*! Instantiate an TSL sensor mupplet
         @param name Name used for pub/sub messages
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
-        @param i2c_address Should be 0x29, 0x39, 0x49, for TSL2561, depending address selector
-        (three state) config.
+        @param i2c_address Should be 0x29, 0x39, 0x49, for TSL2561, depending address selector (three state) config.
         */
         lastError = TSLError::UNDEFINED;
         sensorState = TSLSensorState::UNAVAILABLE;
@@ -192,11 +187,9 @@ class IlluminanceTSL2561 {
 
     void setUnitIlluminanceSensitivity(double sensitivity) {
         /*! Set normalized Illuminance sensitivity
-        @param sensitivity illuminance sensitivity [0.001(no sensitiviy)..0.2(default)..(higher
-        sensitiviy)]
+        @param sensitivity illuminance sensitivity [0.001(no sensitiviy)..0.2(default)..(higher sensitiviy)]
         */
-        if (sensitivity <= 0.001)
-            sensitivity = 0.2;
+        if (sensitivity <= 0.001) sensitivity = 0.2;
         unitIlluminanceSensitivity = sensitivity;
     }
 
@@ -217,8 +210,7 @@ class IlluminanceTSL2561 {
         if (lastError == TSLError::OK) {
             uint8_t id, rev;
             if (TSLSensorGetRevID(&id, &rev)) {
-                if (id == 5 ||
-                    id == 1) {  // TSL2561 id should be either 5 (reality) or 1 (datasheet)
+                if (id == 5 || id == 1) {  // TSL2561 id should be either 5 (reality) or 1 (datasheet)
                     if (TSLSensorPower(true)) {
                         sensorState = TSLSensorState::IDLE;
                         bActive = true;
@@ -233,8 +225,7 @@ class IlluminanceTSL2561 {
                     }
                 } else {
 #ifdef USE_SERIAL_DBG
-                    Serial.println("TSL2561: Bad sensor ID: " + String(id) +
-                                   ", expected: 1, revision:  " + String(rev));
+                    Serial.println("TSL2561: Bad sensor ID: " + String(id) + ", expected: 1, revision:  " + String(rev));
 #endif
                     lastError = TSLError::I2C_WRONG_HARDWARE_AT_ADDRESS;
                 }
@@ -366,8 +357,7 @@ class IlluminanceTSL2561 {
             lastError = TSLError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)1, (uint8_t) true);
         if (read_cnt != 1) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -377,29 +367,23 @@ class IlluminanceTSL2561 {
         return true;
     }
 
-    bool i2c_readRegisterWord(uint8_t reg, uint16_t *pData, bool stop = true,
-                              bool allow_irqs = true) {
+    bool i2c_readRegisterWord(uint8_t reg, uint16_t *pData, bool stop = true, bool allow_irqs = true) {
         *pData = (uint16_t)-1;
-        if (!allow_irqs)
-            noInterrupts();
+        if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg, 1) != 1) {
-            if (!allow_irqs)
-                interrupts();
+            if (!allow_irqs) interrupts();
             lastError = TSLError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(stop) == false)
-            return false;
+        if (i2c_endTransmission(stop) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
-            if (!allow_irqs)
-                interrupts();
+            if (!allow_irqs) interrupts();
             lastError = I2C_READ_REQUEST_FAILED;
             return false;
         }
-        if (!allow_irqs)
-            interrupts();
+        if (!allow_irqs) interrupts();
         uint8_t hb = pWire->read();
         uint8_t lb = pWire->read();
         uint16_t data = (hb << 8) | lb;
@@ -409,26 +393,21 @@ class IlluminanceTSL2561 {
 
     bool i2c_readRegisterWordLE(uint8_t reg, uint16_t *pData, bool allow_irqs = true) {
         *pData = (uint16_t)-1;
-        if (!allow_irqs)
-            noInterrupts();
+        if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg, 1) != 1) {
-            if (!allow_irqs)
-                interrupts();
+            if (!allow_irqs) interrupts();
             lastError = TSLError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             lastError = I2C_READ_REQUEST_FAILED;
-            if (!allow_irqs)
-                interrupts();
+            if (!allow_irqs) interrupts();
             return false;
         }
-        if (!allow_irqs)
-            interrupts();
+        if (!allow_irqs) interrupts();
         uint8_t lb = pWire->read();
         uint8_t hb = pWire->read();
         uint16_t data = (hb << 8) | lb;
@@ -443,8 +422,7 @@ class IlluminanceTSL2561 {
             lastError = TSLError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)3, (uint8_t) true);
         if (read_cnt != 3) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -521,11 +499,9 @@ class IlluminanceTSL2561 {
 
     bool TSLSensorPower(bool powerOn) {
         if (powerOn) {
-            if (!i2c_writeRegisterByte(0x80, 0x03, true))
-                return false;
+            if (!i2c_writeRegisterByte(0x80, 0x03, true)) return false;
         } else {
-            if (!i2c_writeRegisterByte(0x80, 0x00, true))
-                return false;
+            if (!i2c_writeRegisterByte(0x80, 0x00, true)) return false;
         }
         return true;
     }
@@ -539,8 +515,7 @@ class IlluminanceTSL2561 {
         *pId = 0;
         *pRev = 0;
         uint8_t idbyte = 0;
-        if (!i2c_readRegisterByte(0x8a, &idbyte))
-            return false;
+        if (!i2c_readRegisterByte(0x8a, &idbyte)) return false;
         *pId = idbyte >> 4;
         *pRev = idbyte & 0x0f;
         return true;
@@ -552,8 +527,7 @@ class IlluminanceTSL2561 {
          * @param ch1 CH1 value
          * @return Lux value
          */
-        if (ch0 == 0)
-            return 0;
+        if (ch0 == 0) return 0;
         double lux;
         double ratio = (double)ch1 / (double)ch0;
         if (ratio <= 0.5) {
@@ -592,16 +566,14 @@ class IlluminanceTSL2561 {
         }
     }
 
-    bool readTSLSensor(double *pIlluminanceCh0, double *pIlluminanceCh1, double *pLux,
-                       double *pUnitIlluminance) {
+    bool readTSLSensor(double *pIlluminanceCh0, double *pIlluminanceCh1,
+                       double *pLux, double *pUnitIlluminance) {
         *pIlluminanceCh0 = 0.0;
         *pIlluminanceCh1 = 0.0;
         *pLux = 0.0;
         *pUnitIlluminance = 0.0;
-        if (!readTSLSensorMeasurement(0xac, pIlluminanceCh0))
-            return false;
-        if (!readTSLSensorMeasurement(0xae, pIlluminanceCh1))
-            return false;
+        if (!readTSLSensorMeasurement(0xac, pIlluminanceCh0)) return false;
+        if (!readTSLSensorMeasurement(0xae, pIlluminanceCh1)) return false;
         *pLux = calculateLux(*pIlluminanceCh0, *pIlluminanceCh1);
         double ui;
         if (*pLux > 1.0) {
@@ -609,10 +581,8 @@ class IlluminanceTSL2561 {
         } else {
             ui = 0.0;
         }
-        if (ui < 0.0)
-            ui = 0.0;
-        if (ui > 1.0)
-            ui = 1.0;
+        if (ui < 0.0) ui = 0.0;
+        if (ui > 1.0) ui = 1.0;
         *pUnitIlluminance = ui;
         return true;
     }

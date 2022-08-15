@@ -13,97 +13,97 @@ typedef TinyWire TwoWire;
 namespace ustd {
 
 // clang-format off
-/*! \brief mupplet-sensor temperature and pressure with Bosch BMP180
+    /*! \brief mupplet-sensor temperature and pressure with Bosch BMP180
 
-The mup_presstemp_bmp180 mupplet measures temperature and pressure using a or BMP180 sensor. It should
-also work with the outdated BMP085.
+    The mup_presstemp_bmp180 mupplet measures temperature and pressure using a or BMP180 sensor. It should
+    also work with the outdated BMP085.
 
-This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.
+    This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.
 
-#### Messages sent by presstemp_bmp180 mupplet:
+    #### Messages sent by presstemp_bmp180 mupplet:
 
-messages are prefixed by `omu/<hostname>`:
+    messages are prefixed by `omu/<hostname>`:
 
-| topic | message body | comment |
-| ----- | ------------ | ------- |
-| `<mupplet-name>/sensor/temperature` | temperature in degree celsius | Float value encoded as string, sent periodically as available |
-| `<mupplet-name>/sensor/pressure` | pressure in hPA for current altitude | Float value encoded as string, sent periodically as available |
-| `<mupplet-name>/sensor/pressureNN` | pressure in hPA adjusted for sea level (requires setReferenceAltitude() to be called) | Float value encoded as string, sent periodically as available |
-| `<mupplet-name>/sensor/calibrationdata` | a string with values of all internal calibration variables | descriptive string |
-| `<mupplet-name>/sensor/referencealtitude` | altitude above sea level as set with setReferenceAltitude() | Float value encoded as string |
-| `<mupplet-name>/sensor/relativealtitude` | current altitude in meters | Current altitude in comparison to the set reference in meters, requires referencealtitude/set and relativealtitude/set msgs being sent. |
-| `<mupplet-name>/sensor/deltaaltitude` | current altitude in meters | Current  altitude delta in meters, requirements as with relativealtitude |
-| `<mupplet-name>/sensor/oversampling` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Internal sensor oversampling mode (sensor hardware) |
-| `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for sensor values, external, additional integration |
+    | topic | message body | comment |
+    | ----- | ------------ | ------- |
+    | `<mupplet-name>/sensor/temperature` | temperature in degree celsius | Float value encoded as string, sent periodically as available |
+    | `<mupplet-name>/sensor/pressure` | pressure in hPA for current altitude | Float value encoded as string, sent periodically as available |
+    | `<mupplet-name>/sensor/pressureNN` | pressure in hPA adjusted for sea level (requires setReferenceAltitude() to be called) | Float value encoded as string, sent periodically as available |
+    | `<mupplet-name>/sensor/calibrationdata` | a string with values of all internal calibration variables | descriptive string |
+    | `<mupplet-name>/sensor/referencealtitude` | altitude above sea level as set with setReferenceAltitude() | Float value encoded as string |
+    | `<mupplet-name>/sensor/relativealtitude` | current altitude in meters | Current altitude in comparison to the set reference in meters, requires referencealtitude/set and relativealtitude/set msgs being sent. |
+    | `<mupplet-name>/sensor/deltaaltitude` | current altitude in meters | Current  altitude delta in meters, requirements as with relativealtitude |
+    | `<mupplet-name>/sensor/oversampling` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Internal sensor oversampling mode (sensor hardware) |
+    | `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for sensor values, external, additional integration |
 
-#### Messages received by presstemp_bmp180 mupplet:
+    #### Messages received by presstemp_bmp180 mupplet:
 
-Need to be prefixed by `<hostname>/`:
+    Need to be prefixed by `<hostname>/`:
 
-| topic | message body | comment |
-| ----- | ------------ | ------- |
-| `<mupplet-name>/sensor/temperature/get` | - | Causes current value to be sent. |
-| `<mupplet-name>/sensor/pressure/get` | - | Causes current value to be sent. |
-| `<mupplet-name>/sensor/pressureNN/get` | - | Causes current value to be sent. |
-| `<mupplet-name>/sensor/referencealtitude/get` | - | Causes current value to be sent. |
-| `<mupplet-name>/sensor/referencealtitude/set` | float encoded as string of current altitude in meters | Once the reference altitude is set, pressureNN values can be calculated. |
-| `<mupplet-name>/sensor/relativealtitude/set` | - | Save current pressureNN values as reference, start generating relative altitude-change messages, requires reference altitude to be set |
-| `<mupplet-name>/sensor/relativealtitude/get` | - | Get current altitude in comparison to the set reference and an altitude delta in meters |
-| `<mupplet-name>/sensor/calibrationdata/get` | - | Causes current values to be sent. |
-| `<mupplet-name>/sensor/oversampling/get` | - | Returns samplemode: `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` |
-| `<mupplet-name>/sensor/oversampling/set` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Set internal sensor oversampling mode |
-| `<mupplet-name>/sensor/mode/get` | - | Returns filterMode: `FAST`, `MEDIUM`, or `LONGTERM` |
-| `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set external additional filter values |
+    | topic | message body | comment |
+    | ----- | ------------ | ------- |
+    | `<mupplet-name>/sensor/temperature/get` | - | Causes current value to be sent. |
+    | `<mupplet-name>/sensor/pressure/get` | - | Causes current value to be sent. |
+    | `<mupplet-name>/sensor/pressureNN/get` | - | Causes current value to be sent. |
+    | `<mupplet-name>/sensor/referencealtitude/get` | - | Causes current value to be sent. |
+    | `<mupplet-name>/sensor/referencealtitude/set` | float encoded as string of current altitude in meters | Once the reference altitude is set, pressureNN values can be calculated. |
+    | `<mupplet-name>/sensor/relativealtitude/set` | - | Save current pressureNN values as reference, start generating relative altitude-change messages, requires reference altitude to be set |
+    | `<mupplet-name>/sensor/relativealtitude/get` | - | Get current altitude in comparison to the set reference and an altitude delta in meters |
+    | `<mupplet-name>/sensor/calibrationdata/get` | - | Causes current values to be sent. |
+    | `<mupplet-name>/sensor/oversampling/get` | - | Returns samplemode: `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` |
+    | `<mupplet-name>/sensor/oversampling/set` | `ULTRA_LOW_POWER`, `STANDARD`, `HIGH_RESOLUTION`, `ULTRA_HIGH_RESOLUTION` | Set internal sensor oversampling mode |
+    | `<mupplet-name>/sensor/mode/get` | - | Returns filterMode: `FAST`, `MEDIUM`, or `LONGTERM` |
+    | `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set external additional filter values |
 
-#### Sample code
+    #### Sample code
 
-For a complete examples see the `muwerk/examples` project.
+    For a complete examples see the `muwerk/examples` project.
 
-```cpp
-#include "ustd_platform.h"
-#include "scheduler.h"
-#include "net.h"
-#include "mqtt.h"
+    ```cpp
+    #include "ustd_platform.h"
+    #include "scheduler.h"
+    #include "net.h"
+    #include "mqtt.h"
 
-#include "mup_presstemp_bmp180.h"
+    #include "mup_presstemp_bmp180.h"
 
-void appLoop();
+    void appLoop();
 
-ustd::Scheduler sched(10, 16, 32);
-ustd::Net net(LED_BUILTIN);
-ustd::Mqtt mqtt;
+    ustd::Scheduler sched(10, 16, 32);
+    ustd::Net net(LED_BUILTIN);
+    ustd::Mqtt mqtt;
 
-ustd::PressTempBMP180 bmp("myBMP180");
+    ustd::PressTempBMP180 bmp("myBMP180");
 
-void sensorUpdates(String topic, String msg, String originator) {
-    // data is in topic, msg
-}
+    void sensorUpdates(String topic, String msg, String originator) {
+        // data is in topic, msg
+    }
 
-void setup() {
-#ifdef USE_SERIAL_DBG
-    Serial.begin(115200);
-#endif  // USE_SERIAL_DBG
-    net.begin(&sched);
-    mqtt.begin(&sched);
-    ota.begin(&sched);
-    int tID = sched.add(appLoop, "main", 1000000);
+    void setup() {
+    #ifdef USE_SERIAL_DBG
+        Serial.begin(115200);
+    #endif  // USE_SERIAL_DBG
+        net.begin(&sched);
+        mqtt.begin(&sched);
+        ota.begin(&sched);
+        int tID = sched.add(appLoop, "main", 1000000);
 
-    // sensors start measuring pressure and temperature
-    bmp.setReferenceAltitude(518.0); // 518m above NN, now we also receive PressureNN values for sea level.
-    bmp.begin(&sched, ustd::PressTempBMP180::BMPSampleMode::ULTRA_HIGH_RESOLUTION);
+        // sensors start measuring pressure and temperature
+        bmp.setReferenceAltitude(518.0); // 518m above NN, now we also receive PressureNN values for sea level.
+        bmp.begin(&sched, ustd::PressTempBMP180::BMPSampleMode::ULTRA_HIGH_RESOLUTION);
 
-    sched.subscribe(tID, "myBMP180/sensor/temperature", sensorUpdates);
-}
+        sched.subscribe(tID, "myBMP180/sensor/temperature", sensorUpdates);
+    }
 
-void appLoop() {
-}
+    void appLoop() {
+    }
 
-// Never add code to this loop, use appLoop() instead.
-void loop() {
-    sched.loop();
-}
-```
-*/
+    // Never add code to this loop, use appLoop() instead.
+    void loop() {
+        sched.loop();
+    }
+    ```
+    */
 
 // clang-format on
 class PressTempBMP180 {
@@ -128,41 +128,33 @@ class PressTempBMP180 {
     uint16_t CD_AC4, CD_AC5, CD_AC6;
 
   public:
-    enum BMPError {
-        UNDEFINED,
-        OK,
-        I2C_HW_ERROR,
-        I2C_WRONG_HARDWARE_AT_ADDRESS,
-        I2C_DEVICE_NOT_AT_ADDRESS,
-        I2C_REGISTER_WRITE_ERROR,
-        I2C_VALUE_WRITE_ERROR,
-        I2C_WRITE_DATA_TOO_LONG,
-        I2C_WRITE_NACK_ON_ADDRESS,
-        I2C_WRITE_NACK_ON_DATA,
-        I2C_WRITE_ERR_OTHER,
-        I2C_WRITE_TIMEOUT,
-        I2C_WRITE_INVALID_CODE,
-        I2C_READ_REQUEST_FAILED,
-        I2C_CALIBRATION_READ_FAILURE
-    };
-    enum BMPSensorState {
-        UNAVAILABLE,
-        IDLE,
-        TEMPERATURE_WAIT,
-        PRESSURE_WAIT,
-        WAIT_NEXT_MEASUREMENT
-    };
+    enum BMPError { UNDEFINED,
+                    OK,
+                    I2C_HW_ERROR,
+                    I2C_WRONG_HARDWARE_AT_ADDRESS,
+                    I2C_DEVICE_NOT_AT_ADDRESS,
+                    I2C_REGISTER_WRITE_ERROR,
+                    I2C_VALUE_WRITE_ERROR,
+                    I2C_WRITE_DATA_TOO_LONG,
+                    I2C_WRITE_NACK_ON_ADDRESS,
+                    I2C_WRITE_NACK_ON_DATA,
+                    I2C_WRITE_ERR_OTHER,
+                    I2C_WRITE_TIMEOUT,
+                    I2C_WRITE_INVALID_CODE,
+                    I2C_READ_REQUEST_FAILED,
+                    I2C_CALIBRATION_READ_FAILURE };
+    enum BMPSensorState { UNAVAILABLE,
+                          IDLE,
+                          TEMPERATURE_WAIT,
+                          PRESSURE_WAIT,
+                          WAIT_NEXT_MEASUREMENT };
 
     /*! Hardware accuracy modes of BMP180 */
     enum BMPSampleMode {
-        ULTRA_LOW_POWER = 0,  ///< 1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec,
-                              ///< 0.06 RMS noise typ. [hPA]
-        STANDARD = 1,  ///< 2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS
-                       ///< noise typ. [hPA]
-        HIGH_RESOLUTION = 2,  ///< 4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec,
-                              ///< 0.04 RMS noise typ. [hPA]
-        ULTRA_HIGH_RESOLUTION = 3  ///< 8 samples, 25.5ms conversion time, 12uA current at 1
-                                   ///< sample/sec, 0.03 RMS noise typ. [hPA]
+        ULTRA_LOW_POWER = 0,       ///< 1 samples, 4.5ms conversion time, 3uA current at 1 sample/sec, 0.06 RMS noise typ. [hPA]
+        STANDARD = 1,              ///< 2 samples, 7.5ms conversion time, 5uA current at 1 sample/sec, 0.05 RMS noise typ. [hPA]
+        HIGH_RESOLUTION = 2,       ///< 4 samples, 13.5ms conversion time, 7uA current at 1 sample/sec, 0.04 RMS noise typ. [hPA]
+        ULTRA_HIGH_RESOLUTION = 3  ///< 8 samples, 25.5ms conversion time, 12uA current at 1 sample/sec, 0.03 RMS noise typ. [hPA]
     };
     BMPError lastError;
     BMPSensorState sensorState;
@@ -170,7 +162,9 @@ class PressTempBMP180 {
     unsigned long oks = 0;
     unsigned long pollRateUs = 2000000;
     uint16_t oversampleMode = 2;  // 0..3, see BMPSampleMode.
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
 #define MUP_BMP_INVALID_ALTITUDE -1000000.0
     double referenceAltitudeMeters;
     FilterMode filterMode;
@@ -179,8 +173,7 @@ class PressTempBMP180 {
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    PressTempBMP180(String name, FilterMode filterMode = FilterMode::MEDIUM,
-                    uint8_t i2c_address = 0x77)
+    PressTempBMP180(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address = 0x77)
         : name(name), filterMode(filterMode), i2c_address(i2c_address) {
         /*! Instantiate an BMP sensor mupplet
         @param name Name used for pub/sub messages
@@ -208,8 +201,8 @@ class PressTempBMP180 {
     void startRelativeAltitude() {
         /*! Store current pressure for a reference altitude to start relative altitude measurement
 
-        Once a reference altitude is defined (see \ref setReferenceAltitude()), measurement of
-        relative altitude can be started by calling this function.
+        Once a reference altitude is defined (see \ref setReferenceAltitude()), measurement of relative
+        altitude can be started by calling this function.
         */
         if (referenceAltitudeMeters != MUP_BMP_INVALID_ALTITUDE) {
             captureRelative = true;
@@ -250,33 +243,21 @@ class PressTempBMP180 {
     }
 
     bool initBmpSensorConstants() {
-        if (!i2c_readRegisterWord(0xaa, (uint16_t *)&CD_AC1))
-            return false;
-        if (!i2c_readRegisterWord(0xac, (uint16_t *)&CD_AC2))
-            return false;
-        if (!i2c_readRegisterWord(0xae, (uint16_t *)&CD_AC3))
-            return false;
-        if (!i2c_readRegisterWord(0xb0, (uint16_t *)&CD_AC4))
-            return false;
-        if (!i2c_readRegisterWord(0xb2, (uint16_t *)&CD_AC5))
-            return false;
-        if (!i2c_readRegisterWord(0xb4, (uint16_t *)&CD_AC6))
-            return false;
-        if (!i2c_readRegisterWord(0xb6, (uint16_t *)&CD_B1))
-            return false;
-        if (!i2c_readRegisterWord(0xb8, (uint16_t *)&CD_B2))
-            return false;
-        if (!i2c_readRegisterWord(0xba, (uint16_t *)&CD_MB))
-            return false;
-        if (!i2c_readRegisterWord(0xbc, (uint16_t *)&CD_MC))
-            return false;
-        if (!i2c_readRegisterWord(0xbe, (uint16_t *)&CD_MD))
-            return false;
+        if (!i2c_readRegisterWord(0xaa, (uint16_t *)&CD_AC1)) return false;
+        if (!i2c_readRegisterWord(0xac, (uint16_t *)&CD_AC2)) return false;
+        if (!i2c_readRegisterWord(0xae, (uint16_t *)&CD_AC3)) return false;
+        if (!i2c_readRegisterWord(0xb0, (uint16_t *)&CD_AC4)) return false;
+        if (!i2c_readRegisterWord(0xb2, (uint16_t *)&CD_AC5)) return false;
+        if (!i2c_readRegisterWord(0xb4, (uint16_t *)&CD_AC6)) return false;
+        if (!i2c_readRegisterWord(0xb6, (uint16_t *)&CD_B1)) return false;
+        if (!i2c_readRegisterWord(0xb8, (uint16_t *)&CD_B2)) return false;
+        if (!i2c_readRegisterWord(0xba, (uint16_t *)&CD_MB)) return false;
+        if (!i2c_readRegisterWord(0xbc, (uint16_t *)&CD_MC)) return false;
+        if (!i2c_readRegisterWord(0xbe, (uint16_t *)&CD_MD)) return false;
         return true;
     }
 
-    void begin(Scheduler *_pSched, BMPSampleMode _sampleMode = BMPSampleMode::STANDARD,
-               TwoWire *_pWire = &Wire) {
+    void begin(Scheduler *_pSched, BMPSampleMode _sampleMode = BMPSampleMode::STANDARD, TwoWire *_pWire = &Wire) {
         pSched = _pSched;
         setSampleMode(_sampleMode);
         pWire = _pWire;
@@ -404,8 +385,7 @@ class PressTempBMP180 {
             lastError = BMPError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)1, (uint8_t) true);
         if (read_cnt != 1) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -422,8 +402,7 @@ class PressTempBMP180 {
             lastError = BMPError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -443,8 +422,7 @@ class PressTempBMP180 {
             lastError = BMPError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)3, (uint8_t) true);
         if (read_cnt != 3) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -527,9 +505,7 @@ class PressTempBMP180 {
 
     void publishCalibrationData() {
         char msg[256];
-        sprintf(msg,
-                "AC1=%d, AC2=%d, AC3=%d, AC4=%u, AC5=%u, AC6=%u, B1=%d, B2=%d, MB=%d, MC=%d, MD=%d",
-                CD_AC1, CD_AC2, CD_AC3, CD_AC4, CD_AC5, CD_AC6, CD_B1, CD_B2, CD_MB, CD_MC, CD_MD);
+        sprintf(msg, "AC1=%d, AC2=%d, AC3=%d, AC4=%u, AC5=%u, AC6=%u, B1=%d, B2=%d, MB=%d, MC=%d, MD=%d", CD_AC1, CD_AC2, CD_AC3, CD_AC4, CD_AC5, CD_AC6, CD_B1, CD_B2, CD_MB, CD_MC, CD_MD);
         pSched->publish("sensor/calibrationdata", msg);
     }
 
@@ -559,8 +535,7 @@ class PressTempBMP180 {
         bool newData = false;
         uint16_t rt;
         uint32_t rp;
-        unsigned long convTimeOversampling[4] = {
-            4500, 7500, 13500, 25500};  // sample time dependent on oversample-mode for pressure.
+        unsigned long convTimeOversampling[4] = {4500, 7500, 13500, 25500};  // sample time dependent on oversample-mode for pressure.
         switch (sensorState) {
         case BMPSensorState::UNAVAILABLE:
             break;
@@ -597,8 +572,7 @@ class PressTempBMP180 {
             }
             break;
         case BMPSensorState::PRESSURE_WAIT:
-            if (timeDiff(stateMachineClock, micros()) >
-                convTimeOversampling[oversampleMode]) {  // Oversamp. dep. for press meas.
+            if (timeDiff(stateMachineClock, micros()) > convTimeOversampling[oversampleMode]) {  // Oversamp. dep. for press meas.
                 rp = 0;
                 if (i2c_readRegisterTripple(0xf6, &rp)) {
                     rawPressure = rp >> (8 - oversampleMode);
@@ -636,8 +610,7 @@ class PressTempBMP180 {
         int32_t b3 = ((((int32_t)CD_AC1 * 4L + x3) << oversampleMode) + 2L) / 4;
 
         // char msg[128];
-        // sprintf(msg,"x1=%d,x2=%d,
-        // x3=%d,b3=%d,rt=%d,rp=%d",x1,x2,x3,b3,rawTemperature,rawPressure);
+        // sprintf(msg,"x1=%d,x2=%d, x3=%d,b3=%d,rt=%d,rp=%d",x1,x2,x3,b3,rawTemperature,rawPressure);
         // pSched->publish("myBMP180/sensor/debug1",msg);
 
         x1 = ((int32_t)CD_AC3 * b6) >> 13;
@@ -671,8 +644,7 @@ class PressTempBMP180 {
     void loop() {
         double tempVal, pressVal;
         if (bActive) {
-            if (!sensorStateMachine())
-                return;  // no new data
+            if (!sensorStateMachine()) return;  // no new data
             calibrateRawData();
             tempVal = (double)calibratedTemperature;
             pressVal = (double)calibratedPressure;
@@ -691,8 +663,7 @@ class PressTempBMP180 {
                     }
                 }
                 publishPressure();
-                if (relativeAltitudeStarted)
-                    publishRelativeAltitude();
+                if (relativeAltitudeStarted) publishRelativeAltitude();
             }
         }
     }

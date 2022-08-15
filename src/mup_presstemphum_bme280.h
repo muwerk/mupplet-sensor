@@ -127,45 +127,39 @@ class PressTempHumBME280 {
     bool captureRelative = false;
 
     // BME Sensor calibration data
-    int16_t dig_T2, dig_T3, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9, dig_H2,
-        dig_H4, dig_H5;
+    int16_t dig_T2, dig_T3, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9, dig_H2, dig_H4, dig_H5;
     uint16_t dig_T1, dig_P1;
     unsigned char dig_H1, dig_H3;
     char dig_H6;
 
   public:
-    enum BMEError {
-        UNDEFINED,
-        OK,
-        I2C_HW_ERROR,
-        I2C_WRONG_HARDWARE_AT_ADDRESS,
-        I2C_DEVICE_NOT_AT_ADDRESS,
-        I2C_REGISTER_WRITE_ERROR,
-        I2C_VALUE_WRITE_ERROR,
-        I2C_WRITE_DATA_TOO_LONG,
-        I2C_WRITE_NACK_ON_ADDRESS,
-        I2C_WRITE_NACK_ON_DATA,
-        I2C_WRITE_ERR_OTHER,
-        I2C_WRITE_TIMEOUT,
-        I2C_WRITE_INVALID_CODE,
-        I2C_READ_REQUEST_FAILED,
-        I2C_CALIBRATION_READ_FAILURE
-    };
-    enum BMESensorState { UNAVAILABLE, IDLE, MEASUREMENT_WAIT, WAIT_NEXT_MEASUREMENT };
+    enum BMEError { UNDEFINED,
+                    OK,
+                    I2C_HW_ERROR,
+                    I2C_WRONG_HARDWARE_AT_ADDRESS,
+                    I2C_DEVICE_NOT_AT_ADDRESS,
+                    I2C_REGISTER_WRITE_ERROR,
+                    I2C_VALUE_WRITE_ERROR,
+                    I2C_WRITE_DATA_TOO_LONG,
+                    I2C_WRITE_NACK_ON_ADDRESS,
+                    I2C_WRITE_NACK_ON_DATA,
+                    I2C_WRITE_ERR_OTHER,
+                    I2C_WRITE_TIMEOUT,
+                    I2C_WRITE_INVALID_CODE,
+                    I2C_READ_REQUEST_FAILED,
+                    I2C_CALIBRATION_READ_FAILURE };
+    enum BMESensorState { UNAVAILABLE,
+                          IDLE,
+                          MEASUREMENT_WAIT,
+                          WAIT_NEXT_MEASUREMENT };
 
-    /*! Hardware accuracy modes of BME280, while the sensor can have different pressure- and
-     * temperature oversampling, we use same for both temp and press. */
+    /*! Hardware accuracy modes of BME280, while the sensor can have different pressure- and temperature oversampling, we use same for both temp and press. */
     enum BMESampleMode {
-        ULTRA_LOW_POWER = 1,  ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature
-                              ///< oversampling: x1
-        LOW_POWER = 2,        ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature
-                              ///< oversampling: x1
-        STANDARD = 3,         ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature
-                              ///< oversampling: x1
-        HIGH_RESOLUTION = 4,  ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature
-                              ///< oversampling: x1
-        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec
-                                   ///< temperature oversampling: x2
+        ULTRA_LOW_POWER = 1,       ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature oversampling: x1
+        LOW_POWER = 2,             ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature oversampling: x1
+        STANDARD = 3,              ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature oversampling: x1
+        HIGH_RESOLUTION = 4,       ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1
+        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
     };
     BMEError lastError;
     BMESensorState sensorState;
@@ -176,7 +170,9 @@ class PressTempHumBME280 {
     uint16_t oversampleModePressure = 3;
     uint16_t oversampleModeTemperature = 1;
     uint16_t oversampleModeHumidity = 1;
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
 #define MUP_BME_INVALID_ALTITUDE -1000000.0
     double referenceAltitudeMeters;
     FilterMode filterMode;
@@ -186,8 +182,7 @@ class PressTempHumBME280 {
     ustd::sensorprocessor humiditySensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    PressTempHumBME280(String name, FilterMode filterMode = FilterMode::MEDIUM,
-                       uint8_t i2c_address = 0x76)
+    PressTempHumBME280(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address = 0x76)
         : name(name), filterMode(filterMode), i2c_address(i2c_address) {
         /*! Instantiate an BME sensor mupplet
         @param name Name used for pub/sub messages
@@ -215,8 +210,8 @@ class PressTempHumBME280 {
     void startRelativeAltitude() {
         /*! Store current pressure for a reference altitude to start relative altitude measurement
 
-        Once a reference altitude is defined (see \ref setReferenceAltitude()), measurement of
-        relative altitude can be started by calling this function.
+        Once a reference altitude is defined (see \ref setReferenceAltitude()), measurement of relative
+        altitude can be started by calling this function.
         */
         if (referenceAltitudeMeters != MUP_BME_INVALID_ALTITUDE) {
             captureRelative = true;
@@ -271,53 +266,33 @@ class PressTempHumBME280 {
     }
 
     bool initBmeSensorConstants() {
-        if (!i2c_readRegisterWordLE(0x88, (uint16_t *)&dig_T1))
-            return false;
-        if (!i2c_readRegisterWordLE(0x8A, (uint16_t *)&dig_T2))
-            return false;
-        if (!i2c_readRegisterWordLE(0x8C, (uint16_t *)&dig_T3))
-            return false;
-        if (!i2c_readRegisterWordLE(0x8E, (uint16_t *)&dig_P1))
-            return false;
-        if (!i2c_readRegisterWordLE(0x90, (uint16_t *)&dig_P2))
-            return false;
-        if (!i2c_readRegisterWordLE(0x92, (uint16_t *)&dig_P3))
-            return false;
-        if (!i2c_readRegisterWordLE(0x94, (uint16_t *)&dig_P4))
-            return false;
-        if (!i2c_readRegisterWordLE(0x96, (uint16_t *)&dig_P5))
-            return false;
-        if (!i2c_readRegisterWordLE(0x98, (uint16_t *)&dig_P6))
-            return false;
-        if (!i2c_readRegisterWordLE(0x9A, (uint16_t *)&dig_P7))
-            return false;
-        if (!i2c_readRegisterWordLE(0x9C, (uint16_t *)&dig_P8))
-            return false;
-        if (!i2c_readRegisterWordLE(0x9E, (uint16_t *)&dig_P9))
-            return false;
+        if (!i2c_readRegisterWordLE(0x88, (uint16_t *)&dig_T1)) return false;
+        if (!i2c_readRegisterWordLE(0x8A, (uint16_t *)&dig_T2)) return false;
+        if (!i2c_readRegisterWordLE(0x8C, (uint16_t *)&dig_T3)) return false;
+        if (!i2c_readRegisterWordLE(0x8E, (uint16_t *)&dig_P1)) return false;
+        if (!i2c_readRegisterWordLE(0x90, (uint16_t *)&dig_P2)) return false;
+        if (!i2c_readRegisterWordLE(0x92, (uint16_t *)&dig_P3)) return false;
+        if (!i2c_readRegisterWordLE(0x94, (uint16_t *)&dig_P4)) return false;
+        if (!i2c_readRegisterWordLE(0x96, (uint16_t *)&dig_P5)) return false;
+        if (!i2c_readRegisterWordLE(0x98, (uint16_t *)&dig_P6)) return false;
+        if (!i2c_readRegisterWordLE(0x9A, (uint16_t *)&dig_P7)) return false;
+        if (!i2c_readRegisterWordLE(0x9C, (uint16_t *)&dig_P8)) return false;
+        if (!i2c_readRegisterWordLE(0x9E, (uint16_t *)&dig_P9)) return false;
 
-        if (!i2c_readRegisterByte(0xA1, (uint8_t *)&dig_H1))
-            return false;
-        if (!i2c_readRegisterWordLE(0xE1, (uint16_t *)&dig_H2))
-            return false;
-        if (!i2c_readRegisterByte(0xE3, (uint8_t *)&dig_H3))
-            return false;
+        if (!i2c_readRegisterByte(0xA1, (uint8_t *)&dig_H1)) return false;
+        if (!i2c_readRegisterWordLE(0xE1, (uint16_t *)&dig_H2)) return false;
+        if (!i2c_readRegisterByte(0xE3, (uint8_t *)&dig_H3)) return false;
         unsigned char fb1, fb2, fb3;  // Bosch Frickel-Bytes 1-3:    // XXX Check!
-        if (!i2c_readRegisterByte(0xE4, (uint8_t *)&fb1))
-            return false;
-        if (!i2c_readRegisterByte(0xE5, (uint8_t *)&fb2))
-            return false;
-        if (!i2c_readRegisterByte(0xE6, (uint8_t *)&fb3))
-            return false;
+        if (!i2c_readRegisterByte(0xE4, (uint8_t *)&fb1)) return false;
+        if (!i2c_readRegisterByte(0xE5, (uint8_t *)&fb2)) return false;
+        if (!i2c_readRegisterByte(0xE6, (uint8_t *)&fb3)) return false;
         dig_H4 = ((int16_t)fb1 << 4) + (int16_t)(fb2 & 0x0f);
         dig_H5 = (((int16_t)fb2 & 0xf0) >> 4) + ((int16_t)fb3 << 4);
-        if (!i2c_readRegisterByte(0xE7, (uint8_t *)&dig_H6))
-            return false;
+        if (!i2c_readRegisterByte(0xE7, (uint8_t *)&dig_H6)) return false;
         return true;
     }
 
-    void begin(Scheduler *_pSched, BMESampleMode _sampleMode = BMESampleMode::STANDARD,
-               TwoWire *_pWire = &Wire) {
+    void begin(Scheduler *_pSched, BMESampleMode _sampleMode = BMESampleMode::STANDARD, TwoWire *_pWire = &Wire) {
         pSched = _pSched;
         pWire = _pWire;
         uint8_t data;
@@ -344,8 +319,7 @@ class PressTempHumBME280 {
                 if (data == 0x60) {  // 0x60: signature of BME280
                     if (!initBmeSensorConstants()) {
 #ifdef USE_SERIAL_DBG
-                        Serial.print(
-                            "Failed to read calibration data for sensor BME280 at address 0x");
+                        Serial.print("Failed to read calibration data for sensor BME280 at address 0x");
                         Serial.println(i2c_address, HEX);
 #endif
                         lastError = BMEError::I2C_CALIBRATION_READ_FAILURE;
@@ -365,9 +339,7 @@ class PressTempHumBME280 {
                     Serial.print(" chip-id is ");
                     Serial.print(data, HEX);
                     Serial.println(" expected: 0x60 for BME280.");
-                    if (data == 0x58)
-                        Serial.println("This is not a BME280 but a BME280 sensor (no humidity). "
-                                       "This might be a fake chip/source.");
+                    if (data == 0x58) Serial.println("This is not a BME280 but a BME280 sensor (no humidity). This might be a fake chip/source.");
 #endif
                     lastError = BMEError::I2C_WRONG_HARDWARE_AT_ADDRESS;
                     bActive = false;
@@ -476,8 +448,7 @@ class PressTempHumBME280 {
             lastError = BMEError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)1, (uint8_t) true);
         if (read_cnt != 1) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -494,8 +465,7 @@ class PressTempHumBME280 {
             lastError = BMEError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -515,8 +485,7 @@ class PressTempHumBME280 {
             lastError = BMEError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -536,8 +505,7 @@ class PressTempHumBME280 {
             lastError = BMEError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)3, (uint8_t) true);
         if (read_cnt != 3) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -635,13 +603,8 @@ class PressTempHumBME280 {
 
     void publishCalibrationData() {
         char msg[256];
-        sprintf(msg,
-                "dig_T1=%u, dig_T2=%d, dig_T3=%d, dig_P1=%u, dig_P2=%d, dig_P3=%d, dig_P4=%d, "
-                "dig_P5=%d, dig_P6=%d, dig_P7=%d, dig_P8=%d, dig_P9=%d, dig_H1=%u dig_H2=%d "
-                "dig_H3=%u dig_H4=%d dig_H5=%d dig_H6=%d",
-                dig_T1, dig_T2, dig_T3, dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7,
-                dig_P8, dig_P9, (uint16_t)dig_H1, dig_H2, (uint16_t)dig_H3, dig_H4, dig_H5,
-                (int16_t)dig_H6);
+        sprintf(msg, "dig_T1=%u, dig_T2=%d, dig_T3=%d, dig_P1=%u, dig_P2=%d, dig_P3=%d, dig_P4=%d, dig_P5=%d, dig_P6=%d, dig_P7=%d, dig_P8=%d, dig_P9=%d, dig_H1=%u dig_H2=%d dig_H3=%u dig_H4=%d dig_H5=%d dig_H6=%d",
+                dig_T1, dig_T2, dig_T3, dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9, (uint16_t)dig_H1, dig_H2, (uint16_t)dig_H3, dig_H4, dig_H5, (int16_t)dig_H6);
         pSched->publish("sensor/calibrationdata", msg);
     }
 
@@ -700,8 +663,7 @@ class PressTempHumBME280 {
                 stateMachineClock = micros();
                 break;
             }
-            reg_data = (oversampleModeTemperature << 5) + (oversampleModePressure << 2) +
-                       0x1;  // 0x3: normal mode, 0x1 one-shot
+            reg_data = (oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x1;  // 0x3: normal mode, 0x1 one-shot
             if (!i2c_writeRegisterByte(measure_mode_register, reg_data)) {
                 ++errs;
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
@@ -721,12 +683,10 @@ class PressTempHumBME280 {
                 break;
             }
             status = status & 0x09;
-            if (timeDiff(stateMachineClock, micros()) > 1 &&
-                status == 0) {  // 1ms for meas, no status set.
+            if (timeDiff(stateMachineClock, micros()) > 1 && status == 0) {  // 1ms for meas, no status set.
                 rt = 0;
                 rp = 0;
-                if (i2c_readRegisterTripple(temperature_registers, &rt) &&
-                    i2c_readRegisterTripple(pressure_registers, &rp) &&
+                if (i2c_readRegisterTripple(temperature_registers, &rt) && i2c_readRegisterTripple(pressure_registers, &rp) &&
                     i2c_readRegisterWord(humidity_registers, &rh)) {
                     rawTemperature = rt >> 4;
                     rawPressure = rp >> 4;
@@ -751,9 +711,9 @@ class PressTempHumBME280 {
         return newData;
     }
 
-    // From BOSCH datasheet BMA150 data sheet Rev. 1.4 | taken from BMP280, seems identical to
-    // BME280 Returns temperature in DegC, double precision. Output value of “51.23” equals 51.23
-    // DegC. t_fine carries fine temperature used by pressure
+    // From BOSCH datasheet BMA150 data sheet Rev. 1.4 | taken from BMP280, seems identical to BME280
+    // Returns temperature in DegC, double precision. Output value of “51.23” equals 51.23 DegC.
+    // t_fine carries fine temperature used by pressure
     // int32_t t_fine;
     double bme280_compensate_T_double(int32_t adc_T, int32_t *pt_fine) {
         double var1, var2, T;
@@ -766,9 +726,8 @@ class PressTempHumBME280 {
         return T;
     }
 
-    // From BOSCH datasheet BMA150 data sheet Rev. 1.4 | taken from BMP280, seems identical to
-    // BME280 Returns pressure in Pa as double. Output value of “96386.2” equals 96386.2 Pa =
-    // 963.862 hPa
+    // From BOSCH datasheet BMA150 data sheet Rev. 1.4 | taken from BMP280, seems identical to BME280
+    // Returns pressure in Pa as double. Output value of “96386.2” equals 96386.2 Pa = 963.862 hPa
     double bme280_compensate_P_double(int32_t adc_P, int32_t t_fine) {
         double var1, var2, p;
         var1 = ((double)t_fine / 2.0) - 64000.0;
@@ -794,15 +753,12 @@ class PressTempHumBME280 {
         double var_H;
         var_H = (((double)t_fine) - 76800.0);
         var_H = (adc_H - (((double)dig_H4) * 64.0 + ((double)dig_H5) / 16384.0 * var_H)) *
-                (((double)dig_H2) / 65536.0 *
-                 (1.0 + ((double)dig_H6) / 67108864.0 * var_H *
-                            (1.0 + ((double)dig_H3) / 67108864.0 * var_H)));
+                (((double)dig_H2) / 65536.0 * (1.0 + ((double)dig_H6) / 67108864.0 * var_H * (1.0 + ((double)dig_H3) / 67108864.0 * var_H)));
         var_H = var_H * (1.0 - ((double)dig_H1) * var_H / 524288.0);
         if (var_H > 100.0) {
             var_H = 100.0;
         } else {
-            if (var_H < 0.0)
-                var_H = 0.0;
+            if (var_H < 0.0) var_H = 0.0;
         }
         return var_H;
     }
@@ -821,8 +777,7 @@ class PressTempHumBME280 {
     void loop() {
         double tempVal, pressVal, humVal;
         if (bActive) {
-            if (!sensorStateMachine())
-                return;  // no new data
+            if (!sensorStateMachine()) return;  // no new data
             calibrateRawData();
             tempVal = (double)calibratedTemperature;
             pressVal = (double)calibratedPressure;
@@ -842,8 +797,7 @@ class PressTempHumBME280 {
                     }
                 }
                 publishPressure();
-                if (relativeAltitudeStarted)
-                    publishRelativeAltitude();
+                if (relativeAltitudeStarted) publishRelativeAltitude();
             }
             if (humiditySensor.filter(&humVal)) {
                 humidityValue = humVal;

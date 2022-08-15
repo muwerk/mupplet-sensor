@@ -104,37 +104,32 @@ class GammaGDK101 {
     double gamma10minavgValue, gamma1minavgValue;
 
   public:
-    enum GDKError {
-        UNDEFINED,
-        OK,
-        I2C_HW_ERROR,
-        I2C_WRONG_HARDWARE_AT_ADDRESS,
-        I2C_DEVICE_NOT_AT_ADDRESS,
-        I2C_REGISTER_WRITE_ERROR,
-        I2C_VALUE_WRITE_ERROR,
-        I2C_WRITE_DATA_TOO_LONG,
-        I2C_WRITE_NACK_ON_ADDRESS,
-        I2C_WRITE_NACK_ON_DATA,
-        I2C_WRITE_ERR_OTHER,
-        I2C_WRITE_TIMEOUT,
-        I2C_WRITE_INVALID_CODE,
-        I2C_READ_REQUEST_FAILED
-    };
-    enum GDKSensorState { UNAVAILABLE, IDLE, MEASUREMENT_WAIT, WAIT_NEXT_MEASUREMENT };
+    enum GDKError { UNDEFINED,
+                    OK,
+                    I2C_HW_ERROR,
+                    I2C_WRONG_HARDWARE_AT_ADDRESS,
+                    I2C_DEVICE_NOT_AT_ADDRESS,
+                    I2C_REGISTER_WRITE_ERROR,
+                    I2C_VALUE_WRITE_ERROR,
+                    I2C_WRITE_DATA_TOO_LONG,
+                    I2C_WRITE_NACK_ON_ADDRESS,
+                    I2C_WRITE_NACK_ON_DATA,
+                    I2C_WRITE_ERR_OTHER,
+                    I2C_WRITE_TIMEOUT,
+                    I2C_WRITE_INVALID_CODE,
+                    I2C_READ_REQUEST_FAILED };
+    enum GDKSensorState { UNAVAILABLE,
+                          IDLE,
+                          MEASUREMENT_WAIT,
+                          WAIT_NEXT_MEASUREMENT };
 
-    /*! Hardware accuracy modes of GDK101, while the sensor can have different pressure- and
-     * temperature oversampling, we use same for both temp and press. */
+    /*! Hardware accuracy modes of GDK101, while the sensor can have different pressure- and temperature oversampling, we use same for both temp and press. */
     enum GDKSampleMode {
-        ULTRA_LOW_POWER = 1,  ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature
-                              ///< oversampling: x1
-        LOW_POWER = 2,        ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature
-                              ///< oversampling: x1
-        STANDARD = 3,         ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature
-                              ///< oversampling: x1
-        HIGH_RESOLUTION = 4,  ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature
-                              ///< oversampling: x1
-        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec
-                                   ///< temperature oversampling: x2
+        ULTRA_LOW_POWER = 1,       ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature oversampling: x1
+        LOW_POWER = 2,             ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature oversampling: x1
+        STANDARD = 3,              ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature oversampling: x1
+        HIGH_RESOLUTION = 4,       ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1
+        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
     };
     GDKError lastError;
     GDKSensorState sensorState;
@@ -142,7 +137,9 @@ class GammaGDK101 {
     unsigned long errs = 0;
     unsigned long oks = 0;
     unsigned long pollRateUs = 2000000;
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
     String firmwareVersion;
     FilterMode filterMode;
     uint8_t i2c_address;
@@ -295,8 +292,7 @@ class GammaGDK101 {
             lastError = GDKError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)1, (uint8_t) true);
         if (read_cnt != 1) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -306,29 +302,23 @@ class GammaGDK101 {
         return true;
     }
 
-    bool i2c_readRegisterWord(uint8_t reg, uint16_t *pData, bool stop = true,
-                              bool allow_irqs = true) {
+    bool i2c_readRegisterWord(uint8_t reg, uint16_t *pData, bool stop = true, bool allow_irqs = true) {
         *pData = (uint16_t)-1;
-        if (!allow_irqs)
-            noInterrupts();
+        if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg, 1) != 1) {
-            if (!allow_irqs)
-                interrupts();
+            if (!allow_irqs) interrupts();
             lastError = GDKError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(stop) == false)
-            return false;
+        if (i2c_endTransmission(stop) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
-            if (!allow_irqs)
-                interrupts();
+            if (!allow_irqs) interrupts();
             lastError = I2C_READ_REQUEST_FAILED;
             return false;
         }
-        if (!allow_irqs)
-            interrupts();
+        if (!allow_irqs) interrupts();
         uint8_t hb = pWire->read();
         uint8_t lb = pWire->read();
         uint16_t data = (hb << 8) | lb;
@@ -338,26 +328,21 @@ class GammaGDK101 {
 
     bool i2c_readRegisterWordLE(uint8_t reg, uint16_t *pData, bool allow_irqs = true) {
         *pData = (uint16_t)-1;
-        if (!allow_irqs)
-            noInterrupts();
+        if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg, 1) != 1) {
-            if (!allow_irqs)
-                interrupts();
+            if (!allow_irqs) interrupts();
             lastError = GDKError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             lastError = I2C_READ_REQUEST_FAILED;
-            if (!allow_irqs)
-                interrupts();
+            if (!allow_irqs) interrupts();
             return false;
         }
-        if (!allow_irqs)
-            interrupts();
+        if (!allow_irqs) interrupts();
         uint8_t lb = pWire->read();
         uint8_t hb = pWire->read();
         uint16_t data = (hb << 8) | lb;
@@ -372,8 +357,7 @@ class GammaGDK101 {
             lastError = GDKError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (i2c_endTransmission(true) == false)
-            return false;
+        if (i2c_endTransmission(true) == false) return false;
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)3, (uint8_t) true);
         if (read_cnt != 3) {
             lastError = I2C_READ_REQUEST_FAILED;
@@ -514,10 +498,8 @@ class GammaGDK101 {
     bool readGDKSensor(double *pGamma10minavgVal, double *pGamma1minavgVal) {
         *pGamma10minavgVal = 0.0;
         *pGamma1minavgVal = 0.0;
-        if (!readGDKSensorMeasurement(0xb2, pGamma10minavgVal))
-            return false;
-        if (!readGDKSensorMeasurement(0xb3, pGamma1minavgVal))
-            return false;
+        if (!readGDKSensorMeasurement(0xb2, pGamma10minavgVal)) return false;
+        if (!readGDKSensorMeasurement(0xb3, pGamma1minavgVal)) return false;
         return true;
     }
 

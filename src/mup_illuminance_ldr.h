@@ -107,7 +107,9 @@ class IlluminanceLdr {
 #endif
 
   public:
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
     FilterMode filterMode;
     ustd::sensorprocessor illuminanceSensor = ustd::sensorprocessor(4, 600, 0.005);
 
