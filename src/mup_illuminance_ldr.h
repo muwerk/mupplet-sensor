@@ -8,11 +8,13 @@
 mupplet-sensor implements the following classes based on the cooperative scheduler muwerk:
 
 * * \ref ustd::IlluminanceLdr
+* * \ref ustd::IlluminanceTSL2561
 * * \ref ustd::PressTempBMP180
 * * \ref ustd::PressTempBMP280
 * * \ref ustd::PressTempHumBME280
 * * \ref ustd::TempHumDHT
-* * \ref ustd::SensorDisplay
+* * \ref ustd::GammaGDK101
+* * \ref ustd::GfxPanel
 
 For an overview, see:
 <a href="https://github.com/muwerk/mupplet-sensor/blob/master/README.md">mupplet-sensor readme</a>
