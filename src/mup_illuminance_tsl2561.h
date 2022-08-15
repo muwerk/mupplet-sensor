@@ -102,7 +102,6 @@ class IlluminanceTSL2561 {
     TwoWire *pWire;
     int tID;
     String name;
-    double illuminanceValue, unitIlluminanceValue, lightCh0Value, IRCh1Value;
 
   public:
     enum TSLError { UNDEFINED, OK, I2C_HW_ERROR, I2C_WRONG_HARDWARE_AT_ADDRESS, I2C_DEVICE_NOT_AT_ADDRESS, I2C_REGISTER_WRITE_ERROR,
@@ -126,6 +125,9 @@ class IlluminanceTSL2561 {
     String firmwareVersion;
     FilterMode filterMode;
     uint8_t i2c_address;
+
+    double illuminanceValue, unitIlluminanceValue, lightCh0Value, IRCh1Value;
+    double unitIlluminanceSensitivity;
     ustd::sensorprocessor illuminanceSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor unitIlluminanceSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor lightCh0Sensor = ustd::sensorprocessor(4, 600, 0.005);
@@ -141,6 +143,7 @@ class IlluminanceTSL2561 {
         */
         lastError=TSLError::UNDEFINED;
         sensorState=TSLSensorState::UNAVAILABLE;
+        unitIlluminanceSensitivity=0.2;
         setFilterMode(filterMode, true);
     }
 
@@ -159,6 +162,21 @@ class IlluminanceTSL2561 {
         @return illuminance [0(dark)..1(full light)]
         */
         return unitIlluminanceValue;
+    }
+
+    double getUnitIlluminanceSensitivity() {
+        /*! Get normalized Illuminance sensitivity
+        @return illuminance sensitivity [0(dark)..1(full light)]
+        */
+        return unitIlluminanceSensitivity;
+    }
+
+    void setUnitIlluminanceSensitivity(double sensitivity) {
+        /*! Set normalized Illuminance sensitivity
+        @param sensitivity illuminance sensitivity [0.001(no sensitiviy)..0.2(default)..(higher sensitiviy)]
+        */
+        if (sensitivity<=0.001) sensitivity=0.2;
+        unitIlluminanceSensitivity=sensitivity;
     }
 
     void begin(Scheduler *_pSched, TwoWire *_pWire=&Wire) {
@@ -442,6 +460,12 @@ class IlluminanceTSL2561 {
         pSched->publish(name + "/sensor/unitilluminance", buf);
     }
 
+    void publishUnitIlluminanceSensitivity() {
+        char buf[32];
+        sprintf(buf, "%6.3f", unitIlluminanceSensitivity);
+        pSched->publish(name + "/sensor/unitilluminancesensitivity", buf);
+    }
+
     void publishError(String errMsg) {
         pSched->publish(name + "/sensor/error", errMsg);
     }
@@ -538,7 +562,12 @@ class IlluminanceTSL2561 {
         if (!readTSLSensorMeasurement(0xac, pIlluminanceCh0)) return false;
         if (!readTSLSensorMeasurement(0xae, pIlluminanceCh1)) return false;
         *pLux=calculateLux(*pIlluminanceCh0, *pIlluminanceCh1);
-        double ui=(*pIlluminanceCh0+*pIlluminanceCh1)/1500.0;
+        double ui;
+        if (*pLux>1.0) {
+            ui=log(*pLux)*unitIlluminanceSensitivity;
+        } else {
+            ui=0.0;
+        }
         if (ui<0.0) ui=0.0;
         if (ui>1.0) ui=1.0;
         *pUnitIlluminance=ui;
@@ -572,20 +601,15 @@ class IlluminanceTSL2561 {
     void subsMsg(String topic, String msg, String originator) {
         if (topic == name + "/sensor/illuminance/get") {
             publishIlluminance();
-        }
-        if (topic == name + "/sensor/unitilluminance/get") {
+        } else if (topic == name + "/sensor/unitilluminance/get") {
             publishUnitIlluminance();
-        }
-        if (topic == name + "/sensor/lightch0/get") {
+        } else if (topic == name + "/sensor/lightch0/get") {
             publishLightCh0();
-        }
-        if (topic == name + "/sensor/irch1/get") {
+        } else if (topic == name + "/sensor/irch1/get") {
             publishIRCh1();
-        }
-        if (topic == name + "/sensor/mode/get") {
+        } else if (topic == name + "/sensor/mode/get") {
             publishFilterMode();
-        }
-        if (topic == name + "/sensor/mode/set") {
+        } else if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
                 setFilterMode(FilterMode::FAST);
             } else {
@@ -595,6 +619,10 @@ class IlluminanceTSL2561 {
                     setFilterMode(FilterMode::LONGTERM);
                 }
             }
+        } else if (topic == name + "/sensor/unitilluminancesensitivity/set") {
+            setUnitIlluminanceSensitivity(msg.toFloat());
+        } else if (topic == name + "/sensor/unitilluminancesensitivity/get") {
+            publishUnitIlluminanceSensitivity();
         }
     }
 
