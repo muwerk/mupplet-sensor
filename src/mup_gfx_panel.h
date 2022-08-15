@@ -12,15 +12,8 @@ namespace ustd {
 
 class GfxDrivers {
   public:
-    enum DisplayType {
-        SSD1306, 
-        ST7735
-        };
-    enum BusType {
-        GPIOBUS,
-        I2CBUS,
-        SPIBUS
-    };
+    enum DisplayType { SSD1306, ST7735 };
+    enum BusType { GPIOBUS, I2CBUS, SPIBUS };
 
     String name;
     DisplayType displayType;
@@ -38,131 +31,138 @@ class GfxDrivers {
     Adafruit_SSD1306 *pDisplaySSD;
     GFXcanvas16 *pCanvas;
 
-    GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire):
-        name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire)
-    {   
-        pDisplayST=nullptr;
-        pDisplaySSD=nullptr;
-        pCanvas=nullptr;
-        hasBegun=false;
-        if (displayType==DisplayType::SSD1306) {
-            validDisplay=true;
-            busType=BusType::I2CBUS;
-            bgColor=SSD1306_BLACK;
+    GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY,
+               uint8_t i2cAddress, TwoWire *pWire = &Wire)
+        : name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress),
+          pWire(pWire) {
+        pDisplayST = nullptr;
+        pDisplaySSD = nullptr;
+        pCanvas = nullptr;
+        hasBegun = false;
+        if (displayType == DisplayType::SSD1306) {
+            validDisplay = true;
+            busType = BusType::I2CBUS;
+            bgColor = SSD1306_BLACK;
         } else {
-            validDisplay=false;
+            validDisplay = false;
         }
     }
 
-    GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin, uint8_t dcPin, uint8_t rstPin=-1):
-        name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin), rstPin(rstPin)
-    {   
-        pDisplayST=nullptr;
-        pDisplaySSD=nullptr;
-        pCanvas=nullptr;
-        hasBegun=false;
-        if (displayType==DisplayType::ST7735) {
-            validDisplay=true;
-            busType=BusType::SPIBUS;
-            bgColor=RGB(0,0,0);
+    GfxDrivers(String name, DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin,
+               uint8_t dcPin, uint8_t rstPin = -1)
+        : name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin),
+          rstPin(rstPin) {
+        pDisplayST = nullptr;
+        pDisplaySSD = nullptr;
+        pCanvas = nullptr;
+        hasBegun = false;
+        if (displayType == DisplayType::ST7735) {
+            validDisplay = true;
+            busType = BusType::SPIBUS;
+            bgColor = RGB(0, 0, 0);
         } else {
-            validDisplay=false;
+            validDisplay = false;
         }
     }
 
-    ~GfxDrivers() { // undefined behavior for delete display objects.
+    ~GfxDrivers() {  // undefined behavior for delete display objects.
     }
 
-    void begin(bool _useCanvas=false) {
+    void begin(bool _useCanvas = false) {
         /*! Initialize the display.
          * Note: Using canvas uses a lot of memory! Use with ESP32 or better kind of chips.
          *  @param _useCanvas If true, use a canvas for drawing. If false, use the display directly.
-         */            
+         */
         if (hasBegun) {
 #ifdef USE_SERIAL_DBG
-            Serial.println("ERROR GfxDrivers::begin() - already begun");    
+            Serial.println("ERROR GfxDrivers::begin() - already begun");
 #endif
             return;
         }
-        hasBegun=true;
-        useCanvas=_useCanvas;
+        hasBegun = true;
+        useCanvas = _useCanvas;
         if (validDisplay) {
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD=new Adafruit_SSD1306(resX, resY, pWire); 
-                    pDisplaySSD->begin(SSD1306_SWITCHCAPVCC, i2cAddress);
-                    pDisplaySSD->clearDisplay();
-                    pDisplaySSD->setTextWrap(false);
-                    pDisplaySSD->setTextColor(SSD1306_WHITE); 
-                    pDisplaySSD->cp437(true);
-                    break;
-                case DisplayType::ST7735:
-                    //pDisplayST->initR(INITR_BLACKTAB);
-                    if (resX==128 && resY==128) {
-                        pDisplayST=new Adafruit_ST7735(csPin, dcPin, rstPin); 
-                        pDisplayST->initR(INITR_144GREENTAB);   // 1.4" thingy?
-                    } else if (resX==128 && resY==160) {
-                        pDisplayST=new Adafruit_ST7735(csPin, dcPin, rstPin); 
-                        pDisplayST->initR(INITR_BLACKTAB);   // 1.8" thingy?
-                    } else {
+            case DisplayType::SSD1306:
+                pDisplaySSD = new Adafruit_SSD1306(resX, resY, pWire);
+                pDisplaySSD->begin(SSD1306_SWITCHCAPVCC, i2cAddress);
+                pDisplaySSD->clearDisplay();
+                pDisplaySSD->setTextWrap(false);
+                pDisplaySSD->setTextColor(SSD1306_WHITE);
+                pDisplaySSD->cp437(true);
+                break;
+            case DisplayType::ST7735:
+                // pDisplayST->initR(INITR_BLACKTAB);
+                if (resX == 128 && resY == 128) {
+                    pDisplayST = new Adafruit_ST7735(csPin, dcPin, rstPin);
+                    pDisplayST->initR(INITR_144GREENTAB);  // 1.4" thingy?
+                } else if (resX == 128 && resY == 160) {
+                    pDisplayST = new Adafruit_ST7735(csPin, dcPin, rstPin);
+                    pDisplayST->initR(INITR_BLACKTAB);  // 1.8" thingy?
+                } else {
 #ifdef USE_SERIAL_DBG
-                    Serial.println("ERROR GfxDrivers::begin() - unknown/invalid display resolution");
+                    Serial.println(
+                        "ERROR GfxDrivers::begin() - unknown/invalid display resolution");
 #endif
-                    hasBegun=false;
+                    hasBegun = false;
                     return;
-                    }
-                    if (useCanvas) {
-                        pCanvas=new GFXcanvas16(resX, resY);
-                        pCanvas->setTextWrap(false);
-                        pCanvas->fillScreen(ST77XX_BLACK);
-                        pCanvas->cp437(true);
-                    } else {
-                        pDisplayST->setTextWrap(false);
-                        pDisplayST->fillScreen(ST77XX_BLACK);
-                        pDisplayST->cp437(true);
-                    }
-                    break;
+                }
+                if (useCanvas) {
+                    pCanvas = new GFXcanvas16(resX, resY);
+                    pCanvas->setTextWrap(false);
+                    pCanvas->fillScreen(ST77XX_BLACK);
+                    pCanvas->cp437(true);
+                } else {
+                    pDisplayST->setTextWrap(false);
+                    pDisplayST->fillScreen(ST77XX_BLACK);
+                    pDisplayST->cp437(true);
+                }
+                break;
             }
         }
     }
 
     void setBGColor(uint32_t _bgColor) {
-        uint8_t r,g,b;
+        uint8_t r, g, b;
         splitRGB(_bgColor, &r, &g, &b);
-        if (r+b+g>256+128) {
-            isLightTheme=true;
+        if (r + b + g > 256 + 128) {
+            isLightTheme = true;
         } else {
-            isLightTheme=false;
+            isLightTheme = false;
         }
-        bgColor=_bgColor;
+        bgColor = _bgColor;
     }
 
     static uint32_t RGB(uint8_t red, uint8_t green, uint8_t blue) {
-        uint32_t rgb=(((uint32_t)red)<<16)+(((uint32_t)green)<<8)+((uint32_t)blue);
+        uint32_t rgb = (((uint32_t)red) << 16) + (((uint32_t)green) << 8) + ((uint32_t)blue);
         return rgb;
     }
 
     static void splitRGB(uint32_t rgb, uint8_t *pRed, uint8_t *pGreen, uint8_t *pBlue) {
-        *pRed=(uint8_t)((rgb>>16)&0xff);
-        *pGreen=(uint8_t)((rgb>>8)&0xff);
-        *pBlue=(uint8_t)(rgb&0xff);
+        *pRed = (uint8_t)((rgb >> 16) & 0xff);
+        *pGreen = (uint8_t)((rgb >> 8) & 0xff);
+        *pBlue = (uint8_t)(rgb & 0xff);
     }
 
     uint16_t rgbColor(uint8_t red, uint8_t green, uint8_t blue) {
         switch (displayType) {
-            case DisplayType::SSD1306: // Black or white
-                if (RGB(red, green, blue)==bgColor) {
-                    if (isLightTheme) return SSD1306_WHITE;
-                    else return SSD1306_BLACK;
-                } else {
-                    if (isLightTheme) return SSD1306_BLACK;
-                    else return SSD1306_WHITE;
-                }
-            case DisplayType::ST7735: // RGB565 standard
-                return (((red & 0xf8)<<8) + ((green & 0xfc)<<3)+(blue>>3));
-            default:
-                return 0;
-        } 
+        case DisplayType::SSD1306:  // Black or white
+            if (RGB(red, green, blue) == bgColor) {
+                if (isLightTheme)
+                    return SSD1306_WHITE;
+                else
+                    return SSD1306_BLACK;
+            } else {
+                if (isLightTheme)
+                    return SSD1306_BLACK;
+                else
+                    return SSD1306_WHITE;
+            }
+        case DisplayType::ST7735:  // RGB565 standard
+            return (((red & 0xf8) << 8) + ((green & 0xfc) << 3) + (blue >> 3));
+        default:
+            return 0;
+        }
     }
 
     uint16_t rgbColor(uint32_t rgb) {
@@ -174,21 +174,21 @@ class GfxDrivers {
     void clearDisplay(uint32_t bgColor) {
         if (validDisplay) {
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD->clearDisplay();
-                    pDisplaySSD->fillRect(0, 0, resX, resY, bgColor);
-                    break;
-                case DisplayType::ST7735:
-                    if (useCanvas) {
-                        pCanvas->fillScreen(bgColor);
-                        //pCanvas->fillRect(0, 0, resX, resY, bgColor);
-                    } else {
-                        pDisplayST->fillScreen(bgColor);
-                        //pDisplayST->fillRect(0, 0, resX, resY, bgColor);
-                    }
-                    break;
-                default:
-                    break;
+            case DisplayType::SSD1306:
+                pDisplaySSD->clearDisplay();
+                pDisplaySSD->fillRect(0, 0, resX, resY, bgColor);
+                break;
+            case DisplayType::ST7735:
+                if (useCanvas) {
+                    pCanvas->fillScreen(bgColor);
+                    // pCanvas->fillRect(0, 0, resX, resY, bgColor);
+                } else {
+                    pDisplayST->fillScreen(bgColor);
+                    // pDisplayST->fillRect(0, 0, resX, resY, bgColor);
+                }
+                break;
+            default:
+                break;
             }
         }
     }
@@ -202,24 +202,24 @@ class GfxDrivers {
                 return;
             }
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD->drawLine(x0,y0,x1,y1,rgbColor(rgb));
-                    break;
-                case DisplayType::ST7735:
-                    if (useCanvas && pCanvas) {
-                        if (y0==y1) {
-                            pCanvas->drawFastHLine(x0, y0, x1-x0, rgbColor(rgb));
-                        } else {
-                            pCanvas->drawLine(x0,y0,x1,y1,rgbColor(rgb));
-                        }
+            case DisplayType::SSD1306:
+                pDisplaySSD->drawLine(x0, y0, x1, y1, rgbColor(rgb));
+                break;
+            case DisplayType::ST7735:
+                if (useCanvas && pCanvas) {
+                    if (y0 == y1) {
+                        pCanvas->drawFastHLine(x0, y0, x1 - x0, rgbColor(rgb));
                     } else {
-                        if (pDisplayST) {
-                            pDisplayST->drawLine(x0,y0,x1,y1,rgbColor(rgb));
-                        }
+                        pCanvas->drawLine(x0, y0, x1, y1, rgbColor(rgb));
                     }
-                    break;
-                default:
-                    break;
+                } else {
+                    if (pDisplayST) {
+                        pDisplayST->drawLine(x0, y0, x1, y1, rgbColor(rgb));
+                    }
+                }
+                break;
+            default:
+                break;
             }
         }
     }
@@ -227,18 +227,18 @@ class GfxDrivers {
     void fillRect(uint16_t x0, uint16_t y0, uint16_t lx, uint16_t ly, uint32_t rgb) {
         if (validDisplay) {
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD->fillRect(x0,y0,lx,ly,rgbColor(rgb));
-                    break;
-                case DisplayType::ST7735:
-                    if (useCanvas) {
-                        pCanvas->fillRect(x0,y0,lx,ly,rgbColor(rgb));
-                    } else {
-                        pDisplayST->fillRect(x0,y0,lx,ly,rgbColor(rgb));
-                    }
-                    break;
-                default:
-                    break;
+            case DisplayType::SSD1306:
+                pDisplaySSD->fillRect(x0, y0, lx, ly, rgbColor(rgb));
+                break;
+            case DisplayType::ST7735:
+                if (useCanvas) {
+                    pCanvas->fillRect(x0, y0, lx, ly, rgbColor(rgb));
+                } else {
+                    pDisplayST->fillRect(x0, y0, lx, ly, rgbColor(rgb));
+                }
+                break;
+            default:
+                break;
             }
         }
     }
@@ -246,18 +246,18 @@ class GfxDrivers {
     void setFont(const GFXfont *gfxFont = NULL) {
         if (validDisplay) {
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD->setFont(gfxFont);
-                    break;
-                case DisplayType::ST7735:
-                    if (useCanvas) {
-                        pCanvas->setFont(gfxFont);
-                    } else {
-                        pDisplayST->setFont(gfxFont);
-                    }
-                    break;
-                default:
-                    break;
+            case DisplayType::SSD1306:
+                pDisplaySSD->setFont(gfxFont);
+                break;
+            case DisplayType::ST7735:
+                if (useCanvas) {
+                    pCanvas->setFont(gfxFont);
+                } else {
+                    pDisplayST->setFont(gfxFont);
+                }
+                break;
+            default:
+                break;
             }
         }
     }
@@ -265,18 +265,18 @@ class GfxDrivers {
     void setTextColor(uint32_t rgb) {
         if (validDisplay) {
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD->setTextColor(rgbColor(rgb));
-                    break;
-                case DisplayType::ST7735:
-                    if (useCanvas) {
-                        pCanvas->setTextColor(rgbColor(rgb));
-                    } else {
-                        pDisplayST->setTextColor(rgbColor(rgb));
-                    }
-                    break;
-                default:
-                    break;
+            case DisplayType::SSD1306:
+                pDisplaySSD->setTextColor(rgbColor(rgb));
+                break;
+            case DisplayType::ST7735:
+                if (useCanvas) {
+                    pCanvas->setTextColor(rgbColor(rgb));
+                } else {
+                    pDisplayST->setTextColor(rgbColor(rgb));
+                }
+                break;
+            default:
+                break;
             }
         }
     }
@@ -284,18 +284,18 @@ class GfxDrivers {
     void setTextSize(uint16_t textSize) {
         if (validDisplay) {
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD->setTextSize(textSize);
-                    break;
-                case DisplayType::ST7735:
-                    if (useCanvas) {
-                        pCanvas->setTextSize(textSize);
-                    } else {
-                        pDisplayST->setTextSize(textSize);
-                    }
-                    break;
-                default:
-                    break;
+            case DisplayType::SSD1306:
+                pDisplaySSD->setTextSize(textSize);
+                break;
+            case DisplayType::ST7735:
+                if (useCanvas) {
+                    pCanvas->setTextSize(textSize);
+                } else {
+                    pDisplayST->setTextSize(textSize);
+                }
+                break;
+            default:
+                break;
             }
         }
     }
@@ -303,37 +303,37 @@ class GfxDrivers {
     void setCursor(uint16_t x, uint16_t y) {
         if (validDisplay) {
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD->setCursor(x,y);
-                    break;
-                case DisplayType::ST7735:
-                    if (useCanvas) {
-                        pCanvas->setCursor(x,y);
-                    } else {
-                        pDisplayST->setCursor(x,y);
-                    }
-                    break;
-                default:
-                    break;
+            case DisplayType::SSD1306:
+                pDisplaySSD->setCursor(x, y);
+                break;
+            case DisplayType::ST7735:
+                if (useCanvas) {
+                    pCanvas->setCursor(x, y);
+                } else {
+                    pDisplayST->setCursor(x, y);
+                }
+                break;
+            default:
+                break;
             }
         }
     }
-    
+
     void println(String &text) {
         if (validDisplay) {
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD->println(text);
-                    break;
-                case DisplayType::ST7735:
-                    if (useCanvas) {
-                        pCanvas->println(text);
-                    } else {
-                        pDisplayST->println(text);
-                    }
-                    break;
-                default:
-                    break;
+            case DisplayType::SSD1306:
+                pDisplaySSD->println(text);
+                break;
+            case DisplayType::ST7735:
+                if (useCanvas) {
+                    pCanvas->println(text);
+                } else {
+                    pDisplayST->println(text);
+                }
+                break;
+            default:
+                break;
             }
         }
     }
@@ -341,22 +341,22 @@ class GfxDrivers {
     void display() {
         if (validDisplay) {
             switch (displayType) {
-                case DisplayType::SSD1306:
-                    pDisplaySSD->display();
-                    break;
-                case DisplayType::ST7735:
-                    if (useCanvas) {
-                        pDisplayST->drawRGBBitmap(0, 0, pCanvas->getBuffer(), resX, resY);
-                    }
-                    break;
-                default:
-                    break;
+            case DisplayType::SSD1306:
+                pDisplaySSD->display();
+                break;
+            case DisplayType::ST7735:
+                if (useCanvas) {
+                    pDisplayST->drawRGBBitmap(0, 0, pCanvas->getBuffer(), resX, resY);
+                }
+                break;
+            default:
+                break;
             }
         }
     }
 };
 
-    // clang - format off
+// clang-format off
 /*! \brief gfx_panel mupplet for oled and tft panels to display sensor values
 
 The mup_gfx_panel mupplet supports SSD1306 oled and ST7735 tft style displays.
@@ -476,7 +476,7 @@ class GfxPanel {
     ustd::Mqtt *pMqtt;
 #endif
 
-    enum SlotType {NUMBER, TEXT, GRAPH};
+    enum SlotType { NUMBER, TEXT, GRAPH };
     uint32_t defaultColor;
     uint32_t defaultBgColor;
     uint32_t defaultSeparatorColor;
@@ -499,16 +499,16 @@ class GfxPanel {
         uint8_t slotLenY;
         uint32_t color;
         uint32_t bgColor;
-        
+
         String topic;
         String caption;
-        
+
         uint16_t histLen;
         uint32_t lastHistUpdate;
         uint32_t histSampleRateMs;
         float *pHist;
         bool histInit;
-        
+
         float currentValue;
         String currentText;
         uint8_t digits;
@@ -521,7 +521,6 @@ class GfxPanel {
     uint16_t slots;
     T_SLOT *pSlots;
 
-
     String layout;
     String formats;
     ustd::array<String> topics;
@@ -531,53 +530,61 @@ class GfxPanel {
     uint32_t lastRefresh;
     bool delayedUpdate;
     uint32_t minUpdateIntervalMs;
-    
-    String valid_formats=" SIPFDTG";    
-    String valid_formats_long=" SIPFDTG";
-    String valid_formats_small=" sipfdtg";
-    char oldTimeString[64]="";
-        
-    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&Wire, String locale="C"): 
-        name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress), pWire(pWire), locale(locale)
-        /*!
-        @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
-        @param displayType A GfxDrivers::DisplayType, e.g. GfxDrivers::DisplayType::SSD1306, GfxDrivers::DisplayType::ST7735.
-        @param resX Horizontal resolution.
-        @param resY Vertical resolution.
-        @param i2cAddress I2C address of display
-        @param pWire Pointer to a TwoWire I2C structure, default is &Wire.
-        @param locale Locale for date strings, current 'C' (default) or 'DE'.
-        */
-    {   
+
+    String valid_formats = " SIPFDTG";
+    String valid_formats_long = " SIPFDTG";
+    String valid_formats_small = " sipfdtg";
+    char oldTimeString[64] = "";
+
+    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY,
+             uint8_t i2cAddress, TwoWire *pWire = &Wire, String locale = "C")
+        : name(name), displayType(displayType), resX(resX), resY(resY), i2cAddress(i2cAddress),
+          pWire(pWire), locale(locale)
+    /*!
+    @param name The display's `name`. A file `name`.json must exist in the format above to define
+    the display slots and corresponding MQTT messages.
+    @param displayType A GfxDrivers::DisplayType, e.g. GfxDrivers::DisplayType::SSD1306,
+    GfxDrivers::DisplayType::ST7735.
+    @param resX Horizontal resolution.
+    @param resY Vertical resolution.
+    @param i2cAddress I2C address of display
+    @param pWire Pointer to a TwoWire I2C structure, default is &Wire.
+    @param locale Locale for date strings, current 'C' (default) or 'DE'.
+    */
+    {
         switch (displayType) {
-            case GfxDrivers::DisplayType::SSD1306:
-                pDisplay=new GfxDrivers(name, displayType, resX, resY, i2cAddress, pWire);
-                break;
-            default:
-                pDisplay=nullptr;
+        case GfxDrivers::DisplayType::SSD1306:
+            pDisplay = new GfxDrivers(name, displayType, resX, resY, i2cAddress, pWire);
+            break;
+        default:
+            pDisplay = nullptr;
         }
         _common_init();
     }
 
-    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin, uint8_t dcPin, uint8_t rstPin=-1, String locale="C"):
-        name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin), rstPin(rstPin), locale(locale)
-        /*!
-        @param name The display's `name`. A file `name`.json must exist in the format above to define the display slots and corresponding MQTT messages.
-        @param displayType A DisplayDriver DisplayType, e.g. GfxDrivers::DisplayType::SSD1306, GfxDrivers::DisplayType::ST7735.
-        @param resX Horizontal resolution.
-        @param resY Vertical resolution.
-        @param csPin CS Pin for SPI.
-        @param dcPin DC Pin for SPI.
-        @param rstPin RST Pin for SPI. (default unused, -1)
-        @param locale Locale for date strings, current 'C' (default) or 'DE'.
-        */
-    {   
+    GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY,
+             uint8_t csPin, uint8_t dcPin, uint8_t rstPin = -1, String locale = "C")
+        : name(name), displayType(displayType), resX(resX), resY(resY), csPin(csPin), dcPin(dcPin),
+          rstPin(rstPin), locale(locale)
+    /*!
+    @param name The display's `name`. A file `name`.json must exist in the format above to define
+    the display slots and corresponding MQTT messages.
+    @param displayType A DisplayDriver DisplayType, e.g. GfxDrivers::DisplayType::SSD1306,
+    GfxDrivers::DisplayType::ST7735.
+    @param resX Horizontal resolution.
+    @param resY Vertical resolution.
+    @param csPin CS Pin for SPI.
+    @param dcPin DC Pin for SPI.
+    @param rstPin RST Pin for SPI. (default unused, -1)
+    @param locale Locale for date strings, current 'C' (default) or 'DE'.
+    */
+    {
         switch (displayType) {
-            case GfxDrivers::DisplayType::ST7735:
-                pDisplay=new GfxDrivers(name, displayType, resX, resY, csPin, dcPin, rstPin);
-                break;
-            default:
-                pDisplay=nullptr;
+        case GfxDrivers::DisplayType::ST7735:
+            pDisplay = new GfxDrivers(name, displayType, resX, resY, csPin, dcPin, rstPin);
+            break;
+        default:
+            pDisplay = nullptr;
         }
         _common_init();
     }
@@ -587,7 +594,7 @@ class GfxPanel {
             delete pDisplay;
         }
         if (pSlots) {
-            for (uint16_t i=0; i<slots; i++) {
+            for (uint16_t i = 0; i < slots; i++) {
                 if (pSlots[i].pHist) {
                     delete pSlots[i].pHist;
                 }
@@ -599,134 +606,140 @@ class GfxPanel {
     }
 
   private:
-
-    uint32_t relRGB(uint8_t r,uint8_t g, uint8_t b, float brightness, float contrast) {
+    uint32_t relRGB(uint8_t r, uint8_t g, uint8_t b, float brightness, float contrast) {
         int16_t rt, gt, bt;
-        rt=(int16_t)((((float)r-128.0f)*contrast*2.0f+128.0f)*brightness*2.0f);
-        if (rt>(int16_t)0xff) rt=0xff;
-        if (rt<(int16_t)0) rt=0;
-        gt=(int16_t)((((float)g-128.0f)*contrast*2.0f+128.0f)*brightness*2.0f);
-        if (gt>(int16_t)0xff) gt=0xff;
-        if (gt<(int16_t)0) gt=0;
-        bt=(int16_t)((((float)b-128.0f)*contrast*2.0f+128.0f)*brightness*2.0f);
-        if (bt>(int16_t)0xff) bt=0xff;
-        if (bt<(int16_t)0) bt=0;
+        rt = (int16_t)((((float)r - 128.0f) * contrast * 2.0f + 128.0f) * brightness * 2.0f);
+        if (rt > (int16_t)0xff)
+            rt = 0xff;
+        if (rt < (int16_t)0)
+            rt = 0;
+        gt = (int16_t)((((float)g - 128.0f) * contrast * 2.0f + 128.0f) * brightness * 2.0f);
+        if (gt > (int16_t)0xff)
+            gt = 0xff;
+        if (gt < (int16_t)0)
+            gt = 0;
+        bt = (int16_t)((((float)b - 128.0f) * contrast * 2.0f + 128.0f) * brightness * 2.0f);
+        if (bt > (int16_t)0xff)
+            bt = 0xff;
+        if (bt < (int16_t)0)
+            bt = 0;
         return GfxDrivers::RGB((uint8_t)rt, (uint8_t)gt, (uint8_t)bt);
     }
 
     String themeName;
     float brightness, contrast;
-    enum Theme {ThemeDark, ThemeLight, ThemeGruvbox, ThemeSolarizedDark, ThemeSolarizedLight};
+    enum Theme { ThemeDark, ThemeLight, ThemeGruvbox, ThemeSolarizedDark, ThemeSolarizedLight };
     Theme themeType;
     void _setTheme(Theme theme) {
-        themeType=Theme::ThemeDark;
+        themeType = Theme::ThemeDark;
         switch (theme) {
-            case ThemeLight:
-                themeName="light";
-                themeType=theme;
-                defaultColor = relRGB(0x00,0x00,0x00,brightness,contrast);
-                defaultBgColor = relRGB(0xff,0xff,0xff,brightness,contrast);
-                defaultSeparatorColor = relRGB(0x80,0x80,0x80,brightness,contrast);
-                defaultAccentColor = relRGB(0x40, 0x40, 0x40,brightness,contrast);
-                defaultIncreaseColor = relRGB(0xff, 0xa0, 0xa0,brightness,contrast);
-                defaultConstColor = relRGB(0x30, 0x30, 0x30,brightness,contrast);
-                defaultDecreaseColor = relRGB(0xa0, 0xa0, 0xff,brightness,contrast);
-                break;
-            case ThemeSolarizedLight:
-                themeName="solarizedlight";
-                themeType=theme;
-                defaultColor = relRGB(0x00,0x2b,0x36,brightness,contrast);
-                defaultBgColor = relRGB(0xee,0xe8,0x95,brightness,contrast);
-                defaultSeparatorColor = relRGB(0x58,0x6e,0x05,brightness,contrast);
-                defaultAccentColor = relRGB(0x67, 0x76, 0x02,brightness,contrast);
-                defaultIncreaseColor = relRGB(0xeb, 0x4b, 0x16,brightness,contrast);
-                defaultConstColor = relRGB(0x50, 0x50, 0x30,brightness,contrast);
-                defaultDecreaseColor = relRGB(0x43, 0x64, 0xe6,brightness,contrast);
-                break;
-            case ThemeDark:
-            default:
-                themeName="dark";
-                themeType=Theme::ThemeDark;
-                defaultColor = relRGB(0xff,0xff,0xff,brightness,contrast);
-                defaultBgColor = relRGB(0x00,0x00,0x00,brightness,contrast);
-                defaultSeparatorColor = relRGB(0x80,0x80,0x80,brightness,contrast);
-                defaultAccentColor = relRGB(0xb0, 0xb0, 0xb0,brightness,contrast);
-                defaultIncreaseColor = relRGB(0xff, 0x80, 0x80,brightness,contrast);
-                defaultConstColor = relRGB(0xc0, 0xc0, 0xc0,brightness,contrast);
-                defaultDecreaseColor = relRGB(0x80, 0x80, 0xff,brightness,contrast);
-                break;
+        case ThemeLight:
+            themeName = "light";
+            themeType = theme;
+            defaultColor = relRGB(0x00, 0x00, 0x00, brightness, contrast);
+            defaultBgColor = relRGB(0xff, 0xff, 0xff, brightness, contrast);
+            defaultSeparatorColor = relRGB(0x80, 0x80, 0x80, brightness, contrast);
+            defaultAccentColor = relRGB(0x40, 0x40, 0x40, brightness, contrast);
+            defaultIncreaseColor = relRGB(0xff, 0xa0, 0xa0, brightness, contrast);
+            defaultConstColor = relRGB(0x30, 0x30, 0x30, brightness, contrast);
+            defaultDecreaseColor = relRGB(0xa0, 0xa0, 0xff, brightness, contrast);
+            break;
+        case ThemeSolarizedLight:
+            themeName = "solarizedlight";
+            themeType = theme;
+            defaultColor = relRGB(0x00, 0x2b, 0x36, brightness, contrast);
+            defaultBgColor = relRGB(0xee, 0xe8, 0x95, brightness, contrast);
+            defaultSeparatorColor = relRGB(0x58, 0x6e, 0x05, brightness, contrast);
+            defaultAccentColor = relRGB(0x67, 0x76, 0x02, brightness, contrast);
+            defaultIncreaseColor = relRGB(0xeb, 0x4b, 0x16, brightness, contrast);
+            defaultConstColor = relRGB(0x50, 0x50, 0x30, brightness, contrast);
+            defaultDecreaseColor = relRGB(0x43, 0x64, 0xe6, brightness, contrast);
+            break;
+        case ThemeDark:
+        default:
+            themeName = "dark";
+            themeType = Theme::ThemeDark;
+            defaultColor = relRGB(0xff, 0xff, 0xff, brightness, contrast);
+            defaultBgColor = relRGB(0x00, 0x00, 0x00, brightness, contrast);
+            defaultSeparatorColor = relRGB(0x80, 0x80, 0x80, brightness, contrast);
+            defaultAccentColor = relRGB(0xb0, 0xb0, 0xb0, brightness, contrast);
+            defaultIncreaseColor = relRGB(0xff, 0x80, 0x80, brightness, contrast);
+            defaultConstColor = relRGB(0xc0, 0xc0, 0xc0, brightness, contrast);
+            defaultDecreaseColor = relRGB(0x80, 0x80, 0xff, brightness, contrast);
+            break;
         }
-        for (uint16_t slot=0; slot<slots; slot++) {
-            pSlots[slot].color=defaultColor;
-            pSlots[slot].bgColor=defaultBgColor;
+        for (uint16_t slot = 0; slot < slots; slot++) {
+            pSlots[slot].color = defaultColor;
+            pSlots[slot].bgColor = defaultBgColor;
         }
-    pDisplay->setBGColor(defaultBgColor);
-    #ifdef USE_SERIAL_DBG
-        Serial.println("setTheme: "+themeName);
-    #endif
+        pDisplay->setBGColor(defaultBgColor);
+#ifdef USE_SERIAL_DBG
+        Serial.println("setTheme: " + themeName);
+#endif
     }
 
     void _common_init() {
-        active=false;
-        slotResX=64;
-        slotResY=32;
-        brightness=0.5;
-        contrast=0.5;
+        active = false;
+        slotResX = 64;
+        slotResY = 32;
+        brightness = 0.5;
+        contrast = 0.5;
 #if USTD_FEATURE_MEMORY >= USTD_FEATURE_MEM_128K
-        defaultHistLen=128;
+        defaultHistLen = 128;
 #elif USTD_FEATURE_MEMORY >= USTD_FEATURE_MEM_32K
-        defaultHistLen=64;
+        defaultHistLen = 64;
 #else
-        defaultHistLen=16;
+        defaultHistLen = 16;
 #endif
-        defaultHistSampleRateMs=3600*1000/64;  // 1 hr in ms for entire history
+        defaultHistSampleRateMs = 3600 * 1000 / 64;  // 1 hr in ms for entire history
     }
 
     bool splitCombinedLayout(String combined_layout) {
-        bool layout_valid=true;
-        bool parsing=true;
+        bool layout_valid = true;
+        bool parsing = true;
 
-        formats="";
-        layout="";
-        slots=0;
-        String line="";
+        formats = "";
+        layout = "";
+        slots = 0;
+        String line = "";
 
         while (parsing) {
             int ind = combined_layout.indexOf('|');
-            if (ind==-1) {
-                line=combined_layout;
-                combined_layout="";
+            if (ind == -1) {
+                line = combined_layout;
+                combined_layout = "";
             } else {
-                line=combined_layout.substring(0,ind);
-                combined_layout=combined_layout.substring(ind+1);
+                line = combined_layout.substring(0, ind);
+                combined_layout = combined_layout.substring(ind + 1);
             }
             for (char c : line) {
-                if (valid_formats_small.indexOf(c)==-1 && valid_formats_long.indexOf(c)==-1) {
-                    layout_valid=false;
-                    parsing=false;
+                if (valid_formats_small.indexOf(c) == -1 && valid_formats_long.indexOf(c) == -1) {
+                    layout_valid = false;
+                    parsing = false;
                     break;
                 } else {
-                    ind=valid_formats_small.indexOf(c);
-                    if (ind!=-1) {
-                        c=valid_formats_long[ind];
-                        layout+="S";
+                    ind = valid_formats_small.indexOf(c);
+                    if (ind != -1) {
+                        c = valid_formats_long[ind];
+                        layout += "S";
                     } else {
-                        layout+="L";
+                        layout += "L";
                     }
-                    formats+=c;
+                    formats += c;
                     ++slots;
                 }
             }
-            if (!layout_valid) break;
-            if (combined_layout!="") {
-                layout+="|";
+            if (!layout_valid)
+                break;
+            if (combined_layout != "") {
+                layout += "|";
             } else {
-                parsing=false;
+                parsing = false;
             }
         }
 
-        lastRefresh=0;
-        delayedUpdate=false;
+        lastRefresh = 0;
+        delayedUpdate = false;
         return layout_valid;
     }
 
@@ -735,16 +748,16 @@ class GfxPanel {
         @param name: The display's `name` and name of config file `name`.json.
         @return: True if config file was found and read, false otherwise.
         */
-        String combined_layout=jf.readString(name+"/layout","ff|ff");
+        String combined_layout = jf.readString(name + "/layout", "ff|ff");
         if (!splitCombinedLayout(combined_layout)) {
             return false;
         }
-        for (uint8_t i=0; i<slots; i++) {
-            captions[i]="room";
-            topics[i]="some/topic";
+        for (uint8_t i = 0; i < slots; i++) {
+            captions[i] = "room";
+            topics[i] = "some/topic";
         }
-        jf.readStringArray(name+"/topics", topics);
-        jf.readStringArray(name+"/captions", captions);
+        jf.readStringArray(name + "/topics", topics);
+        jf.readStringArray(name + "/captions", captions);
         if (topics.length() != captions.length() || topics.length() != slots) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Error: topics, captions and layout do not match");
@@ -777,104 +790,104 @@ class GfxPanel {
         @param slot: The slot to convert.
         @return: True if config was converted, false otherwise.
         */
-        if (slot>=slots) {
+        if (slot >= slots) {
             return false;
         }
-        pSlots[slot].slotX=0;
-        pSlots[slot].slotY=0;
-        uint16_t ind=0;
+        pSlots[slot].slotX = 0;
+        pSlots[slot].slotY = 0;
+        uint16_t ind = 0;
         for (auto c : layout) {
-            if (c=='S') {
-                if (ind==slot) {
-                    pSlots[slot].slotLenX=1;
-                    pSlots[slot].slotLenY=1;
+            if (c == 'S') {
+                if (ind == slot) {
+                    pSlots[slot].slotLenX = 1;
+                    pSlots[slot].slotLenY = 1;
                     break;
                 } else {
                     pSlots[slot].slotX++;
                 }
                 ++ind;
-            } else if (c=='L') {
-                if (ind==slot) {
-                    pSlots[slot].slotLenX=2;
-                    pSlots[slot].slotLenY=1;
+            } else if (c == 'L') {
+                if (ind == slot) {
+                    pSlots[slot].slotLenX = 2;
+                    pSlots[slot].slotLenY = 1;
                     break;
                 } else {
-                    pSlots[slot].slotX+=2;
+                    pSlots[slot].slotX += 2;
                 }
                 ++ind;
-            } else if (c=='|') {
+            } else if (c == '|') {
                 pSlots[slot].slotY++;
-                pSlots[slot].slotX=0;
+                pSlots[slot].slotX = 0;
             } else {
                 return false;
             }
         }
-        pSlots[slot].histLen=defaultHistLen;
-        pSlots[slot].offset=0.0;
-        pSlots[slot].scalingFactor=1.0;
+        pSlots[slot].histLen = defaultHistLen;
+        pSlots[slot].offset = 0.0;
+        pSlots[slot].scalingFactor = 1.0;
         switch (formats[slot]) {
-            case 'I':
-                pSlots[slot].slotType=SlotType::NUMBER;
-                pSlots[slot].digits=0;
-                break;
-            case 'F':
-                pSlots[slot].slotType=SlotType::NUMBER;
-                pSlots[slot].digits=1;
-                break;
-            case 'D':
-                pSlots[slot].slotType=SlotType::NUMBER;
-                pSlots[slot].digits=2;
-                break;
-            case 'T':
-                pSlots[slot].slotType=SlotType::NUMBER;
-                pSlots[slot].digits=3;
-                break;
-            case 'S':
-                pSlots[slot].slotType=SlotType::TEXT;
-                pSlots[slot].digits=3;
-                pSlots[slot].histLen=0;
-                break;
-            case 'P':
-                pSlots[slot].slotType=SlotType::NUMBER;
-                pSlots[slot].scalingFactor=100.0;
-                pSlots[slot].digits=1;
-                break;
-            case 'G':
-                pSlots[slot].slotType=SlotType::GRAPH;
-                pSlots[slot].digits=3;
-                break;
-            default:
-                return false;
+        case 'I':
+            pSlots[slot].slotType = SlotType::NUMBER;
+            pSlots[slot].digits = 0;
+            break;
+        case 'F':
+            pSlots[slot].slotType = SlotType::NUMBER;
+            pSlots[slot].digits = 1;
+            break;
+        case 'D':
+            pSlots[slot].slotType = SlotType::NUMBER;
+            pSlots[slot].digits = 2;
+            break;
+        case 'T':
+            pSlots[slot].slotType = SlotType::NUMBER;
+            pSlots[slot].digits = 3;
+            break;
+        case 'S':
+            pSlots[slot].slotType = SlotType::TEXT;
+            pSlots[slot].digits = 3;
+            pSlots[slot].histLen = 0;
+            break;
+        case 'P':
+            pSlots[slot].slotType = SlotType::NUMBER;
+            pSlots[slot].scalingFactor = 100.0;
+            pSlots[slot].digits = 1;
+            break;
+        case 'G':
+            pSlots[slot].slotType = SlotType::GRAPH;
+            pSlots[slot].digits = 3;
+            break;
+        default:
+            return false;
         }
         if (pSlots[slot].histLen) {
-            pSlots[slot].pHist=(float *)malloc(sizeof(float)*pSlots[slot].histLen);
-            pSlots[slot].histInit=false;
+            pSlots[slot].pHist = (float *)malloc(sizeof(float) * pSlots[slot].histLen);
+            pSlots[slot].histInit = false;
             if (pSlots[slot].pHist) {
-                for (uint16_t j=0; j<pSlots[slot].histLen; j++) {
-                    pSlots[slot].pHist[j]=0;
+                for (uint16_t j = 0; j < pSlots[slot].histLen; j++) {
+                    pSlots[slot].pHist[j] = 0;
                 }
             } else {
-                pSlots[slot].histLen=0;
+                pSlots[slot].histLen = 0;
                 return false;
             }
         } else {
-            pSlots[slot].pHist=nullptr;
-            pSlots[slot].histLen=0;
+            pSlots[slot].pHist = nullptr;
+            pSlots[slot].histLen = 0;
         }
-        pSlots[slot].topic=topics[slot];
-        pSlots[slot].caption=captions[slot];
-        pSlots[slot].lastUpdate=time(nullptr);
-        pSlots[slot].lastHistUpdate=0;
-        pSlots[slot].histSampleRateMs=defaultHistSampleRateMs;
-        pSlots[slot].currentValue=0.0;
-        pSlots[slot].currentText="";
-        pSlots[slot].deltaDir=0.0;
-        pSlots[slot].isInit=true;
-        pSlots[slot].isValid=false;
-        pSlots[slot].color=defaultColor;
-        pSlots[slot].bgColor=defaultBgColor;
-        pSlots[slot].lastFrame=0;
-        pSlots[slot].frameRate=1000;
+        pSlots[slot].topic = topics[slot];
+        pSlots[slot].caption = captions[slot];
+        pSlots[slot].lastUpdate = time(nullptr);
+        pSlots[slot].lastHistUpdate = 0;
+        pSlots[slot].histSampleRateMs = defaultHistSampleRateMs;
+        pSlots[slot].currentValue = 0.0;
+        pSlots[slot].currentText = "";
+        pSlots[slot].deltaDir = 0.0;
+        pSlots[slot].isInit = true;
+        pSlots[slot].isValid = false;
+        pSlots[slot].color = defaultColor;
+        pSlots[slot].bgColor = defaultBgColor;
+        pSlots[slot].lastFrame = 0;
+        pSlots[slot].frameRate = 1000;
         return true;
     }
 
@@ -888,9 +901,9 @@ class GfxPanel {
 #endif
             return false;
         }
-        slots=formats.length();
-        pSlots=new T_SLOT[slots];
-        for (uint16_t i=0; i<slots; i++) {
+        slots = formats.length();
+        pSlots = new T_SLOT[slots];
+        for (uint16_t i = 0; i < slots; i++) {
             if (!config2slot(i)) {
                 return false;
             }
@@ -899,43 +912,44 @@ class GfxPanel {
     }
 
     void _sensorLoop() {
-        const char *weekDays[]={"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
-        const char *wochenTage[]={"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
+        const char *weekDays[] = {"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
+        const char *wochenTage[] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
         const char *pDay;
         struct tm *plt;
         time_t t;
         char buf[64];
-        if (!active) return;
-        // scruffy old c time functions 
-        t=time(nullptr);
-        plt=localtime(&t);
-        if (locale=="DE") pDay=wochenTage[plt->tm_wday];
-        else pDay=weekDays[plt->tm_wday];
+        if (!active)
+            return;
+        // scruffy old c time functions
+        t = time(nullptr);
+        plt = localtime(&t);
+        if (locale == "DE")
+            pDay = wochenTage[plt->tm_wday];
+        else
+            pDay = weekDays[plt->tm_wday];
         // sprintf(buf,"%s %02d. %02d:%02d",pDay,plt->tm_mday, plt->tm_hour, plt->tm_min);
-        sprintf(buf,"%s %02d:%02d",pDay, plt->tm_hour, plt->tm_min);
-        if (strcmp(buf,oldTimeString)) {
-            strcpy(oldTimeString,buf);
+        sprintf(buf, "%s %02d:%02d", pDay, plt->tm_hour, plt->tm_min);
+        if (strcmp(buf, oldTimeString)) {
+            strcpy(oldTimeString, buf);
             sensorUpdates("clock/timeinfo", String(buf), "self.local");
         }
         // If a sensors doesn't update values for 1 hr (3600sec), declare invalid.
-        for (uint8_t i=0; i<slots; i++) {
-            if (time(nullptr)-pSlots[i].lastUpdate > 3600) {
-                pSlots[i].isValid=false;
+        for (uint8_t i = 0; i < slots; i++) {
+            if (time(nullptr) - pSlots[i].lastUpdate > 3600) {
+                pSlots[i].isValid = false;
             }
         }
-        if (delayedUpdate && timeDiff(lastRefresh, millis())>minUpdateIntervalMs*0.9) {
+        if (delayedUpdate && timeDiff(lastRefresh, millis()) > minUpdateIntervalMs * 0.9) {
             updateDisplay(true, false);
         }
     }
 
-    void commonBegin(bool useCanvas=false) {
+    void commonBegin(bool useCanvas = false) {
         pDisplay->begin(useCanvas);
 
-        auto fntsk = [=]() {
-            _sensorLoop();
-        };
-        minUpdateIntervalMs=50;
-        int tID = pSched->add(fntsk, name, minUpdateIntervalMs*1000L);
+        auto fntsk = [=]() { _sensorLoop(); };
+        minUpdateIntervalMs = 50;
+        int tID = pSched->add(fntsk, name, minUpdateIntervalMs * 1000L);
         auto fnsub = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
         };
@@ -943,20 +957,20 @@ class GfxPanel {
         auto fnall = [=](String topic, String msg, String originator) {
             sensorUpdates(topic, msg, originator);
         };
-        for (uint8_t i=0; i<slots; i++) {
-            if (topics[i]!="") {
+        for (uint8_t i = 0; i < slots; i++) {
+            if (topics[i] != "") {
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-                if (topics[i][0]=='!') {
-                    topics[i]=topics[i].substring(1);
+                if (topics[i][0] == '!') {
+                    topics[i] = topics[i].substring(1);
                     pMqtt->addSubscription(tID, topics[i], fnall);
 #ifdef USE_SERIAL_DBG
                     Serial.print("Subscribing via MQTT: ");
                     Serial.println(topics[i]);
 #endif
-                } 
+                }
 #endif
-                if (topics[i][0]!='!') {
-                    if (topics[i]!="clock/timeinfo") {  // local shortcut msg. Questionable?
+                if (topics[i][0] != '!') {
+                    if (topics[i] != "clock/timeinfo") {  // local shortcut msg. Questionable?
                         pSched->subscribe(tID, topics[i], fnall);
 #ifdef USE_SERIAL_DBG
                         Serial.print("Subscribing internally: ");
@@ -982,63 +996,72 @@ class GfxPanel {
         Serial.println(defaultHistLen);
 #endif  // USE_SERIAL_DBG
         shortConfig2Slots();
-        active=true;
+        active = true;
         _setTheme(Theme::ThemeDark);
         updateDisplay(true, true);
     }
 
   public:
-
-    void setBrightness(float _brightness=0.5) {
-        if (!active) return;
-        if (_brightness<0.0) _brightness=0.0;
-        if (_brightness>1.0) _brightness=1.0;
-        brightness=_brightness;
+    void setBrightness(float _brightness = 0.5) {
+        if (!active)
+            return;
+        if (_brightness < 0.0)
+            _brightness = 0.0;
+        if (_brightness > 1.0)
+            _brightness = 1.0;
+        brightness = _brightness;
         _setTheme(themeType);
         updateDisplay(true, true);
     }
 
     void publishBrightness() {
-        if (!active) return;
-        pSched->publish(name+"/display/brightness", String(brightness,3));
+        if (!active)
+            return;
+        pSched->publish(name + "/display/brightness", String(brightness, 3));
     }
 
-    void setContrast(float _contrast=0.5) {
-        if (!active) return;
-        if (_contrast<0.0) _contrast=0.0;
-        if (_contrast>1.0) _contrast=1.0;
-        contrast=_contrast;
+    void setContrast(float _contrast = 0.5) {
+        if (!active)
+            return;
+        if (_contrast < 0.0)
+            _contrast = 0.0;
+        if (_contrast > 1.0)
+            _contrast = 1.0;
+        contrast = _contrast;
         _setTheme(themeType);
         updateDisplay(true, true);
     }
 
     void publishContrast() {
-        if (!active) return;
-        pSched->publish(name+"/display/contrast", String(contrast,3));
+        if (!active)
+            return;
+        pSched->publish(name + "/display/contrast", String(contrast, 3));
     }
 
     void setTheme(String _theme) {
-        if (!active) return;
-        bool upd=false;
-        contrast=0.5;
-        brightness=0.5;
-        if (_theme=="light") {
+        if (!active)
+            return;
+        bool upd = false;
+        contrast = 0.5;
+        brightness = 0.5;
+        if (_theme == "light") {
             _setTheme(Theme::ThemeLight);
-            upd=true;
+            upd = true;
         }
-        if (_theme=="solarizedlight") {
+        if (_theme == "solarizedlight") {
             _setTheme(Theme::ThemeSolarizedLight);
-            upd=true;
+            upd = true;
         }
         if (!upd) {
             _setTheme(Theme::ThemeDark);
         }
         updateDisplay(true, true);
     }
-    
+
     void publishTheme() {
-        if (!active) return;
-        pSched->publish(name+"/display/theme", themeName);
+        if (!active)
+            return;
+        pSched->publish(name + "/display/theme", themeName);
     }
 
     void setSlotCaption(uint16_t slot, String caption) {
@@ -1046,12 +1069,13 @@ class GfxPanel {
         @param slot: The slot number.
         @param caption: The caption.
         */
-        if (!active) return;
-        captions[slot]=caption;
-        if (pSlots && slot<slots) {
+        if (!active)
+            return;
+        captions[slot] = caption;
+        if (pSlots && slot < slots) {
             if (pSlots[slot].isInit) {
-                pSlots[slot].caption=caption;
-                pSlots[slot].hasChanged=true;
+                pSlots[slot].caption = caption;
+                pSlots[slot].hasChanged = true;
             }
         }
         updateDisplay(false, false);
@@ -1061,20 +1085,21 @@ class GfxPanel {
         /*! Publish the caption for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active) return;
-        String cap="";
-        bool done=false;
-        if (slot<slots) {
+        if (!active)
+            return;
+        String cap = "";
+        bool done = false;
+        if (slot < slots) {
             if (pSlots) {
                 if (pSlots[slot].isInit) {
-                    cap=pSlots[slot].caption;
-                    done=true;
+                    cap = pSlots[slot].caption;
+                    done = true;
                 }
             }
             if (!done) {
-                cap=captions[slot];
+                cap = captions[slot];
             }
-            pSched->publish(name+"/display/slot/"+String(slot)+"/caption", cap);
+            pSched->publish(name + "/display/slot/" + String(slot) + "/caption", cap);
         }
     }
 
@@ -1083,8 +1108,9 @@ class GfxPanel {
         @param slot: The slot number.
         @param text: The text.
         */
-        if (!active) return;
-        if (slot<slots) {
+        if (!active)
+            return;
+        if (slot < slots) {
             // XXX
         }
     }
@@ -1092,8 +1118,9 @@ class GfxPanel {
         /*! Publish the text for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active) return;
-        if (slot<slots) {
+        if (!active)
+            return;
+        if (slot < slots) {
             // pSched->publish(name+"/display/slot/"+String(slot), xxx[slot]);
         }
     }
@@ -1103,23 +1130,26 @@ class GfxPanel {
         @param slot: The slot number.
         @param topic: The topic.
         */
-        if (!active) return;
+        if (!active)
+            return;
     }
     void publishSlotTopic(uint16_t slot) {
         /*! Publish the topic for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active) return;
+        if (!active)
+            return;
     }
     void setSlotFormat(uint16_t slot, String format) {
         /*! Set the format for a slot.
         @param slot: The slot number.
         @param format: The format.
         */
-        if (!active) return;
-        if (slot<slots && format.length()==1) {
-            formats[slot]=format[0];
-            pSlots[slot].hasChanged=true;
+        if (!active)
+            return;
+        if (slot < slots && format.length() == 1) {
+            formats[slot] = format[0];
+            pSlots[slot].hasChanged = true;
             updateDisplay(false, false);
         }
     }
@@ -1127,7 +1157,8 @@ class GfxPanel {
         /*! Publish the format for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active) return;
+        if (!active)
+            return;
     }
 
     void setSlotHistorySampleRateMs(uint16_t slot, uint32_t rate) {
@@ -1135,10 +1166,11 @@ class GfxPanel {
         @param slot: The slot number.
         @param rate: The sample rate in milliseconds.
         */
-        if (!active) return;
-        if (slot<slots) {
-            pSlots[slot].histSampleRateMs=rate;
-            pSlots[slot].frameRate=rate;
+        if (!active)
+            return;
+        if (slot < slots) {
+            pSlots[slot].histSampleRateMs = rate;
+            pSlots[slot].frameRate = rate;
         }
     }
 
@@ -1146,22 +1178,25 @@ class GfxPanel {
         /*! Publish the history sample rate for a slot.
         @param slot: The slot number, 0..<slots.
         */
-        if (!active) return;
-        if (slot<slots) {
-            pSched->publish(name+"/display/slot/"+String(slot)+"/histosrysampleratems", String(pSlots[slot].histSampleRateMs));
+        if (!active)
+            return;
+        if (slot < slots) {
+            pSched->publish(name + "/display/slot/" + String(slot) + "/histosrysampleratems",
+                            String(pSlots[slot].histSampleRateMs));
         }
     }
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, bool _useCanvas = false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
-        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in
+        `'display-name'.json` file.
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, bool _useCanvas = false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
@@ -1173,25 +1208,35 @@ class GfxPanel {
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout,
+               ustd::array<String> _topics, ustd::array<String> _captions,
+               bool _useCanvas = false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
-        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in
+        `'display-name'.json` file.
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
-        @param _topics std::array<String> of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
-        @param _captions std::array<String> of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        @param _topics std::array<String> of topics to subscribe to. The number of topics must match
+        the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions std::array<String> of captions to display for the topics. The number of
+        captions must match the number of topics and the number of slot-qualifiers in the
+        combined_layout string.
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics, ustd::array<String> _captions, bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, ustd::array<String> _topics,
+               ustd::array<String> _captions, bool _useCanvas = false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
-        @param _topics std::array<String> of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
-        @param _captions std::array<String> of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        @param _topics std::array<String> of topics to subscribe to. The number of topics must match
+        the number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions std::array<String> of captions to display for the topics. The number of
+        captions must match the number of topics and the number of slot-qualifiers in the
+        combined_layout string.
         */
         pSched = _pSched;
 #endif
@@ -1207,34 +1252,44 @@ class GfxPanel {
     }
 
 #if defined(USTD_FEATURE_NETWORK) && !defined(OPTION_NO_MQTT)
-    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, ustd::Mqtt *_pMqtt, String combined_layout,
+               uint16_t _slots, const char *_topics[], const char *_captions[],
+               bool _useCanvas = false) {
         /*! Activate display and begin receiving MQTT updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
-        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
+        @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in
+        `'display-name'.json` file.
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
         @param _slots Number of slots to use, must be array dimension of both _captions and topics.
-        @param _topics const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
-        @param _captions const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        @param _topics const char *[] of topics to subscribe to. The number of topics must match the
+        number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions const char *[] of captions to display for the topics. The number of
+        captions must match the number of topics and the number of slot-qualifiers in the
+        combined_layout string.
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
 #else
-    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots, const char *_topics[], const char *_captions[], bool _useCanvas=false) {
+    void begin(ustd::Scheduler *_pSched, String combined_layout, uint16_t _slots,
+               const char *_topics[], const char *_captions[], bool _useCanvas = false) {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
         @param _slots Number of slots to use, must be array dimension of both _captions and topics.
-        @param _topics const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
-        @param _captions const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        @param _topics const char *[] of topics to subscribe to. The number of topics must match the
+        number of captions and the number of slot-qualifiers in the combined_layout string.
+        @param _captions const char *[] of captions to display for the topics. The number of
+        captions must match the number of topics and the number of slot-qualifiers in the
+        combined_layout string.
         */
         pSched = _pSched;
 #endif
-        for (uint16_t i=0; i<_slots; i++) {
-            String s=_topics[i];
+        for (uint16_t i = 0; i < _slots; i++) {
+            String s = _topics[i];
             topics.add(s);
-            String c=_captions[i];
+            String c = _captions[i];
             captions.add(c);
         }
         getConfigFromLayout(name, combined_layout);
@@ -1242,176 +1297,198 @@ class GfxPanel {
     }
 
   private:
-    void drawArrow(uint16_t x, uint16_t y, bool up=true, uint16_t len=8, uint16_t wid=3, int16_t delta_down=0) {
-        uint32_t red=defaultIncreaseColor;
-        uint32_t blue=defaultDecreaseColor;
+    void drawArrow(uint16_t x, uint16_t y, bool up = true, uint16_t len = 8, uint16_t wid = 3,
+                   int16_t delta_down = 0) {
+        uint32_t red = defaultIncreaseColor;
+        uint32_t blue = defaultDecreaseColor;
         if (up) {
-            pDisplay->drawLine(x,y+len, x, y, red);
-            pDisplay->drawLine(x+1,y+len, x+1, y, red);
-            pDisplay->drawLine(x, y, x-wid, y+wid, red);
-            pDisplay->drawLine(x, y, x+wid, y+wid, red);
-            pDisplay->drawLine(x+1, y, x-wid+1, y+wid, red);
-            pDisplay->drawLine(x+1, y, x+wid+1, y+wid, red);
+            pDisplay->drawLine(x, y + len, x, y, red);
+            pDisplay->drawLine(x + 1, y + len, x + 1, y, red);
+            pDisplay->drawLine(x, y, x - wid, y + wid, red);
+            pDisplay->drawLine(x, y, x + wid, y + wid, red);
+            pDisplay->drawLine(x + 1, y, x - wid + 1, y + wid, red);
+            pDisplay->drawLine(x + 1, y, x + wid + 1, y + wid, red);
         } else {
-            pDisplay->drawLine(x,y+len+delta_down, x, y+delta_down, blue);
-            pDisplay->drawLine(x+1,y+len+delta_down, x+1, y+delta_down, blue);
-            pDisplay->drawLine(x, y+len+delta_down, x-wid, y+len-wid+delta_down, blue);
-            pDisplay->drawLine(x, y+len+delta_down, x+wid, y+len-wid+delta_down, blue);
-            pDisplay->drawLine(x+1, y+len+delta_down, x-wid+1, y+len-wid+delta_down, blue);
-            pDisplay->drawLine(x+1, y+len+delta_down, x+wid+1, y+len-wid+delta_down, blue);
+            pDisplay->drawLine(x, y + len + delta_down, x, y + delta_down, blue);
+            pDisplay->drawLine(x + 1, y + len + delta_down, x + 1, y + delta_down, blue);
+            pDisplay->drawLine(x, y + len + delta_down, x - wid, y + len - wid + delta_down, blue);
+            pDisplay->drawLine(x, y + len + delta_down, x + wid, y + len - wid + delta_down, blue);
+            pDisplay->drawLine(x + 1, y + len + delta_down, x - wid + 1, y + len - wid + delta_down,
+                               blue);
+            pDisplay->drawLine(x + 1, y + len + delta_down, x + wid + 1, y + len - wid + delta_down,
+                               blue);
         }
     }
 
     void boldParser(String msg, String &first, String &sec) {
-        bool isBold=true;
-        for (unsigned int i=0; i<msg.length(); i++) {
-            if (msg[i]=='_') {
-                isBold=!isBold;
+        bool isBold = true;
+        for (unsigned int i = 0; i < msg.length(); i++) {
+            if (msg[i] == '_') {
+                isBold = !isBold;
                 continue;
             }
             if (isBold) {
-                first+=msg[i];
-                sec+=msg[i];
+                first += msg[i];
+                sec += msg[i];
             } else {
-                first+=msg[i];
-                sec+=' ';
+                first += msg[i];
+                sec += ' ';
             }
         }
     }
 
     bool displaySlot(uint16_t slot) {
-        if (slot>=slots) return false;
+        if (slot >= slots)
+            return false;
 
-        uint8_t x0=0, y0=0, x1=0, y1=0, xa=0, ya=0;
-        uint8_t xm0, ym0, xm1,ym1;
+        uint8_t x0 = 0, y0 = 0, x1 = 0, y1 = 0, xa = 0, ya = 0;
+        uint8_t xm0, ym0, xm1, ym1;
 
         // Blank
         uint16_t xf0, yf0, xl, yl;
-        xf0=pSlots[slot].slotX*slotResX;
-        xl=slotResX*pSlots[slot].slotLenX;
-        yf0=pSlots[slot].slotY*slotResY+1;
-        yl=slotResY*pSlots[slot].slotLenY-1;
+        xf0 = pSlots[slot].slotX * slotResX;
+        xl = slotResX * pSlots[slot].slotLenX;
+        yf0 = pSlots[slot].slotY * slotResY + 1;
+        yl = slotResY * pSlots[slot].slotLenY - 1;
         pDisplay->fillRect(xf0, yf0, xl, yl, pSlots[slot].bgColor);
         // Caption font start x0,y0
-        x0=pSlots[slot].slotX*slotResX+14;
-        y0=pSlots[slot].slotY*slotResY+3;
-        x1=pSlots[slot].slotX*slotResX+14;
-        y1=pSlots[slot].slotY*slotResY+slotResY-3;
-        xa=pSlots[slot].slotX*slotResX+5;
-        ya=pSlots[slot].slotY*slotResY+14;
-        xm0=pSlots[slot].slotX*slotResX+1;
-        ym0=pSlots[slot].slotY*slotResY+1;
-        xm1=(pSlots[slot].slotX+1)*slotResX-2+(pSlots[slot].slotLenX-1)*slotResX;
-        ym1=(pSlots[slot].slotY+1)*slotResY-2+(pSlots[slot].slotLenY-1)*slotResY;
+        x0 = pSlots[slot].slotX * slotResX + 14;
+        y0 = pSlots[slot].slotY * slotResY + 3;
+        x1 = pSlots[slot].slotX * slotResX + 14;
+        y1 = pSlots[slot].slotY * slotResY + slotResY - 3;
+        xa = pSlots[slot].slotX * slotResX + 5;
+        ya = pSlots[slot].slotY * slotResY + 14;
+        xm0 = pSlots[slot].slotX * slotResX + 1;
+        ym0 = pSlots[slot].slotY * slotResY + 1;
+        xm1 = (pSlots[slot].slotX + 1) * slotResX - 2 + (pSlots[slot].slotLenX - 1) * slotResX;
+        ym1 = (pSlots[slot].slotY + 1) * slotResY - 2 + (pSlots[slot].slotLenY - 1) * slotResY;
 
         // caption
         pDisplay->setFont();
         pDisplay->setTextColor(defaultAccentColor);
         pDisplay->setTextSize(1);
-        String first="", second="";
+        String first = "", second = "";
         boldParser(pSlots[slot].caption, first, second);
-        pDisplay->setCursor(x0,y0);
+        pDisplay->setCursor(x0, y0);
         pDisplay->println(first);
-        pDisplay->setCursor(x0+1,y0);
+        pDisplay->setCursor(x0 + 1, y0);
         pDisplay->println(second);
 
         float gmin, gmax, dmin, dmax;
         float avg, navg;
-        dmin= 100000.0;
-        dmax=-100000.0;
-        gmax=-100000.0;
-        gmin= 100000.0;
-        avg=0.0;
-        navg=0.0;
-        if (pSlots[slot].slotType!=SlotType::TEXT) {
+        dmin = 100000.0;
+        dmax = -100000.0;
+        gmax = -100000.0;
+        gmin = 100000.0;
+        avg = 0.0;
+        navg = 0.0;
+        if (pSlots[slot].slotType != SlotType::TEXT) {
             if (pSlots[slot].pHist && pSlots[slot].histLen) {
-                for (uint16_t x=0; x<pSlots[slot].histLen; x++) {
-                    if (pSlots[slot].pHist[x]>gmax) gmax=pSlots[slot].pHist[x];
-                    if (pSlots[slot].pHist[x]<gmin) gmin=pSlots[slot].pHist[x];
-                    uint16_t backView=0;
-                    if (pSlots[slot].histLen>=10) backView=pSlots[slot].histLen-10;
-                    if (x>=backView) {
+                for (uint16_t x = 0; x < pSlots[slot].histLen; x++) {
+                    if (pSlots[slot].pHist[x] > gmax)
+                        gmax = pSlots[slot].pHist[x];
+                    if (pSlots[slot].pHist[x] < gmin)
+                        gmin = pSlots[slot].pHist[x];
+                    uint16_t backView = 0;
+                    if (pSlots[slot].histLen >= 10)
+                        backView = pSlots[slot].histLen - 10;
+                    if (x >= backView) {
                         avg += pSlots[slot].pHist[x];
                         navg++;
-                        if (pSlots[slot].pHist[x]>dmax) dmax=pSlots[slot].pHist[x];
-                        if (pSlots[slot].pHist[x]<dmin) dmin=pSlots[slot].pHist[x];
+                        if (pSlots[slot].pHist[x] > dmax)
+                            dmax = pSlots[slot].pHist[x];
+                        if (pSlots[slot].pHist[x] < dmin)
+                            dmin = pSlots[slot].pHist[x];
                     }
                 }
                 float ref;
-                if (navg>0.0) ref=avg/navg;
-                else ref=0.0;
-                pSlots[slot].deltaDir=pSlots[slot].currentValue-ref;
+                if (navg > 0.0)
+                    ref = avg / navg;
+                else
+                    ref = 0.0;
+                pSlots[slot].deltaDir = pSlots[slot].currentValue - ref;
             }
         }
-        if (pSlots[slot].slotType!=SlotType::GRAPH) {
+        if (pSlots[slot].slotType != SlotType::GRAPH) {
             // Main text
             pDisplay->setFont(&FreeSans12pt7b);
             pDisplay->setTextColor(defaultColor);
             pDisplay->setTextSize(1);
-            pDisplay->setCursor(x1,y1);
+            pDisplay->setCursor(x1, y1);
             pDisplay->println(pSlots[slot].currentText);
-            pDisplay->setCursor(x1+1,y1);
+            pDisplay->setCursor(x1 + 1, y1);
             pDisplay->println(pSlots[slot].currentText);
-            if (pSlots[slot].slotType!=SlotType::TEXT) {
+            if (pSlots[slot].slotType != SlotType::TEXT) {
                 // arrow
                 if (pSlots[slot].deltaDir != 0.0) {
-                    drawArrow(xa,ya,(pSlots[slot].deltaDir>0.0),8,3,7);
+                    drawArrow(xa, ya, (pSlots[slot].deltaDir > 0.0), 8, 3, 7);
                 }
             }
         } else {
             // Graph
             if (pSlots[slot].pHist && pSlots[slot].histLen) {
-                double deltaY=gmax-gmin;
-                if (deltaY<0.0001) deltaY=1;
-                double deltaX=(double)(xm1-xm0)/(double)(pSlots[slot].histLen);
-                int lx0,ly0,lx1,ly1;
-                int gHeight=(ym1-ym0)-11; // font size of caption.
-                for (uint16_t i=1; i<pSlots[slot].histLen; i++) {
-                    lx0=xm0+(int)((double)(i-1)*deltaX); lx1=xm0+(int)((double)i*deltaX);
-                    ly0=ym1-(int)((pSlots[slot].pHist[i-1]-gmin)/deltaY*(double)(gHeight));
-                    ly1=ym1-(int)((pSlots[slot].pHist[i]-gmin)/deltaY*(double)(gHeight));
+                double deltaY = gmax - gmin;
+                if (deltaY < 0.0001)
+                    deltaY = 1;
+                double deltaX = (double)(xm1 - xm0) / (double)(pSlots[slot].histLen);
+                int lx0, ly0, lx1, ly1;
+                int gHeight = (ym1 - ym0) - 11;  // font size of caption.
+                for (uint16_t i = 1; i < pSlots[slot].histLen; i++) {
+                    lx0 = xm0 + (int)((double)(i - 1) * deltaX);
+                    lx1 = xm0 + (int)((double)i * deltaX);
+                    ly0 = ym1 -
+                          (int)((pSlots[slot].pHist[i - 1] - gmin) / deltaY * (double)(gHeight));
+                    ly1 = ym1 - (int)((pSlots[slot].pHist[i] - gmin) / deltaY * (double)(gHeight));
                     uint32_t col;
-                    if (ly1<ly0) col=defaultIncreaseColor;
+                    if (ly1 < ly0)
+                        col = defaultIncreaseColor;
                     else {
-                        if (ly1==ly0) col=defaultConstColor;
-                        else col=defaultDecreaseColor;
+                        if (ly1 == ly0)
+                            col = defaultConstColor;
+                        else
+                            col = defaultDecreaseColor;
                     }
                     pDisplay->drawLine(lx0, ly0, lx1, ly1, col);
                 }
             }
         }
-        pSlots[slot].hasChanged=false;
+        pSlots[slot].hasChanged = false;
         return true;
     }
 
   public:
-    void updateDisplay(bool updateNow, bool forceRedraw=false) {
-        if (!updateNow && (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
-            delayedUpdate=true;
+    void updateDisplay(bool updateNow, bool forceRedraw = false) {
+        if (!updateNow &&
+            (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
+            delayedUpdate = true;
             return;
         }
-        bool update=false;
-        lastRefresh=millis();
-        delayedUpdate=false;
-        uint16_t maxSlotX=0, maxSlotY=0;
+        bool update = false;
+        lastRefresh = millis();
+        delayedUpdate = false;
+        uint16_t maxSlotX = 0, maxSlotY = 0;
 
         if (forceRedraw) {
             pDisplay->clearDisplay(defaultBgColor);
-            for (uint16_t slot=0; slot<slots; slot++) {
-                if (pSlots[slot].slotX>maxSlotX) maxSlotX=pSlots[slot].slotX;
-                if (pSlots[slot].slotY>maxSlotY) maxSlotY=pSlots[slot].slotY;
+            for (uint16_t slot = 0; slot < slots; slot++) {
+                if (pSlots[slot].slotX > maxSlotX)
+                    maxSlotX = pSlots[slot].slotX;
+                if (pSlots[slot].slotY > maxSlotY)
+                    maxSlotY = pSlots[slot].slotY;
             }
             uint16_t y;
-            for (uint16_t ly=0; ly<=maxSlotY+1; ly++) {
-                y=ly*slotResY;
-                if (y>=resY) y=resY-1;
+            for (uint16_t ly = 0; ly <= maxSlotY + 1; ly++) {
+                y = ly * slotResY;
+                if (y >= resY)
+                    y = resY - 1;
                 // XXX slotLenY==1! (maybe implicitly solved by rect fill)
-                pDisplay->drawLine(0,y,resX-1,y, defaultSeparatorColor);
+                pDisplay->drawLine(0, y, resX - 1, y, defaultSeparatorColor);
             }
         }
-        for (uint16_t slot=0; slot<slots; slot++) {
+        for (uint16_t slot = 0; slot < slots; slot++) {
             if (pSlots[slot].hasChanged || forceRedraw) {
-                if (displaySlot(slot)) update=true;
+                if (displaySlot(slot))
+                    update = true;
             }
         }
         if (update || forceRedraw) {
@@ -1420,140 +1497,149 @@ class GfxPanel {
     }
 
   private:
-
     bool updateSlot(uint16_t slot, String msg) {
-        if (slot>=slots) return false;
-        if (timeDiff(pSlots[slot].lastFrame, millis()) < pSlots[slot].frameRate) return false;
-        bool changed=false;
-        float k=pSlots[slot].scalingFactor;
-        float o=pSlots[slot].offset;
+        if (slot >= slots)
+            return false;
+        if (timeDiff(pSlots[slot].lastFrame, millis()) < pSlots[slot].frameRate)
+            return false;
+        bool changed = false;
+        float k = pSlots[slot].scalingFactor;
+        float o = pSlots[slot].offset;
         switch (pSlots[slot].slotType) {
-            case SlotType::TEXT:
-                if (pSlots[slot].currentText!=msg) {
-                    changed=true;
-                }
-                pSlots[slot].currentText=msg;
-                pSlots[slot].isValid=true;
-                pSlots[slot].lastUpdate=time(nullptr);
-                pSlots[slot].lastFrame=millis();
-                break;
-            case SlotType::NUMBER:
-            case SlotType::GRAPH:
-                pSlots[slot].currentValue=msg.toFloat()*k+o;
-                pSlots[slot].isValid=true;
-                pSlots[slot].lastUpdate=time(nullptr);
-                pSlots[slot].lastFrame=millis();
-                String newVal=String(pSlots[slot].currentValue,(uint16_t)pSlots[slot].digits);
-                if (pSlots[slot].currentText!=newVal) {
-                    changed=true;
-                }
-                pSlots[slot].currentText=newVal;
-                if (pSlots[slot].pHist && pSlots[slot].histLen>0) {
-                    if (!pSlots[slot].histInit) {
-                        for (uint16_t i=0; i<pSlots[slot].histLen; i++) {
-                            pSlots[slot].pHist[i]=pSlots[slot].currentValue;
-                        }
-                        pSlots[slot].lastHistUpdate=millis();
-                        pSlots[slot].histInit=true;
-                        changed=true;
-                    } else {
-                        while (timeDiff(pSlots[slot].lastHistUpdate, millis())>pSlots[slot].histSampleRateMs) {
-                            for (uint16_t i=0; i<pSlots[slot].histLen-1; i++) {
-                                pSlots[slot].pHist[i]=pSlots[slot].pHist[i+1];
-                            }
-                            pSlots[slot].lastHistUpdate += pSlots[slot].histSampleRateMs;
-                            pSlots[slot].pHist[pSlots[slot].histLen-1]=pSlots[slot].currentValue;
-                            changed=true;
-                        }
-                        pSlots[slot].pHist[pSlots[slot].histLen-1]=pSlots[slot].currentValue;
+        case SlotType::TEXT:
+            if (pSlots[slot].currentText != msg) {
+                changed = true;
+            }
+            pSlots[slot].currentText = msg;
+            pSlots[slot].isValid = true;
+            pSlots[slot].lastUpdate = time(nullptr);
+            pSlots[slot].lastFrame = millis();
+            break;
+        case SlotType::NUMBER:
+        case SlotType::GRAPH:
+            pSlots[slot].currentValue = msg.toFloat() * k + o;
+            pSlots[slot].isValid = true;
+            pSlots[slot].lastUpdate = time(nullptr);
+            pSlots[slot].lastFrame = millis();
+            String newVal = String(pSlots[slot].currentValue, (uint16_t)pSlots[slot].digits);
+            if (pSlots[slot].currentText != newVal) {
+                changed = true;
+            }
+            pSlots[slot].currentText = newVal;
+            if (pSlots[slot].pHist && pSlots[slot].histLen > 0) {
+                if (!pSlots[slot].histInit) {
+                    for (uint16_t i = 0; i < pSlots[slot].histLen; i++) {
+                        pSlots[slot].pHist[i] = pSlots[slot].currentValue;
                     }
+                    pSlots[slot].lastHistUpdate = millis();
+                    pSlots[slot].histInit = true;
+                    changed = true;
+                } else {
+                    while (timeDiff(pSlots[slot].lastHistUpdate, millis()) >
+                           pSlots[slot].histSampleRateMs) {
+                        for (uint16_t i = 0; i < pSlots[slot].histLen - 1; i++) {
+                            pSlots[slot].pHist[i] = pSlots[slot].pHist[i + 1];
+                        }
+                        pSlots[slot].lastHistUpdate += pSlots[slot].histSampleRateMs;
+                        pSlots[slot].pHist[pSlots[slot].histLen - 1] = pSlots[slot].currentValue;
+                        changed = true;
+                    }
+                    pSlots[slot].pHist[pSlots[slot].histLen - 1] = pSlots[slot].currentValue;
                 }
-                break;
+            }
+            break;
         }
-        pSlots[slot].hasChanged=changed;
+        pSlots[slot].hasChanged = changed;
         return changed;
     }
 
     void sensorUpdates(String topic, String msg, String originator) {
-        if (!active) return;
-        bool changed=false;
-        for (uint16_t slot=0; slot<slots; slot++) {
-            if (pSlots[slot].topic==topic) {
-                if (updateSlot(slot, msg)) changed=true;
+        if (!active)
+            return;
+        bool changed = false;
+        for (uint16_t slot = 0; slot < slots; slot++) {
+            if (pSlots[slot].topic == topic) {
+                if (updateSlot(slot, msg))
+                    changed = true;
             }
         }
-        if (changed) updateDisplay(false, false);
+        if (changed)
+            updateDisplay(false, false);
     }
 
     void subsMsg(String topic, String msg, String originator) {
-        if (!active) return;
-        String toc=name+"/display/slot/";
+        if (!active)
+            return;
+        String toc = name + "/display/slot/";
         if (topic.startsWith(toc)) {
-            String sub=topic.substring(toc.length());
-            int16_t ind=sub.indexOf("/");
-            if (ind!=-1) {
-                int16_t slot=sub.substring(0,ind).toInt();
+            String sub = topic.substring(toc.length());
+            int16_t ind = sub.indexOf("/");
+            if (ind != -1) {
+                int16_t slot = sub.substring(0, ind).toInt();
                 if (slot < slots) {
-                    String action=sub.substring(ind+1);
-                    if (action=="caption/get") {
+                    String action = sub.substring(ind + 1);
+                    if (action == "caption/get") {
                         publishSlotCaption(slot);
-                    }   
-                    if (action=="caption/set") {
-                        setSlotCaption(slot,msg);
                     }
-                    if (action=="format/get") {
+                    if (action == "caption/set") {
+                        setSlotCaption(slot, msg);
+                    }
+                    if (action == "format/get") {
                         publishSlotFormat(slot);
                     }
-                    if (action=="format/set") {
-                        setSlotFormat(slot,msg);
+                    if (action == "format/set") {
+                        setSlotFormat(slot, msg);
                     }
-                    if (action=="topic/get") {
+                    if (action == "topic/get") {
                         publishSlotTopic(slot);
                     }
-                    if (action=="topic/set") {
-                        setSlotTopic(slot,msg);
+                    if (action == "topic/set") {
+                        setSlotTopic(slot, msg);
                     }
-                    if (action=="text/get") {
+                    if (action == "text/get") {
                         publishSlotText(slot);
                     }
-                    if (action=="text/set") {
-                        setSlotText(slot,msg);
+                    if (action == "text/set") {
+                        setSlotText(slot, msg);
                     }
-                    if (action=="historysampleratems/get") {
+                    if (action == "historysampleratems/get") {
                         publishSlotHistorySampleRateMs(slot);
                     }
-                    if (action=="historysampleratems/set") {
-                        setSlotHistorySampleRateMs(slot,msg.toInt());
+                    if (action == "historysampleratems/set") {
+                        setSlotHistorySampleRateMs(slot, msg.toInt());
                     }
-                 }
+                }
             }
         }
-        if (topic==name+"/display/brightness/set") {
-            float br=msg.toFloat();
-            if (br<0.0) br=0.0;
-            if (br>1.0) br=1.0;
+        if (topic == name + "/display/brightness/set") {
+            float br = msg.toFloat();
+            if (br < 0.0)
+                br = 0.0;
+            if (br > 1.0)
+                br = 1.0;
             setBrightness(br);
         }
-        if (topic==name+"/display/brightness/get") {
+        if (topic == name + "/display/brightness/get") {
             publishBrightness();
         }
-        if (topic==name+"/display/contrast/set") {
-            float c=msg.toFloat();
-            if (c<0.0) c=0.0;
-            if (c>1.0) c=1.0;
+        if (topic == name + "/display/contrast/set") {
+            float c = msg.toFloat();
+            if (c < 0.0)
+                c = 0.0;
+            if (c > 1.0)
+                c = 1.0;
             setContrast(c);
         }
-        if (topic==name+"/display/contrast/get") {
+        if (topic == name + "/display/contrast/get") {
             publishContrast();
         }
-        if (topic==name+"/display/theme/set") {
+        if (topic == name + "/display/theme/set") {
             setTheme(msg);
         }
-        if (topic==name+"/display/theme/get") {
+        if (topic == name + "/display/theme/get") {
             publishTheme();
         }
-
     }
 
-}; // SensorDisplay
-} // namespace ustd
+};  // SensorDisplay
+}  // namespace ustd
