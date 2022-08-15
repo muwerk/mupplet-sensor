@@ -19,7 +19,7 @@ namespace ustd {
 
 
 // clang - format off
-/*! \brief mupplet-sensor temperature and pressure with Bosch GDK101
+/*! \brief mupplet-sensor temperature and pressure with GDK101
 
 The mup_gamma_gdk101 mupplet measures temperature, pressure, and humity using the GDK101 sensor.
 
@@ -463,7 +463,7 @@ class GammaGDK101 {
     bool readGDKSensorMeasurement(uint8_t reg, double *pMeas) {
         uint16_t data;
         *pMeas=0.0;
-        if (!i2c_readRegisterWord(reg, &data, true, disIrq)) { // reset
+        if (!i2c_readRegisterWord(reg, &data, true, disIrq)) { 
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to read GDK101 at address 0x");
             Serial.print(i2c_address, HEX);
@@ -476,6 +476,9 @@ class GammaGDK101 {
         } else {
             double ms=(double)(data>>8)+(double)(data&0xff)/100.0;
             *pMeas=ms;
+#ifdef USE_SERIAL_DBG
+            Serial.println("GDK101 Measurement: " + String(ms));
+#endif
             return true;
         }
     }
