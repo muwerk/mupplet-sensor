@@ -124,7 +124,10 @@ class GammaGDK101 {
     bool disIrq = false;
     unsigned long errs = 0;
     unsigned long oks = 0;
-    unsigned long pollRateUs = 2000000;
+    unsigned long basePollRateUs = 50000;  // 50uS
+    unsigned long pollRateMs = 2000;       // 2s
+    uint32_t lastPollMs = 0;
+
     enum FilterMode { FAST,
                       MEDIUM,
                       LONGTERM };
@@ -163,9 +166,10 @@ class GammaGDK101 {
         return gamma1minavgValue;
     }
 
-    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, bool forceSlowClock = false) {
+    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, uint32_t _pollRateMs = 2000L, bool forceSlowClock = false) {
         pSched = _pSched;
         pWire = _pWire;
+        pollRateMs = _pollRateMs;
 
         pWire->begin();  // required!
         if (forceSlowClock) {
@@ -174,7 +178,7 @@ class GammaGDK101 {
         }
         pI2C = new I2CRegisters(pWire, i2c_address);
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 15000000);  // 500us
+        tID = pSched->add(ft, name, basePollRateUs);
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -352,16 +356,19 @@ class GammaGDK101 {
     }
 
     void loop() {
-        double gamma10minavgVal, gamma1minavgVal;
-        if (bActive) {
-            if (readGDKSensor(&gamma10minavgVal, &gamma1minavgVal)) {
-                if (gamma10minavgSensor.filter(&gamma10minavgVal)) {
-                    gamma10minavgValue = gamma10minavgVal;
-                    publishGamma10minavg();
-                }
-                if (gamma1minavgSensor.filter(&gamma1minavgVal)) {
-                    gamma1minavgValue = gamma1minavgVal;
-                    publishGamma1minavg();
+        if (timeDiff(lastPollMs, millis()) > pollRateMs) {
+            lastPollMs = millis();
+            double gamma10minavgVal, gamma1minavgVal;
+            if (bActive) {
+                if (readGDKSensor(&gamma10minavgVal, &gamma1minavgVal)) {
+                    if (gamma10minavgSensor.filter(&gamma10minavgVal)) {
+                        gamma10minavgValue = gamma10minavgVal;
+                        publishGamma10minavg();
+                    }
+                    if (gamma1minavgSensor.filter(&gamma1minavgVal)) {
+                        gamma1minavgValue = gamma1minavgVal;
+                        publishGamma1minavg();
+                    }
                 }
             }
         }
