@@ -28,10 +28,10 @@ class I2CRegisters {
     uint8_t i2c_address;
     I2CRegisters(TwoWire *pWire, uint8_t i2c_address)
         : pWire(pWire), i2c_address(i2c_address) {
+        // NOTE: Do NOT perform checkAdress() here, since that causes some sensors to simply malfunction. (Example: GDK101)
         lastError = I2CRegisters::I2CError::UNDEFINED;
     }
     ~I2CRegisters() {
-        pWire = NULL;
     }
 
     I2CError checkAddress(uint8_t address) {
@@ -75,20 +75,27 @@ class I2CRegisters {
         return false;
     }
 
-    bool readRegisterByte(uint8_t reg, uint8_t *pData) {
+    bool readRegisterByte(uint8_t reg, uint8_t *pData, bool stop = true, bool allow_irqs = true) {
         *pData = (uint8_t)-1;
+        if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg, 1) != 1) {
+            if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (endTransmission(true) == false) return false;
+        if (endTransmission(stop) == false) {
+            if (!allow_irqs) interrupts();
+            return false;
+        }
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)1, (uint8_t) true);
         if (read_cnt != 1) {
+            if (!allow_irqs) interrupts();
             lastError = I2C_READ_REQUEST_FAILED;
             return false;
         }
         *pData = pWire->read();
+        if (!allow_irqs) interrupts();
         return true;
     }
 
@@ -101,22 +108,25 @@ class I2CRegisters {
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (endTransmission(stop) == false) return false;
+        if (endTransmission(stop) == false) {
+            if (!allow_irqs) interrupts();
+            return false;
+        }
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             if (!allow_irqs) interrupts();
             lastError = I2C_READ_REQUEST_FAILED;
             return false;
         }
-        if (!allow_irqs) interrupts();
         uint8_t hb = pWire->read();
         uint8_t lb = pWire->read();
+        if (!allow_irqs) interrupts();
         uint16_t data = (hb << 8) | lb;
         *pData = data;
         return true;
     }
 
-    bool readRegisterWordLE(uint8_t reg, uint16_t *pData, bool allow_irqs = true) {
+    bool readRegisterWordLE(uint8_t reg, uint16_t *pData, bool stop = true, bool allow_irqs = true) {
         *pData = (uint16_t)-1;
         if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
@@ -125,52 +135,67 @@ class I2CRegisters {
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (endTransmission(true) == false) return false;
+        if (endTransmission(stop) == false) {
+            if (!allow_irqs) interrupts();
+            return false;
+        }
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             lastError = I2C_READ_REQUEST_FAILED;
             if (!allow_irqs) interrupts();
             return false;
         }
-        if (!allow_irqs) interrupts();
         uint8_t lb = pWire->read();
         uint8_t hb = pWire->read();
+        if (!allow_irqs) interrupts();
         uint16_t data = (hb << 8) | lb;
         *pData = data;
         return true;
     }
 
-    bool readRegisterTripple(uint8_t reg, uint32_t *pData) {
+    bool readRegisterTripple(uint8_t reg, uint32_t *pData, bool stop = true, bool allow_irqs = true) {
         *pData = (uint32_t)-1;
+        if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg, 1) != 1) {
+            if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (endTransmission(true) == false) return false;
+        if (endTransmission(stop) == false) {
+            if (!allow_irqs) interrupts();
+            return false;
+        }
         uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)3, (uint8_t) true);
         if (read_cnt != 3) {
+            if (!allow_irqs) interrupts();
             lastError = I2C_READ_REQUEST_FAILED;
             return false;
         }
         uint8_t hb = pWire->read();
         uint8_t lb = pWire->read();
         uint8_t xlb = pWire->read();
+        if (!allow_irqs) interrupts();
         uint32_t data = (hb << 16) | (lb << 8) | xlb;
         *pData = data;
         return true;
     }
 
-    bool writeRegisterByte(uint8_t reg, uint8_t val, bool releaseBus = true) {
+    bool writeRegisterByte(uint8_t reg, uint8_t val, bool releaseBus = true, bool allow_irqs = true) {
+        if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2c_address);
         if (pWire->write(&reg, 1) != 1) {
+            if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
         if (pWire->write(&val, 1) != 1) {
+            if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_VALUE_WRITE_ERROR;
             return false;
         }
-        return endTransmission(releaseBus);
+        auto ret = endTransmission(releaseBus);
+        if (!allow_irqs) interrupts();
+        return ret;
     }
 };
