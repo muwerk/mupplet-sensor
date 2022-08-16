@@ -2,7 +2,6 @@
 // http://allsmartlab.com/wp-content/uploads/2017/download/GDK101datasheet_v1.5.pdf
 // http://allsmartlab.com/wp-content/uploads/2017/download/GDK101_Application_Note.zip
 
-
 // mup_gamma_gdk101.h
 #pragma once
 
@@ -12,13 +11,14 @@
 typedef TinyWire TwoWire;
 #endif
 
+#include "helpers/mup_i2c_registers.h"
+
 #include "scheduler.h"
 #include "sensors.h"
 
 namespace ustd {
 
-
-// clang - format off
+// clang-format off
 /*! \brief mupplet-sensor temperature and pressure with GDK101
 
 The mup_gamma_gdk101 mupplet measures temperature, pressure, and humity using the GDK101 sensor.
@@ -101,48 +101,48 @@ class GammaGDK101 {
     String GDK101_VERSION = "0.1.0";
     Scheduler *pSched;
     TwoWire *pWire;
+    I2CRegisters *pI2C;
     int tID;
     String name;
     double gamma10minavgValue, gamma1minavgValue;
 
   public:
-    enum GDKError { UNDEFINED, OK, I2C_HW_ERROR, I2C_WRONG_HARDWARE_AT_ADDRESS, I2C_DEVICE_NOT_AT_ADDRESS, I2C_REGISTER_WRITE_ERROR,
-                    I2C_VALUE_WRITE_ERROR, I2C_WRITE_DATA_TOO_LONG, I2C_WRITE_NACK_ON_ADDRESS, 
-                    I2C_WRITE_NACK_ON_DATA, I2C_WRITE_ERR_OTHER, I2C_WRITE_TIMEOUT, I2C_WRITE_INVALID_CODE,
-                    I2C_READ_REQUEST_FAILED};
-    enum GDKSensorState {UNAVAILABLE, IDLE, MEASUREMENT_WAIT, WAIT_NEXT_MEASUREMENT};
-    
+    enum GDKSensorState { UNAVAILABLE,
+                          IDLE,
+                          MEASUREMENT_WAIT,
+                          WAIT_NEXT_MEASUREMENT };
+
     /*! Hardware accuracy modes of GDK101, while the sensor can have different pressure- and temperature oversampling, we use same for both temp and press. */
     enum GDKSampleMode {
-                        ULTRA_LOW_POWER=1,       ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature oversampling: x1
-                        LOW_POWER=2,             ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature oversampling: x1
-                        STANDARD=3,              ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature oversampling: x1
-                        HIGH_RESOLUTION=4,       ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1
-                        ULTRA_HIGH_RESOLUTION=5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
-                        };
-    GDKError lastError;
+        ULTRA_LOW_POWER = 1,       ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature oversampling: x1
+        LOW_POWER = 2,             ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature oversampling: x1
+        STANDARD = 3,              ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature oversampling: x1
+        HIGH_RESOLUTION = 4,       ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1
+        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
+    };
     GDKSensorState sensorState;
-    bool disIrq=false;
-    unsigned long errs=0;
-    unsigned long oks=0;
+    bool disIrq = false;
+    unsigned long errs = 0;
+    unsigned long oks = 0;
     unsigned long pollRateUs = 2000000;
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
     String firmwareVersion;
     FilterMode filterMode;
     uint8_t i2c_address;
     ustd::sensorprocessor gamma10minavgSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor gamma1minavgSensor = ustd::sensorprocessor(4, 600, 0.005);
-    bool bActive=false;
+    bool bActive = false;
 
-    GammaGDK101(String name, FilterMode filterMode = FilterMode::FAST, uint8_t i2c_address=0x18)
+    GammaGDK101(String name, FilterMode filterMode = FilterMode::FAST, uint8_t i2c_address = 0x18)
         : name(name), filterMode(filterMode), i2c_address(i2c_address) {
         /*! Instantiate an GDK sensor mupplet
         @param name Name used for pub/sub messages
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
         @param i2c_address Should always be 0x76 or 0x77 for GDK101, depending address config.
         */
-        lastError=GDKError::UNDEFINED;
-        sensorState=GDKSensorState::UNAVAILABLE;
+        sensorState = GDKSensorState::UNAVAILABLE;
         setFilterMode(filterMode, true);
     }
 
@@ -163,15 +163,16 @@ class GammaGDK101 {
         return gamma1minavgValue;
     }
 
-    void begin(Scheduler *_pSched, TwoWire *_pWire=&Wire, bool forceSlowClock=false) {
+    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, bool forceSlowClock = false) {
         pSched = _pSched;
-        pWire=_pWire;
+        pWire = _pWire;
 
         pWire->begin();  // required!
         if (forceSlowClock) {
             pWire->setClock(100000L);
-            disIrq=true;
+            disIrq = true;
         }
+        pI2C = new I2CRegisters(pWire, i2c_address);
         auto ft = [=]() { this->loop(); };
         tID = pSched->add(ft, name, 15000000);  // 500us
 
@@ -181,11 +182,11 @@ class GammaGDK101 {
         pSched->subscribe(tID, name + "/sensor/#", fnall);
 
         // I2c_checkAddress kills the sensor!
-        //lastError=i2c_checkAddress(i2c_address);
+        // lastError=i2c_checkAddress(i2c_address);
 
         bActive = resetGDKSensor();
         if (bActive) {
-            firmwareVersion=getGDKFirmwareVersion();
+            firmwareVersion = getGDKFirmwareVersion();
         }
     }
 
@@ -231,147 +232,6 @@ class GammaGDK101 {
     }
 
   private:
-
-    GDKError i2c_checkAddress(uint8_t address) {
-        pWire->beginTransmission(address);
-        byte error = pWire->endTransmission();
-        if (error == 0) {
-            lastError=GDKError::OK;
-            return lastError;
-        } else if (error == 4) {
-            lastError=I2C_HW_ERROR;
-        }
-        lastError=I2C_DEVICE_NOT_AT_ADDRESS;
-        return lastError;
-    }
-
-    bool i2c_endTransmission(bool releaseBus) {
-        uint8_t retCode=pWire->endTransmission(releaseBus); // true: release bus, send stop
-        switch (retCode) {
-            case 0:
-                lastError=GDKError::OK;
-                return true;
-            case 1:
-                lastError=GDKError::I2C_WRITE_DATA_TOO_LONG;
-                return false;
-            case 2:
-                lastError=GDKError::I2C_WRITE_NACK_ON_ADDRESS;
-                return false;
-            case 3:
-                lastError=GDKError::I2C_WRITE_NACK_ON_DATA;
-                return false;
-            case 4:
-                lastError=GDKError::I2C_WRITE_ERR_OTHER;
-                return false;
-            case 5:
-                lastError=GDKError::I2C_WRITE_TIMEOUT;
-                return false;
-            default:
-                lastError=GDKError::I2C_WRITE_INVALID_CODE;
-                return false;
-        }
-        return false;
-    }
-
-    bool i2c_readRegisterByte(uint8_t reg, uint8_t* pData) {
-        *pData=(uint8_t)-1;
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg,1)!=1) {
-            lastError=GDKError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (i2c_endTransmission(true)==false) return false;
-        uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)1,(uint8_t)true);
-        if (read_cnt!=1) {
-            lastError=I2C_READ_REQUEST_FAILED;
-            return false;
-        }
-        *pData=pWire->read();
-        return true;
-    }
-
-    bool i2c_readRegisterWord(uint8_t reg, uint16_t* pData, bool stop=true, bool allow_irqs=true) {
-        *pData=(uint16_t)-1;
-        if (!allow_irqs) noInterrupts();
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg,1)!=1) {
-            if (!allow_irqs) interrupts();
-            lastError=GDKError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (i2c_endTransmission(stop)==false) return false;
-        uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)2,(uint8_t)true);
-        if (read_cnt!=2) {
-            if (!allow_irqs) interrupts();
-            lastError=I2C_READ_REQUEST_FAILED;
-            return false;
-        }
-        if (!allow_irqs) interrupts();
-        uint8_t hb=pWire->read();
-        uint8_t lb=pWire->read();
-        uint16_t data=(hb<<8) | lb;
-        *pData=data;
-        return true;
-    }
-    
-    bool i2c_readRegisterWordLE(uint8_t reg, uint16_t* pData, bool allow_irqs=true) {
-        *pData=(uint16_t)-1;
-        if (!allow_irqs) noInterrupts();
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg,1)!=1) {
-            if (!allow_irqs) interrupts();
-            lastError=GDKError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (i2c_endTransmission(true)==false) return false;
-        uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)2,(uint8_t)true);
-        if (read_cnt!=2) {
-            lastError=I2C_READ_REQUEST_FAILED;
-            if (!allow_irqs) interrupts();
-            return false;
-        }
-        if (!allow_irqs) interrupts();
-        uint8_t lb=pWire->read();
-        uint8_t hb=pWire->read();
-        uint16_t data=(hb<<8) | lb;
-        *pData=data;
-        return true;
-    }
-    
-    bool i2c_readRegisterTripple(uint8_t reg, uint32_t* pData) {
-        *pData=(uint32_t)-1;
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg,1)!=1) {
-            lastError=GDKError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (i2c_endTransmission(true)==false) return false;
-        uint8_t read_cnt=pWire->requestFrom(i2c_address,(uint8_t)3,(uint8_t)true);
-        if (read_cnt!=3) {
-            lastError=I2C_READ_REQUEST_FAILED;
-            return false;
-        }
-        uint8_t hb=pWire->read();
-        uint8_t lb=pWire->read();
-        uint8_t xlb=pWire->read();
-        uint32_t data=(hb<<16) | (lb<<8) | xlb;
-        *pData=data;
-        return true;
-    }
-    
-    bool i2c_writeRegisterByte(uint8_t reg, uint8_t val, bool releaseBus=true) {
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg,1)!=1) {
-            lastError=GDKError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (pWire->write(&val,1)!=1) {
-            lastError=GDKError::I2C_VALUE_WRITE_ERROR;
-            return false;
-        }
-        return i2c_endTransmission(releaseBus);
-    }
-
     void publishGamma10minavg() {
         char buf[32];
         sprintf(buf, "%6.3f", gamma10minavgValue);
@@ -404,21 +264,21 @@ class GammaGDK101 {
 
     String getGDKFirmwareVersion() {
         uint16_t data;
-        if (!i2c_readRegisterWord(0xb4, &data, true, disIrq)) { // version
+        if (!pI2C->readRegisterWord(0xb4, &data, true, disIrq)) {  // version
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to read version GDK101 at address 0x");
             Serial.print(i2c_address, HEX);
             Serial.print(" data: ");
             Serial.print(data, HEX);
             Serial.print(" lasterr: ");
-            Serial.println(lastError, HEX);
+            Serial.println(pI2C->lastError, HEX);
             return "unknown";
 #endif
         } else {
-            uint8_t h=data>>8;
-            uint8_t l=data&0xff;
+            uint8_t h = data >> 8;
+            uint8_t l = data & 0xff;
             char buf[64];
-            sprintf(buf,"V%d.%d",h,l);
+            sprintf(buf, "V%d.%d", h, l);
             Serial.print("Firmware version GTK ");
             Serial.println(buf);
             return String(buf);
@@ -427,21 +287,21 @@ class GammaGDK101 {
 
     bool resetGDKSensor() {
         uint16_t data;
-        if (!i2c_readRegisterWord(0xa0, &data, true, disIrq)) { // reset
+        if (!pI2C->readRegisterWord(0xa0, &data, true, disIrq)) {  // reset
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to reset GDK101 at address 0x");
             Serial.print(i2c_address, HEX);
             Serial.print(" data: ");
             Serial.print(data, HEX);
             Serial.print(" lasterr: ");
-            Serial.println(lastError, HEX);
+            Serial.println(pI2C->lastError, HEX);
 #endif
-            pSched->publish("dbg/1","RESFAIL");
-            bActive=false;
+            pSched->publish("dbg/1", "RESFAIL");
+            bActive = false;
             return false;
         } else {
-            if ((data>>8)==1) {
-                bActive=true;
+            if ((data >> 8) == 1) {
+                bActive = true;
 #ifdef USE_SERIAL_DBG
                 Serial.print("GDK101 sensor found at address 0x");
                 Serial.print(i2c_address, HEX);
@@ -454,28 +314,28 @@ class GammaGDK101 {
                 Serial.print(" data: ");
                 Serial.print(data, HEX);
                 Serial.print(" lasterr: ");
-                Serial.println(lastError, HEX);
+                Serial.println(pI2C->lastError, HEX);
             }
         }
         return bActive;
-    } 
+    }
 
     bool readGDKSensorMeasurement(uint8_t reg, double *pMeas) {
         uint16_t data;
-        *pMeas=0.0;
-        if (!i2c_readRegisterWord(reg, &data, true, disIrq)) { 
+        *pMeas = 0.0;
+        if (!pI2C->readRegisterWord(reg, &data, true, disIrq)) {
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to read GDK101 at address 0x");
             Serial.print(i2c_address, HEX);
             Serial.print(" data: ");
             Serial.print(data, HEX);
             Serial.print(" lasterr: ");
-            Serial.println(lastError, HEX);
+            Serial.println(pI2C->lastError, HEX);
 #endif
             return false;
         } else {
-            double ms=(double)(data>>8)+(double)(data&0xff)/100.0;
-            *pMeas=ms;
+            double ms = (double)(data >> 8) + (double)(data & 0xff) / 100.0;
+            *pMeas = ms;
 #ifdef USE_SERIAL_DBG
             Serial.println("GDK101 Measurement: " + String(ms));
 #endif
@@ -484,12 +344,12 @@ class GammaGDK101 {
     }
 
     bool readGDKSensor(double *pGamma10minavgVal, double *pGamma1minavgVal) {
-        *pGamma10minavgVal=0.0;
-        *pGamma1minavgVal=0.0;
+        *pGamma10minavgVal = 0.0;
+        *pGamma1minavgVal = 0.0;
         if (!readGDKSensorMeasurement(0xb2, pGamma10minavgVal)) return false;
         if (!readGDKSensorMeasurement(0xb3, pGamma1minavgVal)) return false;
         return true;
-    } 
+    }
 
     void loop() {
         double gamma10minavgVal, gamma1minavgVal;

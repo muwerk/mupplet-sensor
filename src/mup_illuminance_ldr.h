@@ -16,6 +16,10 @@ mupplet-sensor implements the following classes based on the cooperative schedul
 * * \ref ustd::GammaGDK101
 * * \ref ustd::GfxPanel
 
+Helpers:
+
+* * \ref ustd::I2CRegisters
+
 For an overview, see:
 <a href="https://github.com/muwerk/mupplet-sensor/blob/master/README.md">mupplet-sensor readme</a>
 
@@ -37,14 +41,12 @@ depends on:
 
 */
 
-
-
 #include "scheduler.h"
 #include "sensors.h"
 
 namespace ustd {
 
-// clang - format off
+// clang-format off
 /*! \brief mupplet-sensor analog LDR illumance sensor
 
 The illuminance_ldr mupplet measures illuminance using a simple analog LDR
@@ -101,7 +103,7 @@ class IlluminanceLdr {
     String name;
     uint8_t port;
     double ldrvalue;
-    bool bActive=false;
+    bool bActive = false;
 #ifdef __ESP32__
     double adRange = 4096.0;  // 12 bit default
 #else
@@ -109,7 +111,9 @@ class IlluminanceLdr {
 #endif
 
   public:
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
     FilterMode filterMode;
     ustd::sensorprocessor illuminanceSensor = ustd::sensorprocessor(4, 600, 0.005);
 
@@ -120,7 +124,7 @@ class IlluminanceLdr {
         @param port GPIO port with A/D converter capabilities.
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
         */
-       setFilterMode(filterMode, true);
+        setFilterMode(filterMode, true);
     }
 
     ~IlluminanceLdr() {
