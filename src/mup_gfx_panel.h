@@ -928,6 +928,11 @@ class GfxPanel {
             if (time(nullptr) - pSlots[i].lastUpdate > 3600) {
                 pSlots[i].isValid = false;
             }
+            if (pSlots[i].slotType == SlotType::GRAPH) {
+                if (!pSlots[i].hasChanged) {
+                    updateSlot(i, pSlots[i].currentText);  // force update with same value for scrolling graph
+                }
+            }
         }
         updateDisplay(false, false);
     }
