@@ -532,7 +532,6 @@ class GfxPanel {
     ustd::array<String> msgs;
 
     uint32_t lastRefresh;
-    bool delayedUpdate;
     uint32_t minUpdateIntervalMs;
 
     String valid_formats = " SIPFDTG";
@@ -732,7 +731,6 @@ class GfxPanel {
         }
 
         lastRefresh = 0;
-        delayedUpdate = false;
         return layout_valid;
     }
 
@@ -931,9 +929,7 @@ class GfxPanel {
                 pSlots[i].isValid = false;
             }
         }
-        if (delayedUpdate && timeDiff(lastRefresh, millis()) > minUpdateIntervalMs * 0.9) {
-            updateDisplay(true, false);
-        }
+        updateDisplay(false, false);
     }
 
     void commonBegin(bool useCanvas = false) {
@@ -1127,7 +1123,7 @@ class GfxPanel {
         if (slot < slots && format.length() == 1) {
             formats[slot] = format[0];
             pSlots[slot].hasChanged = true;
-            updateDisplay(false, false);
+            updateDisplay(true, true);
         }
     }
     void publishSlotFormat(uint16_t slot) {
@@ -1399,13 +1395,11 @@ class GfxPanel {
 
   public:
     void updateDisplay(bool updateNow, bool forceRedraw = false) {
-        if (!updateNow && (delayedUpdate || timeDiff(lastRefresh, millis()) < minUpdateIntervalMs)) {
-            delayedUpdate = true;
+        if (!updateNow && timeDiff(lastRefresh, millis()) < minUpdateIntervalMs) {
             return;
         }
         bool update = false;
         lastRefresh = millis();
-        delayedUpdate = false;
         uint16_t maxSlotX = 0, maxSlotY = 0;
 
         if (forceRedraw) {
@@ -1475,7 +1469,9 @@ class GfxPanel {
                         }
                         pSlots[slot].lastHistUpdate += pSlots[slot].histSampleRateMs;
                         pSlots[slot].pHist[pSlots[slot].histLen - 1] = pSlots[slot].currentValue;
-                        changed = true;
+                        if (pSlots[slot].slotType == SlotType::GRAPH) {
+                            changed = true;
+                        }
                     }
                     pSlots[slot].pHist[pSlots[slot].histLen - 1] = pSlots[slot].currentValue;
                 }
