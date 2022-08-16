@@ -120,7 +120,9 @@ class IlluminanceTSL2561 {
         ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
     };
     TSLSensorState sensorState;
-    unsigned long pollRateUs = 2000000;
+    unsigned long basePollRateUs = 50000;  // 50ms;
+    uint32_t pollRateMs = 2000;            // 2000ms;
+    uint32_t lastPollMs = 0;
     enum FilterMode { FAST,
                       MEDIUM,
                       LONGTERM };
@@ -145,10 +147,14 @@ class IlluminanceTSL2561 {
         */
         sensorState = TSLSensorState::UNAVAILABLE;
         unitIlluminanceSensitivity = 0.2;
+        pI2C = nullptr;
         setFilterMode(filterMode, true);
     }
 
     ~IlluminanceTSL2561() {
+        if (pI2C) {
+            delete pI2C;
+        }
     }
 
     double getIlluminance() {
@@ -180,15 +186,16 @@ class IlluminanceTSL2561 {
         unitIlluminanceSensitivity = sensitivity;
     }
 
-    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire) {
+    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, uint32_t _pollRateMs = 2000) {
         pSched = _pSched;
         pWire = _pWire;
+        pollRateMs = _pollRateMs;
 
         pWire->begin();  // required!
         pI2C = new I2CRegisters(pWire, i2c_address);
 
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 1000000);  // 1s
+        tID = pSched->add(ft, name, basePollRateUs);  // 1s
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -439,23 +446,26 @@ class IlluminanceTSL2561 {
 
     void loop() {
         double illuminanceVal, unitIlluminanceVal, lightCh0Val, IRCh1Val;
-        if (bActive) {
-            if (readTSLSensor(&lightCh0Val, &IRCh1Val, &illuminanceVal, &unitIlluminanceVal)) {
-                if (lightCh0Sensor.filter(&lightCh0Val)) {
-                    lightCh0Value = lightCh0Val;
-                    publishLightCh0();
-                }
-                if (IRCh1Sensor.filter(&IRCh1Val)) {
-                    IRCh1Value = IRCh1Val;
-                    publishIRCh1();
-                }
-                if (illuminanceSensor.filter(&illuminanceVal)) {
-                    illuminanceValue = illuminanceVal;
-                    publishIlluminance();
-                }
-                if (unitIlluminanceSensor.filter(&unitIlluminanceVal)) {
-                    unitIlluminanceValue = unitIlluminanceVal;
-                    publishUnitIlluminance();
+        if (timeDiff(lastPollMs, millis()) > pollRateMs) {
+            lastPollMs = millis();
+            if (bActive) {
+                if (readTSLSensor(&lightCh0Val, &IRCh1Val, &illuminanceVal, &unitIlluminanceVal)) {
+                    if (lightCh0Sensor.filter(&lightCh0Val)) {
+                        lightCh0Value = lightCh0Val;
+                        publishLightCh0();
+                    }
+                    if (IRCh1Sensor.filter(&IRCh1Val)) {
+                        IRCh1Value = IRCh1Val;
+                        publishIRCh1();
+                    }
+                    if (illuminanceSensor.filter(&illuminanceVal)) {
+                        illuminanceValue = illuminanceVal;
+                        publishIlluminance();
+                    }
+                    if (unitIlluminanceSensor.filter(&unitIlluminanceVal)) {
+                        unitIlluminanceValue = unitIlluminanceVal;
+                        publishUnitIlluminance();
+                    }
                 }
             }
         }

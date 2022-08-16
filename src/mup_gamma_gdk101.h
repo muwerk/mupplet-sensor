@@ -146,10 +146,14 @@ class GammaGDK101 {
         @param i2c_address Should always be 0x76 or 0x77 for GDK101, depending address config.
         */
         sensorState = GDKSensorState::UNAVAILABLE;
+        pI2C = nullptr;
         setFilterMode(filterMode, true);
     }
 
     ~GammaGDK101() {
+        if (pI2C) {
+            delete pI2C;
+        }
     }
 
     double getGamma10minavt() {
