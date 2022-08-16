@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['tslsamplemode_0',['TSLSampleMode',['../classustd_1_1IlluminanceTSL2561.html#a218d134808ed5852a8de0261dc5fc5bf',1,'ustd::IlluminanceTSL2561']]]
+  ['i2cerror_0',['I2CError',['../classustd_1_1I2CRegisters.html#a3d97b24aff40b7c93c13bcdeda874619',1,'ustd::I2CRegisters']]]
 ];
