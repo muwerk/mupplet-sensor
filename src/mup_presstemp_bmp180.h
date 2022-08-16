@@ -125,6 +125,9 @@ class PressTempBMP180 {
     double baseRelativeNNPressure;
     bool relativeAltitudeStarted;
     bool captureRelative = false;
+    unsigned long basePollRateUs = 50000L;
+    uint32_t pollRateMs;
+    uint32_t lastPollMs;
 
     // BMP Sensor calibration data
     int16_t CD_AC1, CD_AC2, CD_AC3, CD_B1, CD_B2, CD_MB, CD_MC, CD_MD;
@@ -172,6 +175,7 @@ class PressTempBMP180 {
         relativeAltitudeStarted = false;
         captureRelative = false;
         pI2C = nullptr;
+        lastPollMs = 50;
         setFilterMode(filterMode, true);
     }
 
@@ -247,14 +251,15 @@ class PressTempBMP180 {
         return true;
     }
 
-    void begin(Scheduler *_pSched, BMPSampleMode _sampleMode = BMPSampleMode::STANDARD, TwoWire *_pWire = &Wire) {
+    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, uint32_t _pollRateMs = 2000, BMPSampleMode _sampleMode = BMPSampleMode::STANDARD) {
         pSched = _pSched;
         setSampleMode(_sampleMode);
         pWire = _pWire;
+        pollRateMs = _pollRateMs;
         uint8_t data;
 
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 500);  // 500us
+        tID = pSched->add(ft, name, basePollRateUs);  // 500us
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -424,6 +429,7 @@ class PressTempBMP180 {
                 ++errs;
                 sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
+                lastPollMs = millis();
                 break;
             } else {  // Start temperature read
                 sensorState = BMPSensorState::TEMPERATURE_WAIT;
@@ -439,6 +445,7 @@ class PressTempBMP180 {
                     if (!pI2C->writeRegisterByte(0xf4, cmd)) {
                         ++errs;
                         sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
+                        lastPollMs = millis();
                         stateMachineClock = micros();
                     } else {
                         sensorState = BMPSensorState::PRESSURE_WAIT;
@@ -454,6 +461,7 @@ class PressTempBMP180 {
         case BMPSensorState::PRESSURE_WAIT:
             if (timeDiff(stateMachineClock, micros()) > convTimeOversampling[oversampleMode]) {  // Oversamp. dep. for press meas.
                 rp = 0;
+                lastPollMs = millis();
                 if (pI2C->readRegisterTripple(0xf6, &rp)) {
                     rawPressure = rp >> (8 - oversampleMode);
                     ++oks;
@@ -468,7 +476,7 @@ class PressTempBMP180 {
             }
             break;
         case BMPSensorState::WAIT_NEXT_MEASUREMENT:
-            if (timeDiff(stateMachineClock, micros()) > pollRateUs) {
+            if (timeDiff(lastPollMs, millis()) > pollRateMs) {
                 sensorState = BMPSensorState::IDLE;  // Start next cycle.
             }
             break;

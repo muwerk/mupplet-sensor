@@ -91,7 +91,7 @@ void setup() {
 
     // sensors start measuring pressure and temperature
     bme.setReferenceAltitude(518.0); // 518m above NN, now we also receive PressureNN values for sea level.
-    bme.begin(&sched, ustd::PressTempHumBME280::BMESampleMode::ULTRA_HIGH_RESOLUTION);
+    bme.begin(&sched);
 
     sched.subscribe(tID, "myBME280/sensor/temperature", sensorUpdates);
 }
@@ -165,7 +165,10 @@ class PressTempHumBME280 {
     BMESensorState sensorState;
     unsigned long errs = 0;
     unsigned long oks = 0;
-    unsigned long pollRateUs = 2000000;
+    unsigned long basePollRateUs = 50000;
+    uint32_t pollRateMs = 2000;
+    uint32_t lastPollMs = 0;
+
     uint16_t oversampleMode = 3;  // 1..5, see BMESampleMode.
     uint16_t oversampleModePressure = 3;
     uint16_t oversampleModeTemperature = 1;
@@ -292,15 +295,16 @@ class PressTempHumBME280 {
         return true;
     }
 
-    void begin(Scheduler *_pSched, BMESampleMode _sampleMode = BMESampleMode::STANDARD, TwoWire *_pWire = &Wire) {
+    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, uint32_t _pollRateMs = 2000, BMESampleMode _sampleMode = BMESampleMode::STANDARD) {
         pSched = _pSched;
         pWire = _pWire;
         uint8_t data;
 
         setSampleMode(_sampleMode);
+        pollRateMs = _pollRateMs;
 
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 500);  // 500us
+        tID = pSched->add(ft, name, basePollRateUs);
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -395,8 +399,8 @@ class PressTempHumBME280 {
             publishFilterMode();
     }
 
-    void setPollRateMs(uint32_t pollRateMs) {
-        pollRateUs = pollRateMs * 1000;
+    void setPollRateMs(uint32_t _pollRateMs) {
+        pollRateMs = pollRateMs;
     }
 
   private:
@@ -556,7 +560,7 @@ class PressTempHumBME280 {
 
     void publishPollRateMs() {
         char buf[32];
-        sprintf(buf, "%ld", pollRateUs / 1000L);
+        sprintf(buf, "%d", pollRateMs);
         pSched->publish(name + "/sensor/pollratems", buf);
     }
 
@@ -652,6 +656,7 @@ class PressTempHumBME280 {
             reg_data = (normalmodeInactivity << 5) + (IIRfilter << 2) + 0;
             if (!i2c_writeRegisterByte(config_register, reg_data)) {
                 ++errs;
+                lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -659,6 +664,7 @@ class PressTempHumBME280 {
             reg_data = oversampleModeHumidity & 0x7;
             if (!i2c_writeRegisterByte(ctrl_hum_register, reg_data)) {
                 ++errs;
+                lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -666,6 +672,7 @@ class PressTempHumBME280 {
             reg_data = (oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x1;  // 0x3: normal mode, 0x1 one-shot
             if (!i2c_writeRegisterByte(measure_mode_register, reg_data)) {
                 ++errs;
+                lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -678,6 +685,7 @@ class PressTempHumBME280 {
             if (!i2c_readRegisterByte(status_register, &status)) {
                 // no status
                 ++errs;
+                lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -691,19 +699,21 @@ class PressTempHumBME280 {
                     rawTemperature = rt >> 4;
                     rawPressure = rp >> 4;
                     rawHumidity = (int32_t)rh;
+                    lastPollMs = millis();
                     sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock = micros();
                     ++oks;
                     newData = true;
                 } else {
                     ++errs;
+                    lastPollMs = millis();
                     sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock = micros();
                 }
             }
             break;
         case BMESensorState::WAIT_NEXT_MEASUREMENT:
-            if (timeDiff(stateMachineClock, micros()) > pollRateUs) {
+            if (timeDiff(lastPollMs, millis()) > pollRateMs) {
                 sensorState = BMESensorState::IDLE;  // Start next cycle.
             }
             break;
