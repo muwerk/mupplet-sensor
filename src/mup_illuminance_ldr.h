@@ -16,6 +16,10 @@ mupplet-sensor implements the following classes based on the cooperative schedul
 * * \ref ustd::GammaGDK101
 * * \ref ustd::GfxPanel
 
+Helpers:
+
+* * \ref ustd::I2CRegisters
+
 For an overview, see:
 <a href="https://github.com/muwerk/mupplet-sensor/blob/master/README.md">mupplet-sensor readme</a>
 
