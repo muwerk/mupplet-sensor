@@ -38,9 +38,9 @@ class I2CRegisters {
     };
     I2CError lastError;
     TwoWire *pWire;
-    uint8_t i2c_address;
-    I2CRegisters(TwoWire *pWire, uint8_t i2c_address)
-        : pWire(pWire), i2c_address(i2c_address) {
+    uint8_t i2cAddress;
+    I2CRegisters(TwoWire *pWire, uint8_t i2cAddress)
+        : pWire(pWire), i2cAddress(i2cAddress) {
         // NOTE: Do NOT perform checkAdress() here, since that causes some sensors to simply malfunction. (Example: GDK101)
         lastError = I2CRegisters::I2CError::UNDEFINED;
     }
@@ -109,7 +109,7 @@ class I2CRegisters {
         */
         *pData = (uint8_t)-1;
         if (!allow_irqs) noInterrupts();
-        pWire->beginTransmission(i2c_address);
+        pWire->beginTransmission(i2cAddress);
         if (pWire->write(&reg, 1) != 1) {
             if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
@@ -119,7 +119,7 @@ class I2CRegisters {
             if (!allow_irqs) interrupts();
             return false;
         }
-        uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)1, (uint8_t) true);
+        uint8_t read_cnt = pWire->requestFrom(i2cAddress, (uint8_t)1, (uint8_t) true);
         if (read_cnt != 1) {
             if (!allow_irqs) interrupts();
             lastError = I2C_READ_REQUEST_FAILED;
@@ -141,7 +141,7 @@ class I2CRegisters {
         */
         *pData = (uint16_t)-1;
         if (!allow_irqs) noInterrupts();
-        pWire->beginTransmission(i2c_address);
+        pWire->beginTransmission(i2cAddress);
         if (pWire->write(&reg, 1) != 1) {
             if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
@@ -151,7 +151,7 @@ class I2CRegisters {
             if (!allow_irqs) interrupts();
             return false;
         }
-        uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
+        uint8_t read_cnt = pWire->requestFrom(i2cAddress, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             if (!allow_irqs) interrupts();
             lastError = I2C_READ_REQUEST_FAILED;
@@ -176,7 +176,7 @@ class I2CRegisters {
         */
         *pData = (uint16_t)-1;
         if (!allow_irqs) noInterrupts();
-        pWire->beginTransmission(i2c_address);
+        pWire->beginTransmission(i2cAddress);
         if (pWire->write(&reg, 1) != 1) {
             if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
@@ -186,7 +186,7 @@ class I2CRegisters {
             if (!allow_irqs) interrupts();
             return false;
         }
-        uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
+        uint8_t read_cnt = pWire->requestFrom(i2cAddress, (uint8_t)2, (uint8_t) true);
         if (read_cnt != 2) {
             lastError = I2C_READ_REQUEST_FAILED;
             if (!allow_irqs) interrupts();
@@ -211,7 +211,7 @@ class I2CRegisters {
         */
         *pData = (uint32_t)-1;
         if (!allow_irqs) noInterrupts();
-        pWire->beginTransmission(i2c_address);
+        pWire->beginTransmission(i2cAddress);
         if (pWire->write(&reg, 1) != 1) {
             if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
@@ -221,7 +221,7 @@ class I2CRegisters {
             if (!allow_irqs) interrupts();
             return false;
         }
-        uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)3, (uint8_t) true);
+        uint8_t read_cnt = pWire->requestFrom(i2cAddress, (uint8_t)3, (uint8_t) true);
         if (read_cnt != 3) {
             if (!allow_irqs) interrupts();
             lastError = I2C_READ_REQUEST_FAILED;
@@ -244,7 +244,7 @@ class I2CRegisters {
         @param allow_irqs If true, allow interrupts during the write (default, should only be set to false if very high IRQ load is expected)
         */
         if (!allow_irqs) noInterrupts();
-        pWire->beginTransmission(i2c_address);
+        pWire->beginTransmission(i2cAddress);
         if (pWire->write(&reg, 1) != 1) {
             if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;

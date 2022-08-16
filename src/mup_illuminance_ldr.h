@@ -103,6 +103,9 @@ class IlluminanceLdr {
     String name;
     uint8_t port;
     double ldrvalue;
+    unsigned long basePollRate = 500000L;
+    uint32_t pollRateMs = 2000;
+    uint32_t lastPollMs = 0;
     bool bActive = false;
 #ifdef __ESP32__
     double adRange = 4096.0;  // 12 bit default
@@ -137,12 +140,13 @@ class IlluminanceLdr {
         return ldrvalue;
     }
 
-    void begin(Scheduler *_pSched) {
+    void begin(Scheduler *_pSched, uint32_t _pollRateMs = 2000) {
         /*! Start processing of A/D input from LDR */
         pSched = _pSched;
+        pollRateMs = _pollRateMs;
 
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 200000);  // 200ms
+        tID = pSched->add(ft, name, basePollRate);
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -203,10 +207,13 @@ class IlluminanceLdr {
 
     void loop() {
         if (bActive) {
-            double val = 1.0 - (analogRead(port) / (adRange - 1.0));
-            if (illuminanceSensor.filter(&val)) {
-                ldrvalue = val;
-                publishIlluminance();
+            if (timeDiff(lastPollMs, millis()) >= pollRateMs) {
+                lastPollMs = millis();
+                double val = 1.0 - (analogRead(port) / (adRange - 1.0));
+                if (illuminanceSensor.filter(&val)) {
+                    ldrvalue = val;
+                    publishIlluminance();
+                }
             }
         }
     }

@@ -146,7 +146,9 @@ class PressTempBMP280 {
     BMPSensorState sensorState;
     unsigned long errs = 0;
     unsigned long oks = 0;
-    unsigned long pollRateUs = 2000000;
+    unsigned long basePollRate = 500000L;
+    uint32_t pollRateMs = 2000;
+    uint32_t lastPollMs = 0;
     uint16_t oversampleMode = 3;  // 1..5, see BMPSampleMode.
     uint16_t oversampleModePressure = 3;
     uint16_t oversampleModeTemperature = 1;
@@ -156,17 +158,17 @@ class PressTempBMP280 {
 #define MUP_BMP_INVALID_ALTITUDE -1000000.0
     double referenceAltitudeMeters;
     FilterMode filterMode;
-    uint8_t i2c_address;
+    uint8_t i2cAddress;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    PressTempBMP280(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address = 0x76)
-        : name(name), filterMode(filterMode), i2c_address(i2c_address) {
+    PressTempBMP280(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2cAddress = 0x76)
+        : name(name), filterMode(filterMode), i2cAddress(i2cAddress) {
         /*! Instantiate an BMP sensor mupplet
         @param name Name used for pub/sub messages
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
-        @param i2c_address Should always be 0x76 or 0x77 for BMP280, depending on SDO pin.
+        @param i2cAddress Should always be 0x76 or 0x77 for BMP280, depending on SDO pin.
         */
         sensorState = BMPSensorState::UNAVAILABLE;
         referenceAltitudeMeters = MUP_BMP_INVALID_ALTITUDE;
@@ -259,28 +261,29 @@ class PressTempBMP280 {
         return true;
     }
 
-    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, uint32_t pollRateMs = 2000, BMPSampleMode _sampleMode = BMPSampleMode::STANDARD) {
+    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, uint32_t _pollRateMs = 2000, BMPSampleMode _sampleMode = BMPSampleMode::STANDARD) {
         pSched = _pSched;
         pWire = _pWire;
         uint8_t data;
 
-        pI2C = new I2CRegisters(pWire, i2c_address);
+        pollRateMs = _pollRateMs;
+        pI2C = new I2CRegisters(pWire, i2cAddress);
         setSampleMode(_sampleMode);
 
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 500);  // 500us
+        tID = pSched->add(ft, name, basePollRate);  // 500us
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
         };
         pSched->subscribe(tID, name + "/sensor/#", fnall);
 
-        pI2C->lastError = pI2C->checkAddress(i2c_address);
+        pI2C->lastError = pI2C->checkAddress(i2cAddress);
         if (pI2C->lastError == I2CRegisters::I2CError::OK) {
             if (!pI2C->readRegisterByte(0xd0, &data)) {  // 0xd0: chip-id register
 #ifdef USE_SERIAL_DBG
                 Serial.print("Failed to inquire BMP280 chip-id at address 0x");
-                Serial.println(i2c_address, HEX);
+                Serial.println(i2cAddress, HEX);
 #endif
                 bActive = false;
             } else {
@@ -288,14 +291,14 @@ class PressTempBMP280 {
                     if (!initBmpSensorConstants()) {
 #ifdef USE_SERIAL_DBG
                         Serial.print("Failed to read calibration data for sensor BMP280 at address 0x");
-                        Serial.println(i2c_address, HEX);
+                        Serial.println(i2cAddress, HEX);
 #endif
                         pI2C->lastError = I2CRegisters::I2CError::I2C_HW_ERROR;
                         bActive = false;
                     } else {
 #ifdef USE_SERIAL_DBG
                         Serial.print("BMP280 sensor active at address 0x");
-                        Serial.println(i2c_address, HEX);
+                        Serial.println(i2cAddress, HEX);
 #endif
                         sensorState = BMPSensorState::IDLE;
                         bActive = true;
@@ -303,7 +306,7 @@ class PressTempBMP280 {
                 } else {
 #ifdef USE_SERIAL_DBG
                     Serial.print("Wrong hardware (not BMP280) found at address 0x");
-                    Serial.print(i2c_address, HEX);
+                    Serial.print(i2cAddress, HEX);
                     Serial.print(" chip-id is ");
                     Serial.print(data, HEX);
                     Serial.println(" expected: 0x58 for BMP280.");
@@ -315,7 +318,7 @@ class PressTempBMP280 {
         } else {
 #ifdef USE_SERIAL_DBG
             Serial.print("No BMP280 sensor found at address 0x");
-            Serial.println(i2c_address, HEX);
+            Serial.println(i2cAddress, HEX);
 #endif
             bActive = false;
         }
@@ -468,6 +471,7 @@ class PressTempBMP280 {
             reg_data = (normalmodeInactivity << 5) + (IIRfilter << 2) + 0;
             if (!pI2C->writeRegisterByte(config_register, reg_data)) {
                 ++errs;
+                lastPollMs = millis();
                 sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -475,6 +479,7 @@ class PressTempBMP280 {
             reg_data = (oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x1;  // 0x3: normal mode, 0x1 one-shot
             if (!pI2C->writeRegisterByte(measure_mode_register, reg_data)) {
                 ++errs;
+                lastPollMs = millis();
                 sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -487,6 +492,7 @@ class PressTempBMP280 {
             if (!pI2C->readRegisterByte(status_register, &status)) {
                 // no status
                 ++errs;
+                lastPollMs = millis();
                 sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -498,19 +504,21 @@ class PressTempBMP280 {
                 if (pI2C->readRegisterTripple(temperature_registers, &rt) && pI2C->readRegisterTripple(pressure_registers, &rp)) {
                     rawTemperature = rt >> 4;
                     rawPressure = rp >> 4;
+                    lastPollMs = millis();
                     sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock = micros();
                     ++oks;
                     newData = true;
                 } else {
                     ++errs;
+                    lastPollMs = millis();
                     sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock = micros();
                 }
             }
             break;
         case BMPSensorState::WAIT_NEXT_MEASUREMENT:
-            if (timeDiff(stateMachineClock, micros()) > pollRateUs) {
+            if (timeDiff(lastPollMs, millis()) > pollRateMs) {
                 sensorState = BMPSensorState::IDLE;  // Start next cycle.
             }
             break;

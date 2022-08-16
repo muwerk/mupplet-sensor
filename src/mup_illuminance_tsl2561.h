@@ -128,7 +128,7 @@ class IlluminanceTSL2561 {
                       LONGTERM };
     String firmwareVersion;
     FilterMode filterMode;
-    uint8_t i2c_address;
+    uint8_t i2cAddress;
 
     double illuminanceValue, unitIlluminanceValue, lightCh0Value, IRCh1Value;
     double unitIlluminanceSensitivity;
@@ -138,12 +138,12 @@ class IlluminanceTSL2561 {
     ustd::sensorprocessor IRCh1Sensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    IlluminanceTSL2561(String name, FilterMode filterMode = FilterMode::FAST, uint8_t i2c_address = 0x39)
-        : name(name), filterMode(filterMode), i2c_address(i2c_address) {
+    IlluminanceTSL2561(String name, FilterMode filterMode = FilterMode::FAST, uint8_t i2cAddress = 0x39)
+        : name(name), filterMode(filterMode), i2cAddress(i2cAddress) {
         /*! Instantiate an TSL sensor mupplet
         @param name Name used for pub/sub messages
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
-        @param i2c_address Should be 0x29, 0x39, 0x49, for TSL2561, depending address selector (three state) config.
+        @param i2cAddress Should be 0x29, 0x39, 0x49, for TSL2561, depending address selector (three state) config.
         */
         sensorState = TSLSensorState::UNAVAILABLE;
         unitIlluminanceSensitivity = 0.2;
@@ -192,7 +192,7 @@ class IlluminanceTSL2561 {
         pollRateMs = _pollRateMs;
 
         pWire->begin();  // required!
-        pI2C = new I2CRegisters(pWire, i2c_address);
+        pI2C = new I2CRegisters(pWire, i2cAddress);
 
         auto ft = [=]() { this->loop(); };
         tID = pSched->add(ft, name, basePollRateUs);  // 1s
@@ -202,7 +202,7 @@ class IlluminanceTSL2561 {
         };
         pSched->subscribe(tID, name + "/sensor/#", fnall);
 
-        pI2C->lastError = pI2C->checkAddress(i2c_address);
+        pI2C->lastError = pI2C->checkAddress(i2cAddress);
         if (pI2C->lastError == I2CRegisters::I2CError::OK) {
             uint8_t id, rev;
             if (TSLSensorGetRevID(&id, &rev)) {
@@ -407,7 +407,7 @@ class IlluminanceTSL2561 {
         if (!pI2C->readRegisterWordLE(reg, &data, true)) {
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to read TSL2561 at address 0x");
-            Serial.print(i2c_address, HEX);
+            Serial.print(i2cAddress, HEX);
             Serial.print(" data: ");
             Serial.print(data, HEX);
             Serial.print(" lasterr: ");

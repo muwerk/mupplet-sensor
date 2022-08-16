@@ -125,7 +125,7 @@ class PressTempBMP180 {
     double baseRelativeNNPressure;
     bool relativeAltitudeStarted;
     bool captureRelative = false;
-    unsigned long basePollRateUs = 50000L;
+    unsigned long basePollRateUs = 500000L;
     uint32_t pollRateMs;
     uint32_t lastPollMs;
 
@@ -150,7 +150,6 @@ class PressTempBMP180 {
     BMPSensorState sensorState;
     unsigned long errs = 0;
     unsigned long oks = 0;
-    unsigned long pollRateUs = 2000000;
     uint16_t oversampleMode = 2;  // 0..3, see BMPSampleMode.
     enum FilterMode { FAST,
                       MEDIUM,
@@ -158,17 +157,17 @@ class PressTempBMP180 {
 #define MUP_BMP_INVALID_ALTITUDE -1000000.0
     double referenceAltitudeMeters;
     FilterMode filterMode;
-    uint8_t i2c_address;
+    uint8_t i2cAddress;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    PressTempBMP180(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address = 0x77)
-        : name(name), filterMode(filterMode), i2c_address(i2c_address) {
+    PressTempBMP180(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2cAddress = 0x77)
+        : name(name), filterMode(filterMode), i2cAddress(i2cAddress) {
         /*! Instantiate an BMP sensor mupplet
         @param name Name used for pub/sub messages
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
-        @param i2c_address Should always be 0x77 for BMP180, cannot be changed.
+        @param i2cAddress Should always be 0x77 for BMP180, cannot be changed.
         */
         sensorState = BMPSensorState::UNAVAILABLE;
         referenceAltitudeMeters = MUP_BMP_INVALID_ALTITUDE;
@@ -266,9 +265,9 @@ class PressTempBMP180 {
         };
         pSched->subscribe(tID, name + "/sensor/#", fnall);
 
-        pI2C = new I2CRegisters(pWire, i2c_address);
+        pI2C = new I2CRegisters(pWire, i2cAddress);
 
-        pI2C->lastError = pI2C->checkAddress(i2c_address);
+        pI2C->lastError = pI2C->checkAddress(i2cAddress);
         if (pI2C->lastError == I2CRegisters::I2CError::OK) {
             if (!pI2C->readRegisterByte(0xd0, &data)) {  // 0xd0: chip-id register
                 bActive = false;

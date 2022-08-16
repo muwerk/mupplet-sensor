@@ -10,6 +10,8 @@ typedef TinyWire TwoWire;
 #include "scheduler.h"
 #include "sensors.h"
 
+#include "helpers/mup_i2c_registers.h"
+
 namespace ustd {
 
 // clang-format off
@@ -112,6 +114,7 @@ class PressTempHumBME280 {
     String BME280_VERSION = "0.1.0";
     Scheduler *pSched;
     TwoWire *pWire;
+    I2CRegisters *pI2C;
     int tID;
     String name;
     double temperatureValue, pressureValue, pressureNNValue, humidityValue;
@@ -133,21 +136,6 @@ class PressTempHumBME280 {
     char dig_H6;
 
   public:
-    enum BMEError { UNDEFINED,
-                    OK,
-                    I2C_HW_ERROR,
-                    I2C_WRONG_HARDWARE_AT_ADDRESS,
-                    I2C_DEVICE_NOT_AT_ADDRESS,
-                    I2C_REGISTER_WRITE_ERROR,
-                    I2C_VALUE_WRITE_ERROR,
-                    I2C_WRITE_DATA_TOO_LONG,
-                    I2C_WRITE_NACK_ON_ADDRESS,
-                    I2C_WRITE_NACK_ON_DATA,
-                    I2C_WRITE_ERR_OTHER,
-                    I2C_WRITE_TIMEOUT,
-                    I2C_WRITE_INVALID_CODE,
-                    I2C_READ_REQUEST_FAILED,
-                    I2C_CALIBRATION_READ_FAILURE };
     enum BMESensorState { UNAVAILABLE,
                           IDLE,
                           MEASUREMENT_WAIT,
@@ -161,11 +149,10 @@ class PressTempHumBME280 {
         HIGH_RESOLUTION = 4,       ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1
         ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
     };
-    BMEError lastError;
     BMESensorState sensorState;
     unsigned long errs = 0;
     unsigned long oks = 0;
-    unsigned long basePollRateUs = 50000;
+    unsigned long basePollRateUs = 500000L;
     uint32_t pollRateMs = 2000;
     uint32_t lastPollMs = 0;
 
@@ -179,28 +166,31 @@ class PressTempHumBME280 {
 #define MUP_BME_INVALID_ALTITUDE -1000000.0
     double referenceAltitudeMeters;
     FilterMode filterMode;
-    uint8_t i2c_address;
+    uint8_t i2cAddress;
     ustd::sensorprocessor temperatureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor pressureSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor humiditySensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    PressTempHumBME280(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2c_address = 0x76)
-        : name(name), filterMode(filterMode), i2c_address(i2c_address) {
+    PressTempHumBME280(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2cAddress = 0x76)
+        : name(name), filterMode(filterMode), i2cAddress(i2cAddress) {
         /*! Instantiate an BME sensor mupplet
         @param name Name used for pub/sub messages
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
-        @param i2c_address Should always be 0x76 or 0x77 for BME280, depending address config.
+        @param i2cAddress Should always be 0x76 or 0x77 for BME280, depending address config.
         */
-        lastError = BMEError::UNDEFINED;
         sensorState = BMESensorState::UNAVAILABLE;
         referenceAltitudeMeters = MUP_BME_INVALID_ALTITUDE;
         relativeAltitudeStarted = false;
         captureRelative = false;
+        pI2C = nullptr;
         setFilterMode(filterMode, true);
     }
 
     ~PressTempHumBME280() {
+        if (pI2C != nullptr) {
+            delete pI2C;
+        }
     }
 
     void setReferenceAltitude(double _referenceAltitudeMeters) {
@@ -269,29 +259,29 @@ class PressTempHumBME280 {
     }
 
     bool initBmeSensorConstants() {
-        if (!i2c_readRegisterWordLE(0x88, (uint16_t *)&dig_T1)) return false;
-        if (!i2c_readRegisterWordLE(0x8A, (uint16_t *)&dig_T2)) return false;
-        if (!i2c_readRegisterWordLE(0x8C, (uint16_t *)&dig_T3)) return false;
-        if (!i2c_readRegisterWordLE(0x8E, (uint16_t *)&dig_P1)) return false;
-        if (!i2c_readRegisterWordLE(0x90, (uint16_t *)&dig_P2)) return false;
-        if (!i2c_readRegisterWordLE(0x92, (uint16_t *)&dig_P3)) return false;
-        if (!i2c_readRegisterWordLE(0x94, (uint16_t *)&dig_P4)) return false;
-        if (!i2c_readRegisterWordLE(0x96, (uint16_t *)&dig_P5)) return false;
-        if (!i2c_readRegisterWordLE(0x98, (uint16_t *)&dig_P6)) return false;
-        if (!i2c_readRegisterWordLE(0x9A, (uint16_t *)&dig_P7)) return false;
-        if (!i2c_readRegisterWordLE(0x9C, (uint16_t *)&dig_P8)) return false;
-        if (!i2c_readRegisterWordLE(0x9E, (uint16_t *)&dig_P9)) return false;
+        if (!pI2C->readRegisterWordLE(0x88, (uint16_t *)&dig_T1)) return false;
+        if (!pI2C->readRegisterWordLE(0x8A, (uint16_t *)&dig_T2)) return false;
+        if (!pI2C->readRegisterWordLE(0x8C, (uint16_t *)&dig_T3)) return false;
+        if (!pI2C->readRegisterWordLE(0x8E, (uint16_t *)&dig_P1)) return false;
+        if (!pI2C->readRegisterWordLE(0x90, (uint16_t *)&dig_P2)) return false;
+        if (!pI2C->readRegisterWordLE(0x92, (uint16_t *)&dig_P3)) return false;
+        if (!pI2C->readRegisterWordLE(0x94, (uint16_t *)&dig_P4)) return false;
+        if (!pI2C->readRegisterWordLE(0x96, (uint16_t *)&dig_P5)) return false;
+        if (!pI2C->readRegisterWordLE(0x98, (uint16_t *)&dig_P6)) return false;
+        if (!pI2C->readRegisterWordLE(0x9A, (uint16_t *)&dig_P7)) return false;
+        if (!pI2C->readRegisterWordLE(0x9C, (uint16_t *)&dig_P8)) return false;
+        if (!pI2C->readRegisterWordLE(0x9E, (uint16_t *)&dig_P9)) return false;
 
-        if (!i2c_readRegisterByte(0xA1, (uint8_t *)&dig_H1)) return false;
-        if (!i2c_readRegisterWordLE(0xE1, (uint16_t *)&dig_H2)) return false;
-        if (!i2c_readRegisterByte(0xE3, (uint8_t *)&dig_H3)) return false;
+        if (!pI2C->readRegisterByte(0xA1, (uint8_t *)&dig_H1)) return false;
+        if (!pI2C->readRegisterWordLE(0xE1, (uint16_t *)&dig_H2)) return false;
+        if (!pI2C->readRegisterByte(0xE3, (uint8_t *)&dig_H3)) return false;
         unsigned char fb1, fb2, fb3;  // Bosch Frickel-Bytes 1-3:    // XXX Check!
-        if (!i2c_readRegisterByte(0xE4, (uint8_t *)&fb1)) return false;
-        if (!i2c_readRegisterByte(0xE5, (uint8_t *)&fb2)) return false;
-        if (!i2c_readRegisterByte(0xE6, (uint8_t *)&fb3)) return false;
+        if (!pI2C->readRegisterByte(0xE4, (uint8_t *)&fb1)) return false;
+        if (!pI2C->readRegisterByte(0xE5, (uint8_t *)&fb2)) return false;
+        if (!pI2C->readRegisterByte(0xE6, (uint8_t *)&fb3)) return false;
         dig_H4 = ((int16_t)fb1 << 4) + (int16_t)(fb2 & 0x0f);
         dig_H5 = (((int16_t)fb2 & 0xf0) >> 4) + ((int16_t)fb3 << 4);
-        if (!i2c_readRegisterByte(0xE7, (uint8_t *)&dig_H6)) return false;
+        if (!pI2C->readRegisterByte(0xE7, (uint8_t *)&dig_H6)) return false;
         return true;
     }
 
@@ -303,6 +293,8 @@ class PressTempHumBME280 {
         setSampleMode(_sampleMode);
         pollRateMs = _pollRateMs;
 
+        pI2C = new I2CRegisters(pWire, i2cAddress);
+
         auto ft = [=]() { this->loop(); };
         tID = pSched->add(ft, name, basePollRateUs);
 
@@ -311,12 +303,12 @@ class PressTempHumBME280 {
         };
         pSched->subscribe(tID, name + "/sensor/#", fnall);
 
-        lastError = i2c_checkAddress(i2c_address);
-        if (lastError == BMEError::OK) {
-            if (!i2c_readRegisterByte(0xd0, &data)) {  // 0xd0: chip-id register
+        pI2C->lastError = pI2C->checkAddress(i2cAddress);
+        if (pI2C->lastError == I2CRegisters::I2CError::OK) {
+            if (!pI2C->readRegisterByte(0xd0, &data)) {  // 0xd0: chip-id register
 #ifdef USE_SERIAL_DBG
                 Serial.print("Failed to inquire BME280 chip-id at address 0x");
-                Serial.println(i2c_address, HEX);
+                Serial.println(i2cAddress, HEX);
 #endif
                 bActive = false;
             } else {
@@ -324,14 +316,14 @@ class PressTempHumBME280 {
                     if (!initBmeSensorConstants()) {
 #ifdef USE_SERIAL_DBG
                         Serial.print("Failed to read calibration data for sensor BME280 at address 0x");
-                        Serial.println(i2c_address, HEX);
+                        Serial.println(i2cAddress, HEX);
 #endif
-                        lastError = BMEError::I2C_CALIBRATION_READ_FAILURE;
+                        pI2C->lastError = I2CRegisters::I2CError::I2C_HW_ERROR;
                         bActive = false;
                     } else {
 #ifdef USE_SERIAL_DBG
                         Serial.print("BME280 sensor active at address 0x");
-                        Serial.println(i2c_address, HEX);
+                        Serial.println(i2cAddress, HEX);
 #endif
                         sensorState = BMESensorState::IDLE;
                         bActive = true;
@@ -339,20 +331,20 @@ class PressTempHumBME280 {
                 } else {
 #ifdef USE_SERIAL_DBG
                     Serial.print("Wrong hardware (not BME280) found at address 0x");
-                    Serial.print(i2c_address, HEX);
+                    Serial.print(i2cAddress, HEX);
                     Serial.print(" chip-id is ");
                     Serial.print(data, HEX);
                     Serial.println(" expected: 0x60 for BME280.");
                     if (data == 0x58) Serial.println("This is not a BME280 but a BME280 sensor (no humidity). This might be a fake chip/source.");
 #endif
-                    lastError = BMEError::I2C_WRONG_HARDWARE_AT_ADDRESS;
+                    pI2C->lastError = I2CRegisters::I2CError::I2C_WRONG_HARDWARE_AT_ADDRESS;
                     bActive = false;
                 }
             }
         } else {
 #ifdef USE_SERIAL_DBG
             Serial.print("No BME280 sensor found at address 0x");
-            Serial.println(i2c_address, HEX);
+            Serial.println(i2cAddress, HEX);
 #endif
             bActive = false;
         }
@@ -404,138 +396,6 @@ class PressTempHumBME280 {
     }
 
   private:
-    BMEError i2c_checkAddress(uint8_t address) {
-        pWire->beginTransmission(address);
-        byte error = pWire->endTransmission();
-        if (error == 0) {
-            lastError = BMEError::OK;
-            return lastError;
-        } else if (error == 4) {
-            lastError = I2C_HW_ERROR;
-        }
-        lastError = I2C_DEVICE_NOT_AT_ADDRESS;
-        return lastError;
-    }
-
-    bool i2c_endTransmission(bool releaseBus) {
-        uint8_t retCode = pWire->endTransmission(releaseBus);  // true: release bus, send stop
-        switch (retCode) {
-        case 0:
-            lastError = BMEError::OK;
-            return true;
-        case 1:
-            lastError = BMEError::I2C_WRITE_DATA_TOO_LONG;
-            return false;
-        case 2:
-            lastError = BMEError::I2C_WRITE_NACK_ON_ADDRESS;
-            return false;
-        case 3:
-            lastError = BMEError::I2C_WRITE_NACK_ON_DATA;
-            return false;
-        case 4:
-            lastError = BMEError::I2C_WRITE_ERR_OTHER;
-            return false;
-        case 5:
-            lastError = BMEError::I2C_WRITE_TIMEOUT;
-            return false;
-        default:
-            lastError = BMEError::I2C_WRITE_INVALID_CODE;
-            return false;
-        }
-        return false;
-    }
-
-    bool i2c_readRegisterByte(uint8_t reg, uint8_t *pData) {
-        *pData = (uint8_t)-1;
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg, 1) != 1) {
-            lastError = BMEError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (i2c_endTransmission(true) == false) return false;
-        uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)1, (uint8_t) true);
-        if (read_cnt != 1) {
-            lastError = I2C_READ_REQUEST_FAILED;
-            return false;
-        }
-        *pData = pWire->read();
-        return true;
-    }
-
-    bool i2c_readRegisterWord(uint8_t reg, uint16_t *pData) {
-        *pData = (uint16_t)-1;
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg, 1) != 1) {
-            lastError = BMEError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (i2c_endTransmission(true) == false) return false;
-        uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
-        if (read_cnt != 2) {
-            lastError = I2C_READ_REQUEST_FAILED;
-            return false;
-        }
-        uint8_t hb = pWire->read();
-        uint8_t lb = pWire->read();
-        uint16_t data = (hb << 8) | lb;
-        *pData = data;
-        return true;
-    }
-
-    bool i2c_readRegisterWordLE(uint8_t reg, uint16_t *pData) {
-        *pData = (uint16_t)-1;
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg, 1) != 1) {
-            lastError = BMEError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (i2c_endTransmission(true) == false) return false;
-        uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)2, (uint8_t) true);
-        if (read_cnt != 2) {
-            lastError = I2C_READ_REQUEST_FAILED;
-            return false;
-        }
-        uint8_t lb = pWire->read();
-        uint8_t hb = pWire->read();
-        uint16_t data = (hb << 8) | lb;
-        *pData = data;
-        return true;
-    }
-
-    bool i2c_readRegisterTripple(uint8_t reg, uint32_t *pData) {
-        *pData = (uint32_t)-1;
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg, 1) != 1) {
-            lastError = BMEError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (i2c_endTransmission(true) == false) return false;
-        uint8_t read_cnt = pWire->requestFrom(i2c_address, (uint8_t)3, (uint8_t) true);
-        if (read_cnt != 3) {
-            lastError = I2C_READ_REQUEST_FAILED;
-            return false;
-        }
-        uint8_t hb = pWire->read();
-        uint8_t lb = pWire->read();
-        uint8_t xlb = pWire->read();
-        uint32_t data = (hb << 16) | (lb << 8) | xlb;
-        *pData = data;
-        return true;
-    }
-
-    bool i2c_writeRegisterByte(uint8_t reg, uint8_t val, bool releaseBus = true) {
-        pWire->beginTransmission(i2c_address);
-        if (pWire->write(&reg, 1) != 1) {
-            lastError = BMEError::I2C_REGISTER_WRITE_ERROR;
-            return false;
-        }
-        if (pWire->write(&val, 1) != 1) {
-            lastError = BMEError::I2C_VALUE_WRITE_ERROR;
-            return false;
-        }
-        return i2c_endTransmission(releaseBus);
-    }
-
     void publishTemperature() {
         char buf[32];
         sprintf(buf, "%6.2f", temperatureValue);
@@ -654,7 +514,7 @@ class PressTempHumBME280 {
             break;
         case BMESensorState::IDLE:
             reg_data = (normalmodeInactivity << 5) + (IIRfilter << 2) + 0;
-            if (!i2c_writeRegisterByte(config_register, reg_data)) {
+            if (!pI2C->writeRegisterByte(config_register, reg_data)) {
                 ++errs;
                 lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
@@ -662,7 +522,7 @@ class PressTempHumBME280 {
                 break;
             }
             reg_data = oversampleModeHumidity & 0x7;
-            if (!i2c_writeRegisterByte(ctrl_hum_register, reg_data)) {
+            if (!pI2C->writeRegisterByte(ctrl_hum_register, reg_data)) {
                 ++errs;
                 lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
@@ -670,7 +530,7 @@ class PressTempHumBME280 {
                 break;
             }
             reg_data = (oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x1;  // 0x3: normal mode, 0x1 one-shot
-            if (!i2c_writeRegisterByte(measure_mode_register, reg_data)) {
+            if (!pI2C->writeRegisterByte(measure_mode_register, reg_data)) {
                 ++errs;
                 lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
@@ -682,7 +542,7 @@ class PressTempHumBME280 {
             }
             break;
         case BMESensorState::MEASUREMENT_WAIT:
-            if (!i2c_readRegisterByte(status_register, &status)) {
+            if (!pI2C->readRegisterByte(status_register, &status)) {
                 // no status
                 ++errs;
                 lastPollMs = millis();
@@ -694,8 +554,8 @@ class PressTempHumBME280 {
             if (timeDiff(stateMachineClock, micros()) > 1 && status == 0) {  // 1ms for meas, no status set.
                 rt = 0;
                 rp = 0;
-                if (i2c_readRegisterTripple(temperature_registers, &rt) && i2c_readRegisterTripple(pressure_registers, &rp) &&
-                    i2c_readRegisterWord(humidity_registers, &rh)) {
+                if (pI2C->readRegisterTripple(temperature_registers, &rt) && pI2C->readRegisterTripple(pressure_registers, &rp) &&
+                    pI2C->readRegisterWord(humidity_registers, &rh)) {
                     rawTemperature = rt >> 4;
                     rawPressure = rp >> 4;
                     rawHumidity = (int32_t)rh;

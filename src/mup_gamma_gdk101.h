@@ -133,17 +133,17 @@ class GammaGDK101 {
                       LONGTERM };
     String firmwareVersion;
     FilterMode filterMode;
-    uint8_t i2c_address;
+    uint8_t i2cAddress;
     ustd::sensorprocessor gamma10minavgSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor gamma1minavgSensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    GammaGDK101(String name, FilterMode filterMode = FilterMode::FAST, uint8_t i2c_address = 0x18)
-        : name(name), filterMode(filterMode), i2c_address(i2c_address) {
+    GammaGDK101(String name, FilterMode filterMode = FilterMode::FAST, uint8_t i2cAddress = 0x18)
+        : name(name), filterMode(filterMode), i2cAddress(i2cAddress) {
         /*! Instantiate an GDK sensor mupplet
         @param name Name used for pub/sub messages
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
-        @param i2c_address Should always be 0x76 or 0x77 for GDK101, depending address config.
+        @param i2cAddress Should always be 0x76 or 0x77 for GDK101, depending address config.
         */
         sensorState = GDKSensorState::UNAVAILABLE;
         pI2C = nullptr;
@@ -180,7 +180,7 @@ class GammaGDK101 {
             pWire->setClock(100000L);
             disIrq = true;
         }
-        pI2C = new I2CRegisters(pWire, i2c_address);
+        pI2C = new I2CRegisters(pWire, i2cAddress);
         auto ft = [=]() { this->loop(); };
         tID = pSched->add(ft, name, basePollRateUs);
 
@@ -190,7 +190,7 @@ class GammaGDK101 {
         pSched->subscribe(tID, name + "/sensor/#", fnall);
 
         // I2c_checkAddress kills the sensor!
-        // lastError=i2c_checkAddress(i2c_address);
+        // lastError=i2c_checkAddress(i2cAddress);
 
         bActive = resetGDKSensor();
         if (bActive) {
@@ -275,7 +275,7 @@ class GammaGDK101 {
         if (!pI2C->readRegisterWord(0xb4, &data, true, disIrq)) {  // version
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to read version GDK101 at address 0x");
-            Serial.print(i2c_address, HEX);
+            Serial.print(i2cAddress, HEX);
             Serial.print(" data: ");
             Serial.print(data, HEX);
             Serial.print(" lasterr: ");
@@ -298,7 +298,7 @@ class GammaGDK101 {
         if (!pI2C->readRegisterWord(0xa0, &data, true, disIrq)) {  // reset
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to reset GDK101 at address 0x");
-            Serial.print(i2c_address, HEX);
+            Serial.print(i2cAddress, HEX);
             Serial.print(" data: ");
             Serial.print(data, HEX);
             Serial.print(" lasterr: ");
@@ -312,13 +312,13 @@ class GammaGDK101 {
                 bActive = true;
 #ifdef USE_SERIAL_DBG
                 Serial.print("GDK101 sensor found at address 0x");
-                Serial.print(i2c_address, HEX);
+                Serial.print(i2cAddress, HEX);
                 Serial.print(". Reset returned: ");
                 Serial.println(data, HEX);
 #endif
             } else {
                 Serial.print("Failed to reset GDK101 at address 0x");
-                Serial.print(i2c_address, HEX);
+                Serial.print(i2cAddress, HEX);
                 Serial.print(" data: ");
                 Serial.print(data, HEX);
                 Serial.print(" lasterr: ");
@@ -334,7 +334,7 @@ class GammaGDK101 {
         if (!pI2C->readRegisterWord(reg, &data, true, disIrq)) {
 #ifdef USE_SERIAL_DBG
             Serial.print("Failed to read GDK101 at address 0x");
-            Serial.print(i2c_address, HEX);
+            Serial.print(i2cAddress, HEX);
             Serial.print(" data: ");
             Serial.print(data, HEX);
             Serial.print(" lasterr: ");
