@@ -27,7 +27,7 @@ The `mupplet-sensor` library consists of the following modules:
   The values displayed can either be generated locally or imported via MQTT. A JSON file discribes
   format and data sources. See [GFX Panel Application Notes][Gfx_panel_NOTES].
 
-<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/tft.gif" align="right" width="50%" height="50%">
+<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/tft.gif" align="right" width="20%" height="20%">
 
 Dependencies
 ------------
