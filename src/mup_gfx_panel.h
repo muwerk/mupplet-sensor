@@ -1371,16 +1371,16 @@ class GfxPanel {
         } else {
             // Graph
             if (pSlots[slot].pHist && pSlots[slot].histLen) {
-                double deltaY = gmax - gmin;
+                float deltaY = gmax - gmin;
                 if (deltaY < 0.0001) deltaY = 1;
-                double deltaX = (double)(xm1 - xm0) / (double)(pSlots[slot].histLen);
+                float deltaX = (float)(xm1 - xm0) / (float)(pSlots[slot].histLen);
                 int lx0, ly0, lx1, ly1;
                 int gHeight = (ym1 - ym0) - 11;  // font size of caption.
                 for (uint16_t i = 1; i < pSlots[slot].histLen; i++) {
-                    lx0 = xm0 + (int)((double)(i - 1) * deltaX);
-                    lx1 = xm0 + (int)((double)i * deltaX);
-                    ly0 = ym1 - (int)((pSlots[slot].pHist[i - 1] - gmin) / deltaY * (double)(gHeight));
-                    ly1 = ym1 - (int)((pSlots[slot].pHist[i] - gmin) / deltaY * (double)(gHeight));
+                    lx0 = xm0 + (int)((float)(i - 1) * deltaX);
+                    lx1 = xm0 + (int)((float)i * deltaX);
+                    ly0 = ym1 - (int)((pSlots[slot].pHist[i - 1] - gmin) / deltaY * (float)(gHeight));
+                    ly1 = ym1 - (int)((pSlots[slot].pHist[i] - gmin) / deltaY * (float)(gHeight));
                     uint32_t col;
                     if (ly1 < ly0)
                         col = defaultIncreaseColor;
