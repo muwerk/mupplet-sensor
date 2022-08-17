@@ -23,8 +23,8 @@ The `mupplet-sensor` library consists of the following modules:
 
 <img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled.png" align="right" width="7%" height="7%">
 
-* [mup_gfx_panel][Gfx_panel_DOC] The `Oled` mupplet allows to display 2-4 sensor values on an Oled display. 
-  The values displayed can either be generated locally or imported via MQTT. A JSON file discribes
+* [mup_gfx_panel][Gfx_panel_DOC] The `GfxPanel` mupplet allows to display multiple sensor values on an Oled or TFT displays as
+  text or graphical plot. The values displayed can either be generated locally or imported via MQTT. A JSON file discribes
   format and data sources. See [GFX Panel Application Notes][Gfx_panel_NOTES].
 
 <img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/tft.gif" align="right" width="20%" height="20%">
