@@ -127,6 +127,9 @@ class GammaGDK101 {
     unsigned long basePollRateUs = 50000;  // 50uS
     unsigned long pollRateMs = 2000;       // 2s
     uint32_t lastPollMs = 0;
+    time_t watchdogTime = 0;
+    bool watchdogActive = true;
+    uint32_t watchdogTimeoutSec = 180;
 
     enum FilterMode { FAST,
                       MEDIUM,
@@ -170,10 +173,15 @@ class GammaGDK101 {
         return gamma1minavgValue;
     }
 
-    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, uint32_t _pollRateMs = 2000L, bool forceSlowClock = false) {
+    void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, uint32_t _pollRateMs = 2000L, bool forceSlowClock = false, bool watchdog = true) {
         pSched = _pSched;
         pWire = _pWire;
         pollRateMs = _pollRateMs;
+        watchdogActive = watchdog;
+
+        if (watchdogActive) {
+            resetWatchdog();
+        }
 
         pWire->begin();  // required!
         if (forceSlowClock) {
@@ -254,6 +262,10 @@ class GammaGDK101 {
 
     void publishError(String errMsg) {
         pSched->publish(name + "/sensor/error", errMsg);
+    }
+
+    void publishFirmwareVersion() {
+        pSched->publish(name + "/sensor/firmwareVersion", firmwareVersion);
     }
 
     void publishFilterMode() {
@@ -359,12 +371,27 @@ class GammaGDK101 {
         return true;
     }
 
+    void resetWatchdog() {
+        watchdogTime = time(nullptr);
+    }
+
     void loop() {
         if (timeDiff(lastPollMs, millis()) > pollRateMs) {
             lastPollMs = millis();
             double gamma10minavgVal, gamma1minavgVal;
             if (bActive) {
                 if (readGDKSensor(&gamma10minavgVal, &gamma1minavgVal)) {
+                    if (gamma10minavgVal != 0 || gamma1minavgVal != 0) {
+                        publishError("Watchdog reset.");
+                        resetWatchdog();
+                    }
+                    if (watchdogActive) {
+                        if (timeDiff(watchdogTime, time(nullptr)) > watchdogTimeoutSec) {
+                            publishError("Watchdog timeout, resetting sensor");
+                            resetWatchdog();
+                            resetGDKSensor();
+                        }
+                    }
                     if (gamma10minavgSensor.filter(&gamma10minavgVal)) {
                         gamma10minavgValue = gamma10minavgVal;
                         publishGamma10minavg();
@@ -374,6 +401,14 @@ class GammaGDK101 {
                         publishGamma1minavg();
                     }
                 }
+            } else {
+                if (watchdogActive) {
+                    if (timeDiff(watchdogTime, time(nullptr)) > 10) {
+                        publishError("Watchdog timeout during startup, resetting sensor");
+                        resetWatchdog();
+                        resetGDKSensor();
+                    }
+                }
             }
         }
     }
@@ -381,11 +416,9 @@ class GammaGDK101 {
     void subsMsg(String topic, String msg, String originator) {
         if (topic == name + "/sensor/gamma10minavg/get") {
             publishGamma10minavg();
-        }
-        if (topic == name + "/sensor/gamma1minavg/get") {
+        } else if (topic == name + "/sensor/gamma1minavg/get") {
             publishGamma1minavg();
-        }
-        if (topic == name + "/sensor/mode/get") {
+        } else if (topic == name + "/sensor/mode/get") {
             publishFilterMode();
         }
         if (topic == name + "/sensor/mode/set") {
@@ -398,6 +431,8 @@ class GammaGDK101 {
                     setFilterMode(FilterMode::LONGTERM);
                 }
             }
+        } else if (topic == name + "/sensor/firmwareversion/get") {
+            publishFirmwareVersion();
         }
     }
 
