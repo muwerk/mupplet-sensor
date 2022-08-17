@@ -531,6 +531,7 @@ class GfxPanel {
     ustd::array<String> captions;
     ustd::array<String> msgs;
 
+    uint32_t displayFrameRateMs;
     uint32_t lastRefresh;
     uint32_t minUpdateIntervalMs;
 
@@ -673,6 +674,7 @@ class GfxPanel {
 
     void _common_init() {
         active = false;
+        displayFrameRateMs=1000;
         slotResX = 64;
         slotResY = 32;
         brightness = 0.5;
@@ -1147,6 +1149,9 @@ class GfxPanel {
         if (slot < slots) {
             pSlots[slot].histSampleRateMs = rate;
             pSlots[slot].frameRate = rate;
+            if (rate<displayFrameRateMs) {
+                displayFrameRateMs = rate;
+            }
         }
     }
 
@@ -1165,6 +1170,7 @@ class GfxPanel {
 
         @param _pSched Pointer to the muwerk scheduler
         @param _pMqtt Pointer to munet mqtt object, used to subscribe to mqtt topics defined in `'display-name'.json` file.
+        @param _useCanvas Use the canvas for the display. Note: requires considerable memory for color displays!
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
@@ -1173,6 +1179,7 @@ class GfxPanel {
         /*! Activate display and begin receiving updates for the display slots
 
         @param _pSched Pointer to the muwerk scheduler
+        @param _useCanvas Use the canvas for the display. Note: requires considerable memory for color displays!
         */
         pSched = _pSched;
 #endif
@@ -1189,6 +1196,7 @@ class GfxPanel {
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
         @param _topics std::array<String> of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
         @param _captions std::array<String> of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        @param _useCanvas Use the canvas for the display. Note: requires considerable memory for color displays!
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
@@ -1200,6 +1208,7 @@ class GfxPanel {
         @param combined_layout The layout string, e.g. "ff|ff" (two lines, two short floats each).
         @param _topics std::array<String> of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
         @param _captions std::array<String> of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        @param _useCanvas Use the canvas for the display. Note: requires considerable memory for color displays!
         */
         pSched = _pSched;
 #endif
@@ -1224,6 +1233,7 @@ class GfxPanel {
         @param _slots Number of slots to use, must be array dimension of both _captions and topics.
         @param _topics const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
         @param _captions const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        @param _useCanvas Use the canvas for the display. Note: requires considerable memory for color displays!
         */
         pSched = _pSched;
         pMqtt = _pMqtt;
@@ -1236,6 +1246,7 @@ class GfxPanel {
         @param _slots Number of slots to use, must be array dimension of both _captions and topics.
         @param _topics const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string.
         @param _captions const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.
+        @param _useCanvas Use the canvas for the display. Note: requires considerable memory for color displays!
         */
         pSched = _pSched;
 #endif
@@ -1400,7 +1411,7 @@ class GfxPanel {
 
   public:
     void updateDisplay(bool updateNow, bool forceRedraw = false) {
-        if (!updateNow && timeDiff(lastRefresh, millis()) < minUpdateIntervalMs) {
+        if (!updateNow && timeDiff(lastRefresh, millis()) < displayFrameRateMs) {
             return;
         }
         bool update = false;
