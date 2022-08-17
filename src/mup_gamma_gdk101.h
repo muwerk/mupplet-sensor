@@ -337,6 +337,7 @@ class GammaGDK101 {
                 Serial.println(pI2C->lastError, HEX);
             }
         }
+        resetWatchdog();
         return bActive;
     }
 
@@ -382,8 +383,7 @@ class GammaGDK101 {
             if (bActive) {
                 if (readGDKSensor(&gamma10minavgVal, &gamma1minavgVal)) {
                     if (gamma10minavgVal != 0 || gamma1minavgVal != 0) {
-                        publishError("Watchdog reset.");
-                        resetWatchdog();
+                        resetWatchdog();  // Valid measurement received, restart watchdog.
                     }
                     if (watchdogActive) {
                         if (timeDiff(watchdogTime, time(nullptr)) > watchdogTimeoutSec) {
