@@ -471,7 +471,6 @@ class PressTempBMP280 {
             reg_data = (normalmodeInactivity << 5) + (IIRfilter << 2) + 0;
             if (!pI2C->writeRegisterByte(config_register, reg_data)) {
                 ++errs;
-                lastPollMs = millis();
                 sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -479,7 +478,6 @@ class PressTempBMP280 {
             reg_data = (oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x1;  // 0x3: normal mode, 0x1 one-shot
             if (!pI2C->writeRegisterByte(measure_mode_register, reg_data)) {
                 ++errs;
-                lastPollMs = millis();
                 sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -492,7 +490,6 @@ class PressTempBMP280 {
             if (!pI2C->readRegisterByte(status_register, &status)) {
                 // no status
                 ++errs;
-                lastPollMs = millis();
                 sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -504,14 +501,12 @@ class PressTempBMP280 {
                 if (pI2C->readRegisterTripple(temperature_registers, &rt) && pI2C->readRegisterTripple(pressure_registers, &rp)) {
                     rawTemperature = rt >> 4;
                     rawPressure = rp >> 4;
-                    lastPollMs = millis();
                     sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock = micros();
                     ++oks;
                     newData = true;
                 } else {
                     ++errs;
-                    lastPollMs = millis();
                     sensorState = BMPSensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock = micros();
                 }
@@ -520,6 +515,7 @@ class PressTempBMP280 {
         case BMPSensorState::WAIT_NEXT_MEASUREMENT:
             if (timeDiff(lastPollMs, millis()) > pollRateMs) {
                 sensorState = BMPSensorState::IDLE;  // Start next cycle.
+                lastPollMs = millis();
             }
             break;
         }

@@ -1325,10 +1325,10 @@ class GfxPanel {
 
         float gmin, gmax, dmin, dmax;
         float avg, navg;
-        dmin = 100000.0;
-        dmax = -100000.0;
-        gmax = -100000.0;
-        gmin = 100000.0;
+        dmin = 1000000000.0;
+        dmax = -1000000000.0;
+        gmax = -1000000000.0;
+        gmin = 1000000000.0;
         avg = 0.0;
         navg = 0.0;
         if (pSlots[slot].slotType != SlotType::TEXT) {

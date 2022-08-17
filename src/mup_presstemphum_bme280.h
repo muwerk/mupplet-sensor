@@ -371,7 +371,7 @@ class PressTempHumBME280 {
             temperatureSensor.reset();
             pressureSensor.smoothInterval = 4;
             pressureSensor.pollTimeSec = 30;
-            pressureSensor.eps = 0.5;
+            pressureSensor.eps = 0.1;
             pressureSensor.reset();
             break;
         case LONGTERM:
@@ -383,7 +383,7 @@ class PressTempHumBME280 {
             temperatureSensor.reset();
             pressureSensor.smoothInterval = 50;
             pressureSensor.pollTimeSec = 600;
-            pressureSensor.eps = 0.5;
+            pressureSensor.eps = 0.2;
             pressureSensor.reset();
             break;
         }
@@ -392,7 +392,7 @@ class PressTempHumBME280 {
     }
 
     void setPollRateMs(uint32_t _pollRateMs) {
-        pollRateMs = pollRateMs;
+        pollRateMs = _pollRateMs;
     }
 
   private:
@@ -516,7 +516,6 @@ class PressTempHumBME280 {
             reg_data = (normalmodeInactivity << 5) + (IIRfilter << 2) + 0;
             if (!pI2C->writeRegisterByte(config_register, reg_data)) {
                 ++errs;
-                lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -524,7 +523,6 @@ class PressTempHumBME280 {
             reg_data = oversampleModeHumidity & 0x7;
             if (!pI2C->writeRegisterByte(ctrl_hum_register, reg_data)) {
                 ++errs;
-                lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -532,7 +530,6 @@ class PressTempHumBME280 {
             reg_data = (oversampleModeTemperature << 5) + (oversampleModePressure << 2) + 0x1;  // 0x3: normal mode, 0x1 one-shot
             if (!pI2C->writeRegisterByte(measure_mode_register, reg_data)) {
                 ++errs;
-                lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -545,7 +542,6 @@ class PressTempHumBME280 {
             if (!pI2C->readRegisterByte(status_register, &status)) {
                 // no status
                 ++errs;
-                lastPollMs = millis();
                 sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                 stateMachineClock = micros();
                 break;
@@ -559,14 +555,20 @@ class PressTempHumBME280 {
                     rawTemperature = rt >> 4;
                     rawPressure = rp >> 4;
                     rawHumidity = (int32_t)rh;
-                    lastPollMs = millis();
                     sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock = micros();
+#ifdef USE_SERIAL_DBG
+                    Serial.print("BME raw T=");
+                    Serial.print(rawTemperature);
+                    Serial.print(" P=");
+                    Serial.print(rawPressure);
+                    Serial.print(" H=");
+                    Serial.println(rawHumidity);
+#endif
                     ++oks;
                     newData = true;
                 } else {
                     ++errs;
-                    lastPollMs = millis();
                     sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock = micros();
                 }
@@ -575,6 +577,7 @@ class PressTempHumBME280 {
         case BMESensorState::WAIT_NEXT_MEASUREMENT:
             if (timeDiff(lastPollMs, millis()) > pollRateMs) {
                 sensorState = BMESensorState::IDLE;  // Start next cycle.
+                lastPollMs = millis();
             }
             break;
         }
