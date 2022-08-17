@@ -7,6 +7,8 @@ The `mup_gfx_panel` mupplet displays sensor values as numbers or plots. Supporte
 * Oled SSD1306 128x64
 * TFT ST7735 128x128, 128x160
 
+![OLED](https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled.gif)
+
 The display is divded into slots of either 32x32 or 64x32 pixels. Each slot can either display
 a short string, a number or a graphical plot. Data source for the values displayed are pub/sub
 topics (either internal, or, if available, MQTT topics).
@@ -28,6 +30,8 @@ This Display will look for a json file `display1.json`. A sample content could b
 
 - **`layout`** defines the slots that are available to display information. Each slot is described by a single letter, and `|` marks
   a new line. An upper-case letter defines a large 64x32 slot, lower-case is used for 32x32 slots.
+  
+  ![TFT](https://github.com/muwerk/mupplet-sensor/blob/master/extras/tft.gif)
   
   The example displays a `S` large 64x32 string in line 1, and two 32x32 `f` floats with one decimal in line. 
   
