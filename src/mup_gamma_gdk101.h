@@ -129,7 +129,8 @@ class GammaGDK101 {
     uint32_t lastPollMs = 0;
     time_t watchdogTime = 0;
     bool watchdogActive = true;
-    uint32_t watchdogTimeoutSec = 180;
+    uint32_t watchdogTimeoutSec = 900;
+    uint32_t watchdogStartupTimeoutSec = 180;
 
     enum FilterMode { FAST,
                       MEDIUM,
@@ -403,10 +404,10 @@ class GammaGDK101 {
                 }
             } else {
                 if (watchdogActive) {
-                    if (timeDiff(watchdogTime, time(nullptr)) > 10) {
+                    if (timeDiff(watchdogTime, time(nullptr)) > watchdogStartupTimeoutSec) {
                         publishError("Watchdog timeout during startup, resetting sensor");
                         resetWatchdog();
-                        resetGDKSensor();
+                        bActive=resetGDKSensor();
                     }
                 }
             }
