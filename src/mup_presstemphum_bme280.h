@@ -354,37 +354,22 @@ class PressTempHumBME280 {
         switch (mode) {
         case FAST:
             filterMode = FAST;
-            temperatureSensor.smoothInterval = 1;
-            temperatureSensor.pollTimeSec = 2;
-            temperatureSensor.eps = 0.05;
-            temperatureSensor.reset();
-            pressureSensor.smoothInterval = 1;
-            pressureSensor.pollTimeSec = 2;
-            pressureSensor.eps = 0.001;
-            pressureSensor.reset();
+            temperatureSensor.update(1, 2, 0.05);
+            pressureSensor.update(1, 2, 0.001);
+            humiditySensor.update(1, 2, 0.01);
             break;
         case MEDIUM:
             filterMode = MEDIUM;
-            temperatureSensor.smoothInterval = 4;
-            temperatureSensor.pollTimeSec = 30;
-            temperatureSensor.eps = 0.1;
-            temperatureSensor.reset();
-            pressureSensor.smoothInterval = 4;
-            pressureSensor.pollTimeSec = 30;
-            pressureSensor.eps = 0.1;
-            pressureSensor.reset();
+            temperatureSensor.update(4, 30, 0.1);
+            pressureSensor.update(4, 30, 0.1);
+            humiditySensor.update(4, 30, 0.1);
             break;
         case LONGTERM:
         default:
             filterMode = LONGTERM;
-            temperatureSensor.smoothInterval = 10;
-            temperatureSensor.pollTimeSec = 600;
-            temperatureSensor.eps = 0.1;
-            temperatureSensor.reset();
-            pressureSensor.smoothInterval = 50;
-            pressureSensor.pollTimeSec = 600;
-            pressureSensor.eps = 0.2;
-            pressureSensor.reset();
+            temperatureSensor.update(10, 600, 0.1);
+            pressureSensor.update(30, 600, 0.3);
+            humiditySensor.update(30, 600, 0.2);
             break;
         }
         if (!silent)
@@ -682,42 +667,30 @@ class PressTempHumBME280 {
     void subsMsg(String topic, String msg, String originator) {
         if (topic == name + "/sensor/temperature/get") {
             publishTemperature();
-        }
-        if (topic == name + "/sensor/pressure/get") {
+        } else if (topic == name + "/sensor/pressure/get") {
             publishPressure();
-        }
-        if (topic == name + "/sensor/humidity/get") {
+        } else if (topic == name + "/sensor/humidity/get") {
             publishHumidity();
-        }
-        if (topic == name + "/sensor/mode/get") {
+        } else if (topic == name + "/sensor/mode/get") {
             publishFilterMode();
-        }
-        if (topic == name + "/sensor/calibrationdata/get") {
+        } else if (topic == name + "/sensor/calibrationdata/get") {
             publishCalibrationData();
-        }
-        if (topic == name + "/sensor/referencealtitude/get") {
+        } else if (topic == name + "/sensor/referencealtitude/get") {
             publishReferenceAltitude();
-        }
-        if (topic == name + "/sensor/relativealtitude/get") {
+        } else if (topic == name + "/sensor/relativealtitude/get") {
             publishRelativeAltitude();
-        }
-        if (topic == name + "/sensor/relativealtitude/set") {
+        } else if (topic == name + "/sensor/relativealtitude/set") {
             startRelativeAltitude();
-        }
-        if (topic == name + "/sensor/oversampling/get") {
+        } else if (topic == name + "/sensor/oversampling/get") {
             publishOversampling();
-        }
-        if (topic == name + "/sensor/pollratems/set") {
+        } else if (topic == name + "/sensor/pollratems/set") {
             setPollRateMs(msg.toInt());
-        }
-        if (topic == name + "/sensor/pollratems/get") {
+        } else if (topic == name + "/sensor/pollratems/get") {
             publishPollRateMs();
-        }
-        if (topic == name + "/sensor/referencealtitude/set") {
+        } else if (topic == name + "/sensor/referencealtitude/set") {
             double alt = atof(msg.c_str());
             setReferenceAltitude(alt);
-        }
-        if (topic == name + "/sensor/mode/set") {
+        } else if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
                 setFilterMode(FilterMode::FAST);
             } else {
@@ -727,8 +700,7 @@ class PressTempHumBME280 {
                     setFilterMode(FilterMode::LONGTERM);
                 }
             }
-        }
-        if (topic == name + "/sensor/oversampling/set") {
+        } else if (topic == name + "/sensor/oversampling/set") {
             if (msg == "ULTRA_LOW_POWER") {
                 setSampleMode(BMESampleMode::ULTRA_LOW_POWER);
             } else {

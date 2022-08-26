@@ -354,37 +354,19 @@ class TempHumDHT {
         switch (mode) {
         case FAST:
             filterMode = FAST;
-            temperatureSensor.smoothInterval = 1;
-            temperatureSensor.pollTimeSec = 2;
-            temperatureSensor.eps = 0.05;
-            temperatureSensor.reset();
-            humiditySensor.smoothInterval = 1;
-            humiditySensor.pollTimeSec = 2;
-            humiditySensor.eps = 0.1;
-            humiditySensor.reset();
+            temperatureSensor.update(1, 2, 0.05);
+            humiditySensor.update(1, 2, 0.1);
             break;
         case MEDIUM:
             filterMode = MEDIUM;
-            temperatureSensor.smoothInterval = 4;
-            temperatureSensor.pollTimeSec = 30;
-            temperatureSensor.eps = 0.1;
-            temperatureSensor.reset();
-            humiditySensor.smoothInterval = 4;
-            humiditySensor.pollTimeSec = 30;
-            humiditySensor.eps = 0.5;
-            humiditySensor.reset();
+            temperatureSensor.update(4, 30, 0.1);
+            humiditySensor.update(4, 30, 0.5);
             break;
         case LONGTERM:
         default:
             filterMode = LONGTERM;
-            temperatureSensor.smoothInterval = 10;
-            temperatureSensor.pollTimeSec = 600;
-            temperatureSensor.eps = 0.1;
-            temperatureSensor.reset();
-            humiditySensor.smoothInterval = 50;
-            humiditySensor.pollTimeSec = 600;
-            humiditySensor.eps = 0.5;
-            humiditySensor.reset();
+            temperatureSensor.update(10, 600, 0.1);
+            humiditySensor.update(50, 600, 0.5);
             break;
         }
         if (!silent)
@@ -533,14 +515,11 @@ class TempHumDHT {
     void subsMsg(String topic, String msg, String originator) {
         if (topic == name + "/sensor/temperature/get") {
             publishTemperature();
-        }
-        if (topic == name + "/sensor/humidity/get") {
+        } else if (topic == name + "/sensor/humidity/get") {
             publishHumidity();
-        }
-        if (topic == name + "/sensor/mode/get") {
+        } else if (topic == name + "/sensor/mode/get") {
             publishFilterMode();
-        }
-        if (topic == name + "/sensor/mode/set") {
+        } else if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
                 setFilterMode(FilterMode::FAST);
             } else {
