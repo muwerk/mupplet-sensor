@@ -106,20 +106,6 @@ class IlluminanceTSL2561 {
     String name;
 
   public:
-    enum TSLSensorState { UNAVAILABLE,
-                          IDLE,
-                          MEASUREMENT_WAIT,
-                          WAIT_NEXT_MEASUREMENT };
-
-    /*! Hardware accuracy modes of TSL2561, while the sensor can have different pressure- and temperature oversampling, we use same for both temp and press. */
-    enum TSLSampleMode {
-        ULTRA_LOW_POWER = 1,       ///< 1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature oversampling: x1
-        LOW_POWER = 2,             ///< 2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature oversampling: x1
-        STANDARD = 3,              ///< 4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature oversampling: x1
-        HIGH_RESOLUTION = 4,       ///< 8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1
-        ULTRA_HIGH_RESOLUTION = 5  ///< 16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2
-    };
-    TSLSensorState sensorState;
     unsigned long basePollRateUs = 50000;  // 50ms;
     uint32_t pollRateMs = 2000;            // 2000ms;
     uint32_t lastPollMs = 0;
@@ -145,7 +131,6 @@ class IlluminanceTSL2561 {
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
         @param i2cAddress Should be 0x29, 0x39, 0x49, for TSL2561, depending address selector (three state) config.
         */
-        sensorState = TSLSensorState::UNAVAILABLE;
         unitIlluminanceSensitivity = 0.2;
         pI2C = nullptr;
         setFilterMode(filterMode, true);
@@ -208,7 +193,6 @@ class IlluminanceTSL2561 {
             if (TSLSensorGetRevID(&id, &rev)) {
                 if (id == 5 || id == 1) {  // TSL2561 id should be either 5 (reality) or 1 (datasheet)
                     if (TSLSensorPower(true)) {
-                        sensorState = TSLSensorState::IDLE;
                         bActive = true;
 #ifdef USE_SERIAL_DBG
                         Serial.println("TSL2561: Powered on, revision:  " + String(rev));
@@ -243,61 +227,25 @@ class IlluminanceTSL2561 {
         switch (mode) {
         case FAST:
             filterMode = FAST;
-            illuminanceSensor.smoothInterval = 1;
-            illuminanceSensor.pollTimeSec = 2;
-            illuminanceSensor.eps = 0.05;
-            illuminanceSensor.reset();
-            unitIlluminanceSensor.smoothInterval = 1;
-            unitIlluminanceSensor.pollTimeSec = 2;
-            unitIlluminanceSensor.eps = 0.1;
-            unitIlluminanceSensor.reset();
-            lightCh0Sensor.smoothInterval = 1;
-            lightCh0Sensor.pollTimeSec = 2;
-            lightCh0Sensor.eps = 0.1;
-            lightCh0Sensor.reset();
-            IRCh1Sensor.smoothInterval = 1;
-            IRCh1Sensor.pollTimeSec = 2;
-            IRCh1Sensor.eps = 0.1;
-            IRCh1Sensor.reset();
+            illuminanceSensor.update(1, 2, 0.05);  // requires muwerk 0.6.3 API
+            unitIlluminanceSensor.update(1, 2, 0.1);
+            lightCh0Sensor.update(1, 2, 0.1);
+            IRCh1Sensor.update(1, 2, 0.1);
             break;
         case MEDIUM:
             filterMode = MEDIUM;
-            illuminanceSensor.smoothInterval = 4;
-            illuminanceSensor.pollTimeSec = 30;
-            illuminanceSensor.eps = 0.1;
-            illuminanceSensor.reset();
-            unitIlluminanceSensor.smoothInterval = 4;
-            unitIlluminanceSensor.pollTimeSec = 30;
-            unitIlluminanceSensor.eps = 0.5;
-            unitIlluminanceSensor.reset();
-            lightCh0Sensor.smoothInterval = 4;
-            lightCh0Sensor.pollTimeSec = 30;
-            lightCh0Sensor.eps = 0.5;
-            lightCh0Sensor.reset();
-            IRCh1Sensor.smoothInterval = 4;
-            IRCh1Sensor.pollTimeSec = 30;
-            IRCh1Sensor.eps = 0.5;
-            IRCh1Sensor.reset();
+            illuminanceSensor.update(4, 30, 0.1);
+            unitIlluminanceSensor.update(4, 30, 0.5);
+            lightCh0Sensor.update(4, 30, 0.5);
+            IRCh1Sensor.update(4, 30, 0.5);
             break;
         case LONGTERM:
         default:
             filterMode = LONGTERM;
-            illuminanceSensor.smoothInterval = 10;
-            illuminanceSensor.pollTimeSec = 600;
-            illuminanceSensor.eps = 0.1;
-            illuminanceSensor.reset();
-            unitIlluminanceSensor.smoothInterval = 50;
-            unitIlluminanceSensor.pollTimeSec = 600;
-            unitIlluminanceSensor.eps = 0.5;
-            unitIlluminanceSensor.reset();
-            lightCh0Sensor.smoothInterval = 50;
-            lightCh0Sensor.pollTimeSec = 600;
-            lightCh0Sensor.eps = 0.5;
-            lightCh0Sensor.reset();
-            IRCh1Sensor.smoothInterval = 50;
-            IRCh1Sensor.pollTimeSec = 600;
-            IRCh1Sensor.eps = 0.5;
-            IRCh1Sensor.reset();
+            illuminanceSensor.update(10, 600, 0.1);
+            unitIlluminanceSensor.update(50, 600, 0.5);
+            lightCh0Sensor.update(50, 600, 0.5);
+            IRCh1Sensor.update(50, 600, 0.5);
             break;
         }
         if (!silent)

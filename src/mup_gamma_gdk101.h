@@ -211,37 +211,19 @@ class GammaGDK101 {
         switch (mode) {
         case FAST:
             filterMode = FAST;
-            gamma10minavgSensor.smoothInterval = 1;
-            gamma10minavgSensor.pollTimeSec = 2;
-            gamma10minavgSensor.eps = 0.05;
-            gamma10minavgSensor.reset();
-            gamma1minavgSensor.smoothInterval = 1;
-            gamma1minavgSensor.pollTimeSec = 2;
-            gamma1minavgSensor.eps = 0.1;
-            gamma1minavgSensor.reset();
+            gamma10minavgSensor.update(1, 2, 0.05);
+            gamma1minavgSensor.update(1, 2, 0.1);
             break;
         case MEDIUM:
             filterMode = MEDIUM;
-            gamma10minavgSensor.smoothInterval = 4;
-            gamma10minavgSensor.pollTimeSec = 30;
-            gamma10minavgSensor.eps = 0.1;
-            gamma10minavgSensor.reset();
-            gamma1minavgSensor.smoothInterval = 4;
-            gamma1minavgSensor.pollTimeSec = 30;
-            gamma1minavgSensor.eps = 0.5;
-            gamma1minavgSensor.reset();
+            gamma10minavgSensor.update(4, 30, 0.1);
+            gamma1minavgSensor.update(4, 30, 0.5);
             break;
         case LONGTERM:
         default:
             filterMode = LONGTERM;
-            gamma10minavgSensor.smoothInterval = 10;
-            gamma10minavgSensor.pollTimeSec = 600;
-            gamma10minavgSensor.eps = 0.1;
-            gamma10minavgSensor.reset();
-            gamma1minavgSensor.smoothInterval = 50;
-            gamma1minavgSensor.pollTimeSec = 600;
-            gamma1minavgSensor.eps = 0.5;
-            gamma1minavgSensor.reset();
+            gamma10minavgSensor.update(10, 600, 0.1);
+            gamma1minavgSensor.update(10, 600, 0.5);
             break;
         }
         if (!silent)
@@ -407,7 +389,7 @@ class GammaGDK101 {
                     if (timeDiff(watchdogTime, time(nullptr)) > watchdogStartupTimeoutSec) {
                         publishError("Watchdog timeout during startup, resetting sensor");
                         resetWatchdog();
-                        bActive=resetGDKSensor();
+                        bActive = resetGDKSensor();
                     }
                 }
             }
@@ -421,8 +403,7 @@ class GammaGDK101 {
             publishGamma1minavg();
         } else if (topic == name + "/sensor/mode/get") {
             publishFilterMode();
-        }
-        if (topic == name + "/sensor/mode/set") {
+        } else if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
                 setFilterMode(FilterMode::FAST);
             } else {

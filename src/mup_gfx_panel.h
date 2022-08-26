@@ -674,7 +674,7 @@ class GfxPanel {
 
     void _common_init() {
         active = false;
-        displayFrameRateMs=1000;
+        displayFrameRateMs = 1000;
         slotResX = 64;
         slotResY = 32;
         brightness = 0.5;
@@ -1149,7 +1149,7 @@ class GfxPanel {
         if (slot < slots) {
             pSlots[slot].histSampleRateMs = rate;
             pSlots[slot].frameRate = rate;
-            if (rate<displayFrameRateMs) {
+            if (rate < displayFrameRateMs) {
                 displayFrameRateMs = rate;
             }
         }
@@ -1521,59 +1521,44 @@ class GfxPanel {
                     String action = sub.substring(ind + 1);
                     if (action == "caption/get") {
                         publishSlotCaption(slot);
-                    }
-                    if (action == "caption/set") {
+                    } else if (action == "caption/set") {
                         setSlotCaption(slot, msg);
-                    }
-                    if (action == "format/get") {
+                    } else if (action == "format/get") {
                         publishSlotFormat(slot);
-                    }
-                    if (action == "format/set") {
+                    } else if (action == "format/set") {
                         setSlotFormat(slot, msg);
-                    }
-                    if (action == "topic/get") {
+                    } else if (action == "topic/get") {
                         publishSlotTopic(slot);
-                    }
-                    if (action == "topic/set") {
+                    } else if (action == "topic/set") {
                         setSlotTopic(slot, msg);
-                    }
-                    if (action == "text/get") {
+                    } else if (action == "text/get") {
                         publishSlotText(slot);
-                    }
-                    if (action == "text/set") {
+                    } else if (action == "text/set") {
                         setSlotText(slot, msg);
-                    }
-                    if (action == "historysampleratems/get") {
+                    } else if (action == "historysampleratems/get") {
                         publishSlotHistorySampleRateMs(slot);
-                    }
-                    if (action == "historysampleratems/set") {
+                    } else if (action == "historysampleratems/set") {
                         setSlotHistorySampleRateMs(slot, msg.toInt());
                     }
                 }
             }
-        }
-        if (topic == name + "/display/brightness/set") {
+        } else if (topic == name + "/display/brightness/set") {
             float br = msg.toFloat();
             if (br < 0.0) br = 0.0;
             if (br > 1.0) br = 1.0;
             setBrightness(br);
-        }
-        if (topic == name + "/display/brightness/get") {
+        } else if (topic == name + "/display/brightness/get") {
             publishBrightness();
-        }
-        if (topic == name + "/display/contrast/set") {
+        } else if (topic == name + "/display/contrast/set") {
             float c = msg.toFloat();
             if (c < 0.0) c = 0.0;
             if (c > 1.0) c = 1.0;
             setContrast(c);
-        }
-        if (topic == name + "/display/contrast/get") {
+        } else if (topic == name + "/display/contrast/get") {
             publishContrast();
-        }
-        if (topic == name + "/display/theme/set") {
+        } else if (topic == name + "/display/theme/set") {
             setTheme(msg);
-        }
-        if (topic == name + "/display/theme/get") {
+        } else if (topic == name + "/display/theme/get") {
             publishTheme();
         }
     }

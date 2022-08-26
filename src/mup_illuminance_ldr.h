@@ -159,25 +159,16 @@ class IlluminanceLdr {
         switch (mode) {
         case FAST:
             filterMode = FAST;
-            illuminanceSensor.smoothInterval = 1;
-            illuminanceSensor.pollTimeSec = 15;
-            illuminanceSensor.eps = 0.001;
-            illuminanceSensor.reset();
+            illuminanceSensor.update(1, 15, 0.001);
             break;
         case MEDIUM:
             filterMode = MEDIUM;
-            illuminanceSensor.smoothInterval = 4;
-            illuminanceSensor.pollTimeSec = 300;
-            illuminanceSensor.eps = 0.005;
-            illuminanceSensor.reset();
+            illuminanceSensor.update(4, 300, 0.005);
             break;
         case LONGTERM:
         default:
             filterMode = LONGTERM;
-            illuminanceSensor.smoothInterval = 50;
-            illuminanceSensor.pollTimeSec = 600;
-            illuminanceSensor.eps = 0.01;
-            illuminanceSensor.reset();
+            illuminanceSensor.update(50, 600, 0.01);
             break;
         }
         if (!silent)
@@ -221,11 +212,9 @@ class IlluminanceLdr {
     void subsMsg(String topic, String msg, String originator) {
         if (topic == name + "/sensor/unitilluminance/get") {
             publishIlluminance();
-        }
-        if (topic == name + "/sensor/mode/get") {
+        } else if (topic == name + "/sensor/mode/get") {
             publishFilterMode();
-        }
-        if (topic == name + "/sensor/mode/set") {
+        } else if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
                 setFilterMode(FilterMode::FAST);
             } else {
