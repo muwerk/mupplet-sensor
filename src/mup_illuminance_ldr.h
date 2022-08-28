@@ -15,6 +15,11 @@ mupplet-sensor implements the following classes based on the cooperative schedul
 * * \ref ustd::TempHumDHT
 * * \ref ustd::GammaGDK101
 * * \ref ustd::GfxPanel
+* * \ref ustd::RainAD
+
+Helpers:
+
+* * \ref ustd::I2CRegisters
 
 For an overview, see:
 <a href="https://github.com/muwerk/mupplet-sensor/blob/master/README.md">mupplet-sensor readme</a>
@@ -37,14 +42,12 @@ depends on:
 
 */
 
-
-
 #include "scheduler.h"
 #include "sensors.h"
 
 namespace ustd {
 
-// clang - format off
+// clang-format off
 /*! \brief mupplet-sensor analog LDR illumance sensor
 
 The illuminance_ldr mupplet measures illuminance using a simple analog LDR
@@ -101,7 +104,10 @@ class IlluminanceLdr {
     String name;
     uint8_t port;
     double ldrvalue;
-    bool bActive=false;
+    unsigned long basePollRate = 500000L;
+    uint32_t pollRateMs = 2000;
+    uint32_t lastPollMs = 0;
+    bool bActive = false;
 #ifdef __ESP32__
     double adRange = 4096.0;  // 12 bit default
 #else
@@ -109,7 +115,9 @@ class IlluminanceLdr {
 #endif
 
   public:
-    enum FilterMode { FAST, MEDIUM, LONGTERM };
+    enum FilterMode { FAST,
+                      MEDIUM,
+                      LONGTERM };
     FilterMode filterMode;
     ustd::sensorprocessor illuminanceSensor = ustd::sensorprocessor(4, 600, 0.005);
 
@@ -120,7 +128,7 @@ class IlluminanceLdr {
         @param port GPIO port with A/D converter capabilities.
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
         */
-       setFilterMode(filterMode, true);
+        setFilterMode(filterMode, true);
     }
 
     ~IlluminanceLdr() {
@@ -133,12 +141,13 @@ class IlluminanceLdr {
         return ldrvalue;
     }
 
-    void begin(Scheduler *_pSched) {
+    void begin(Scheduler *_pSched, uint32_t _pollRateMs = 2000) {
         /*! Start processing of A/D input from LDR */
         pSched = _pSched;
+        pollRateMs = _pollRateMs;
 
         auto ft = [=]() { this->loop(); };
-        tID = pSched->add(ft, name, 200000);  // 200ms
+        tID = pSched->add(ft, name, basePollRate);
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -151,25 +160,16 @@ class IlluminanceLdr {
         switch (mode) {
         case FAST:
             filterMode = FAST;
-            illuminanceSensor.smoothInterval = 1;
-            illuminanceSensor.pollTimeSec = 15;
-            illuminanceSensor.eps = 0.001;
-            illuminanceSensor.reset();
+            illuminanceSensor.update(1, 15, 0.001);
             break;
         case MEDIUM:
             filterMode = MEDIUM;
-            illuminanceSensor.smoothInterval = 4;
-            illuminanceSensor.pollTimeSec = 300;
-            illuminanceSensor.eps = 0.005;
-            illuminanceSensor.reset();
+            illuminanceSensor.update(4, 300, 0.005);
             break;
         case LONGTERM:
         default:
             filterMode = LONGTERM;
-            illuminanceSensor.smoothInterval = 50;
-            illuminanceSensor.pollTimeSec = 600;
-            illuminanceSensor.eps = 0.01;
-            illuminanceSensor.reset();
+            illuminanceSensor.update(50, 600, 0.01);
             break;
         }
         if (!silent)
@@ -199,10 +199,13 @@ class IlluminanceLdr {
 
     void loop() {
         if (bActive) {
-            double val = 1.0 - (analogRead(port) / (adRange - 1.0));
-            if (illuminanceSensor.filter(&val)) {
-                ldrvalue = val;
-                publishIlluminance();
+            if (timeDiff(lastPollMs, millis()) >= pollRateMs) {
+                lastPollMs = millis();
+                double val = 1.0 - (analogRead(port) / (adRange - 1.0));
+                if (illuminanceSensor.filter(&val)) {
+                    ldrvalue = val;
+                    publishIlluminance();
+                }
             }
         }
     }
@@ -210,11 +213,9 @@ class IlluminanceLdr {
     void subsMsg(String topic, String msg, String originator) {
         if (topic == name + "/sensor/unitilluminance/get") {
             publishIlluminance();
-        }
-        if (topic == name + "/sensor/mode/get") {
+        } else if (topic == name + "/sensor/mode/get") {
             publishFilterMode();
-        }
-        if (topic == name + "/sensor/mode/set") {
+        } else if (topic == name + "/sensor/mode/set") {
             if (msg == "fast" || msg == "FAST") {
                 setFilterMode(FilterMode::FAST);
             } else {

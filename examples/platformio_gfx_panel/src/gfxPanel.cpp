@@ -42,7 +42,7 @@ void setup() {
 Serial.println("Starting OLED display");
     displayOled.begin(&sched,"dg|G",3,topics1,captions1,false); // "f: small slot .2 float data1, g: small graph data1, next line: large graph for data2.
     //displayTft.setTheme("light");
-    displayOled.setSlotHistorySampleRateMs(1,250);
+    displayOled.setSlotHistorySampleRateMs(1,50);
     displayOled.setSlotHistorySampleRateMs(2,300);
 Serial.println("Display OLED started");
 #endif
@@ -52,10 +52,10 @@ Serial.println("Display OLED started");
 Serial.println("Starting TFT display");
     displayTft.begin(&sched, "dg|G|dg|G", 6, topics2, captions2,true);
     //displayTft.setTheme("light");
-    displayTft.setSlotHistorySampleRateMs(1,250);
+    displayTft.setSlotHistorySampleRateMs(1,500);
     displayTft.setSlotHistorySampleRateMs(2,300);
     displayTft.setSlotHistorySampleRateMs(4,250);
-    displayTft.setSlotHistorySampleRateMs(5,300);
+    displayTft.setSlotHistorySampleRateMs(5,400);
 Serial.println("Display TFT started");
 #endif
     sched.add(appLoop, "main", 100000);
