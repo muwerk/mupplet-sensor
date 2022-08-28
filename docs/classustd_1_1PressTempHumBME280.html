@@ -83,20 +83,20 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a68897a113f2258992c1f3fc4a1a4c6ec"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ec">BMESampleMode</a> { <br />
-&#160;&#160;<a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecaa1eb5d084c289467032821827d124644">ULTRA_LOW_POWER</a> =1
-, <a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6eca60dc7cafc6cb1064343f0f527463e0e7">LOW_POWER</a> =2
-, <a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecad11492d39e17078a7ebac3b48e5a6e13">STANDARD</a> =3
-, <a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecac3fe48542b6b52685913a453fa0217d0">HIGH_RESOLUTION</a> =4
+&#160;&#160;<a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecaa1eb5d084c289467032821827d124644">ULTRA_LOW_POWER</a> = 1
+, <a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6eca60dc7cafc6cb1064343f0f527463e0e7">LOW_POWER</a> = 2
+, <a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecad11492d39e17078a7ebac3b48e5a6e13">STANDARD</a> = 3
+, <a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecac3fe48542b6b52685913a453fa0217d0">HIGH_RESOLUTION</a> = 4
 , <br />
-&#160;&#160;<a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecaae21b1804b39de8904626e4f817b4730">ULTRA_HIGH_RESOLUTION</a> =5
+&#160;&#160;<a class="el" href="classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecaae21b1804b39de8904626e4f817b4730">ULTRA_HIGH_RESOLUTION</a> = 5
 <br />
  }</td></tr>
 <tr class="separator:a68897a113f2258992c1f3fc4a1a4c6ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a029c3fd29fc87eb08e0def3799b0145a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempHumBME280.html#a029c3fd29fc87eb08e0def3799b0145a">PressTempHumBME280</a> (String name, FilterMode filterMode=FilterMode::MEDIUM, uint8_t i2c_address=0x76)</td></tr>
-<tr class="separator:a029c3fd29fc87eb08e0def3799b0145a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad5ef9efa5163138af9960b1b8c66c561"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempHumBME280.html#ad5ef9efa5163138af9960b1b8c66c561">PressTempHumBME280</a> (String name, FilterMode filterMode=FilterMode::MEDIUM, uint8_t i2cAddress=0x76)</td></tr>
+<tr class="separator:ad5ef9efa5163138af9960b1b8c66c561"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:add1b86b46ba4a77f7c0394d6f8a65fc4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempHumBME280.html#add1b86b46ba4a77f7c0394d6f8a65fc4">setReferenceAltitude</a> (double _referenceAltitudeMeters)</td></tr>
 <tr class="separator:add1b86b46ba4a77f7c0394d6f8a65fc4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1d02b2852651326af854426204de51b3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1PressTempHumBME280.html#a1d02b2852651326af854426204de51b3">startRelativeAltitude</a> ()</td></tr>
@@ -204,7 +204,7 @@ Public Member Functions</h2></td></tr>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// sensors start measuring pressure and temperature</span></div>
 <div class="line">    bme.setReferenceAltitude(518.0); <span class="comment">// 518m above NN, now we also receive PressureNN values for sea level.</span></div>
-<div class="line">    bme.begin(&amp;sched, ustd::PressTempHumBME280::BMESampleMode::ULTRA_HIGH_RESOLUTION);</div>
+<div class="line">    bme.begin(&amp;sched);</div>
 <div class="line"> </div>
 <div class="line">    sched.subscribe(tID, <span class="stringliteral">&quot;myBME280/sensor/temperature&quot;</span>, sensorUpdates);</div>
 <div class="line">}</div>
@@ -216,7 +216,7 @@ Public Member Functions</h2></td></tr>
 <div class="line"><span class="keywordtype">void</span> loop() {</div>
 <div class="line">    sched.loop();</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassustd_1_1PressTempHumBME280_html"><div class="ttname"><a href="classustd_1_1PressTempHumBME280.html">ustd::PressTempHumBME280</a></div><div class="ttdoc">mupplet-sensor temperature and pressure with Bosch BME280</div><div class="ttdef"><b>Definition:</b> mup_presstemphum_bme280.h:111</div></div>
+<div class="ttc" id="aclassustd_1_1PressTempHumBME280_html"><div class="ttname"><a href="classustd_1_1PressTempHumBME280.html">ustd::PressTempHumBME280</a></div><div class="ttdoc">mupplet-sensor temperature and pressure with Bosch BME280</div><div class="ttdef"><b>Definition:</b> mup_presstemphum_bme280.h:112</div></div>
 </div><!-- fragment --> </div><h2 class="groupheader">Member Enumeration Documentation</h2>
 <a id="a68897a113f2258992c1f3fc4a1a4c6ec" name="a68897a113f2258992c1f3fc4a1a4c6ec"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a68897a113f2258992c1f3fc4a1a4c6ec">&#9670;&nbsp;</a></span>BMESampleMode</h2>
@@ -246,8 +246,8 @@ Public Member Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a029c3fd29fc87eb08e0def3799b0145a" name="a029c3fd29fc87eb08e0def3799b0145a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a029c3fd29fc87eb08e0def3799b0145a">&#9670;&nbsp;</a></span>PressTempHumBME280()</h2>
+<a id="ad5ef9efa5163138af9960b1b8c66c561" name="ad5ef9efa5163138af9960b1b8c66c561"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad5ef9efa5163138af9960b1b8c66c561">&#9670;&nbsp;</a></span>PressTempHumBME280()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -271,7 +271,7 @@ Public Member Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>i2c_address</em> = <code>0x76</code>&#160;</td>
+          <td class="paramname"><em>i2cAddress</em> = <code>0x76</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -289,7 +289,7 @@ Public Member Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">name</td><td>Name used for pub/sub messages </td></tr>
     <tr><td class="paramname">filterMode</td><td>FAST, MEDIUM or LONGTERM filtering of sensor values </td></tr>
-    <tr><td class="paramname">i2c_address</td><td>Should always be 0x76 or 0x77 for BME280, depending address config.</td></tr>
+    <tr><td class="paramname">i2cAddress</td><td>Should always be 0x76 or 0x77 for BME280, depending address config.</td></tr>
   </table>
   </dd>
 </dl>

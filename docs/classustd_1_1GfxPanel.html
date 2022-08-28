@@ -192,7 +192,7 @@ Public Member Functions</h2></td></tr>
 <div class="line"><span class="keywordtype">void</span> loop() {</div>
 <div class="line">    sched.loop();</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassustd_1_1GfxPanel_html"><div class="ttname"><a href="classustd_1_1GfxPanel.html">ustd::GfxPanel</a></div><div class="ttdoc">gfx_panel mupplet for oled and tft panels to display sensor values</div><div class="ttdef"><b>Definition:</b> mup_gfx_panel.h:461</div></div>
+<div class="ttc" id="aclassustd_1_1GfxPanel_html"><div class="ttname"><a href="classustd_1_1GfxPanel.html">ustd::GfxPanel</a></div><div class="ttdoc">gfx_panel mupplet for oled and tft panels to display sensor values</div><div class="ttdef"><b>Definition:</b> mup_gfx_panel.h:463</div></div>
 </div><!-- fragment --><p >The data area of the ESP32 or ESP8266 must contain a json file with the name of SensorDisplay Object given as first parameter to the object instantiation, "display1" or "display2" in the example above. The file <code>display1,2.json</code> should contain:</p>
 <div class="fragment"><div class="line">{</div>
 <div class="line">    &quot;layout&quot;: &quot;S|ff&quot;,</div>
@@ -401,7 +401,8 @@ Public Member Functions</h2></td></tr>
 <p >Activate display and begin receiving updates for the display slots</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">_pSched</td><td>Pointer to the muwerk scheduler</td></tr>
+    <tr><td class="paramname">_pSched</td><td>Pointer to the muwerk scheduler </td></tr>
+    <tr><td class="paramname">_useCanvas</td><td>Use the canvas for the display. Note: requires considerable memory for color displays!</td></tr>
   </table>
   </dd>
 </dl>
@@ -472,7 +473,8 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramname">combined_layout</td><td>The layout string, e.g. "ff|ff" (two lines, two short floats each). </td></tr>
     <tr><td class="paramname">_slots</td><td>Number of slots to use, must be array dimension of both _captions and topics. </td></tr>
     <tr><td class="paramname">_topics</td><td>const char *[] of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string. </td></tr>
-    <tr><td class="paramname">_captions</td><td>const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.</td></tr>
+    <tr><td class="paramname">_captions</td><td>const char *[] of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string. </td></tr>
+    <tr><td class="paramname">_useCanvas</td><td>Use the canvas for the display. Note: requires considerable memory for color displays!</td></tr>
   </table>
   </dd>
 </dl>
@@ -536,7 +538,8 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramname">_pSched</td><td>Pointer to the muwerk scheduler </td></tr>
     <tr><td class="paramname">combined_layout</td><td>The layout string, e.g. "ff|ff" (two lines, two short floats each). </td></tr>
     <tr><td class="paramname">_topics</td><td>std::array&lt;String&gt; of topics to subscribe to. The number of topics must match the number of captions and the number of slot-qualifiers in the combined_layout string. </td></tr>
-    <tr><td class="paramname">_captions</td><td>std::array&lt;String&gt; of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string.</td></tr>
+    <tr><td class="paramname">_captions</td><td>std::array&lt;String&gt; of captions to display for the topics. The number of captions must match the number of topics and the number of slot-qualifiers in the combined_layout string. </td></tr>
+    <tr><td class="paramname">_useCanvas</td><td>Use the canvas for the display. Note: requires considerable memory for color displays!</td></tr>
   </table>
   </dd>
 </dl>

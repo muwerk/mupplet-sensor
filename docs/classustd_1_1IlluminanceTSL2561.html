@@ -68,7 +68,6 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="classustd_1_1IlluminanceTSL2561-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">ustd::IlluminanceTSL2561 Class Reference</div></div>
@@ -80,23 +79,10 @@ $(function() {
 
 <p><code>#include &lt;<a class="el" href="mup__illuminance__tsl2561_8h_source.html">mup_illuminance_tsl2561.h</a>&gt;</code></p>
 <table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
-Public Types</h2></td></tr>
-<tr class="memitem:a218d134808ed5852a8de0261dc5fc5bf"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1IlluminanceTSL2561.html#a218d134808ed5852a8de0261dc5fc5bf">TSLSampleMode</a> { <br />
-&#160;&#160;<a class="el" href="classustd_1_1IlluminanceTSL2561.html#a218d134808ed5852a8de0261dc5fc5bfa7626dd73d10cc5bd8c993b7aecc88ef1">ULTRA_LOW_POWER</a> =1
-, <a class="el" href="classustd_1_1IlluminanceTSL2561.html#a218d134808ed5852a8de0261dc5fc5bfab0460500f3d68f7a3166c620639b3c2b">LOW_POWER</a> =2
-, <a class="el" href="classustd_1_1IlluminanceTSL2561.html#a218d134808ed5852a8de0261dc5fc5bfa8bb5087ea86999177fa02e6cabdc24d9">STANDARD</a> =3
-, <a class="el" href="classustd_1_1IlluminanceTSL2561.html#a218d134808ed5852a8de0261dc5fc5bfa18fdc35a18cb494d76a4c172e92761e4">HIGH_RESOLUTION</a> =4
-, <br />
-&#160;&#160;<a class="el" href="classustd_1_1IlluminanceTSL2561.html#a218d134808ed5852a8de0261dc5fc5bfa13edf787c6707fb73c2ea6245a0d2b85">ULTRA_HIGH_RESOLUTION</a> =5
-<br />
- }</td></tr>
-<tr class="separator:a218d134808ed5852a8de0261dc5fc5bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a52b977f6f8fbb6839beed922e80b4f47"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1IlluminanceTSL2561.html#a52b977f6f8fbb6839beed922e80b4f47">IlluminanceTSL2561</a> (String name, FilterMode filterMode=FilterMode::FAST, uint8_t i2c_address=0x39)</td></tr>
-<tr class="separator:a52b977f6f8fbb6839beed922e80b4f47"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1c83182b64cbb8bd86c184fee2388c62"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1IlluminanceTSL2561.html#a1c83182b64cbb8bd86c184fee2388c62">IlluminanceTSL2561</a> (String name, FilterMode filterMode=FilterMode::FAST, uint8_t i2cAddress=0x39)</td></tr>
+<tr class="separator:a1c83182b64cbb8bd86c184fee2388c62"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aef4ecd9ddb88a556806174277cac77ef"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1IlluminanceTSL2561.html#aef4ecd9ddb88a556806174277cac77ef">getIlluminance</a> ()</td></tr>
 <tr class="separator:aef4ecd9ddb88a556806174277cac77ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae77a0613206b6494b1bbc6c9fd941e7b"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1IlluminanceTSL2561.html#ae77a0613206b6494b1bbc6c9fd941e7b">getUnitIlluminance</a> ()</td></tr>
@@ -187,37 +173,9 @@ Public Member Functions</h2></td></tr>
 <div class="line"><span class="keywordtype">void</span> loop() {</div>
 <div class="line">    sched.loop();</div>
 <div class="line">}</div>
-</div><!-- fragment --> </div><h2 class="groupheader">Member Enumeration Documentation</h2>
-<a id="a218d134808ed5852a8de0261dc5fc5bf" name="a218d134808ed5852a8de0261dc5fc5bf"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a218d134808ed5852a8de0261dc5fc5bf">&#9670;&nbsp;</a></span>TSLSampleMode</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="classustd_1_1IlluminanceTSL2561.html#a218d134808ed5852a8de0261dc5fc5bf">ustd::IlluminanceTSL2561::TSLSampleMode</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p >Hardware accuracy modes of TSL2561, while the sensor can have different pressure- and temperature oversampling, we use same for both temp and press. </p>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a218d134808ed5852a8de0261dc5fc5bfa7626dd73d10cc5bd8c993b7aecc88ef1" name="a218d134808ed5852a8de0261dc5fc5bfa7626dd73d10cc5bd8c993b7aecc88ef1"></a>ULTRA_LOW_POWER&#160;</td><td class="fielddoc"><p >1 samples, pressure resolution 16bit / 2.62 Pa, rec temperature oversampling: x1 </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a218d134808ed5852a8de0261dc5fc5bfab0460500f3d68f7a3166c620639b3c2b" name="a218d134808ed5852a8de0261dc5fc5bfab0460500f3d68f7a3166c620639b3c2b"></a>LOW_POWER&#160;</td><td class="fielddoc"><p >2 samples, pressure resolution 17bit / 1.31 Pa, rec temperature oversampling: x1 </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a218d134808ed5852a8de0261dc5fc5bfa8bb5087ea86999177fa02e6cabdc24d9" name="a218d134808ed5852a8de0261dc5fc5bfa8bb5087ea86999177fa02e6cabdc24d9"></a>STANDARD&#160;</td><td class="fielddoc"><p >4 samples, pressure resolution 18bit / 0.66 Pa, rec temperature oversampling: x1 </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a218d134808ed5852a8de0261dc5fc5bfa18fdc35a18cb494d76a4c172e92761e4" name="a218d134808ed5852a8de0261dc5fc5bfa18fdc35a18cb494d76a4c172e92761e4"></a>HIGH_RESOLUTION&#160;</td><td class="fielddoc"><p >8 samples, pressure resolution 19bit / 0.33 Pa, rec temperature oversampling: x1 </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a218d134808ed5852a8de0261dc5fc5bfa13edf787c6707fb73c2ea6245a0d2b85" name="a218d134808ed5852a8de0261dc5fc5bfa13edf787c6707fb73c2ea6245a0d2b85"></a>ULTRA_HIGH_RESOLUTION&#160;</td><td class="fielddoc"><p >16 samples, pressure resolution 20bit / 0.16 Pa, rec temperature oversampling: x2 </p>
-</td></tr>
-</table>
-
-</div>
-</div>
-<h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a52b977f6f8fbb6839beed922e80b4f47" name="a52b977f6f8fbb6839beed922e80b4f47"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a52b977f6f8fbb6839beed922e80b4f47">&#9670;&nbsp;</a></span>IlluminanceTSL2561()</h2>
+</div><!-- fragment --> </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="a1c83182b64cbb8bd86c184fee2388c62" name="a1c83182b64cbb8bd86c184fee2388c62"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c83182b64cbb8bd86c184fee2388c62">&#9670;&nbsp;</a></span>IlluminanceTSL2561()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -241,7 +199,7 @@ Public Member Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>i2c_address</em> = <code>0x39</code>&#160;</td>
+          <td class="paramname"><em>i2cAddress</em> = <code>0x39</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -259,7 +217,7 @@ Public Member Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">name</td><td>Name used for pub/sub messages </td></tr>
     <tr><td class="paramname">filterMode</td><td>FAST, MEDIUM or LONGTERM filtering of sensor values </td></tr>
-    <tr><td class="paramname">i2c_address</td><td>Should be 0x29, 0x39, 0x49, for TSL2561, depending address selector (three state) config.</td></tr>
+    <tr><td class="paramname">i2cAddress</td><td>Should be 0x29, 0x39, 0x49, for TSL2561, depending address selector (three state) config.</td></tr>
   </table>
   </dd>
 </dl>

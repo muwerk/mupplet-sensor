@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['illuminanceldr_0',['IlluminanceLdr',['../classustd_1_1IlluminanceLdr.html#ac8382d3eae8c36fc22e080b88ae876be',1,'ustd::IlluminanceLdr']]],
-  ['illuminancetsl2561_1',['IlluminanceTSL2561',['../classustd_1_1IlluminanceTSL2561.html#a52b977f6f8fbb6839beed922e80b4f47',1,'ustd::IlluminanceTSL2561']]]
+  ['endtransmission_0',['endTransmission',['../classustd_1_1I2CRegisters.html#a1a0249d091b37141b7d59260ad279fb4',1,'ustd::I2CRegisters']]]
 ];
