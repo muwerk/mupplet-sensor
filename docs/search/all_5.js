@@ -15,5 +15,5 @@ var searchData=
   ['i2cerror_12',['I2CError',['../classustd_1_1I2CRegisters.html#a3d97b24aff40b7c93c13bcdeda874619',1,'ustd::I2CRegisters']]],
   ['i2cregisters_13',['I2CRegisters',['../classustd_1_1I2CRegisters.html',1,'ustd']]],
   ['illuminanceldr_14',['IlluminanceLdr',['../classustd_1_1IlluminanceLdr.html#ac8382d3eae8c36fc22e080b88ae876be',1,'ustd::IlluminanceLdr::IlluminanceLdr()'],['../classustd_1_1IlluminanceLdr.html',1,'ustd::IlluminanceLdr']]],
-  ['illuminancetsl2561_15',['IlluminanceTSL2561',['../classustd_1_1IlluminanceTSL2561.html#a52b977f6f8fbb6839beed922e80b4f47',1,'ustd::IlluminanceTSL2561::IlluminanceTSL2561()'],['../classustd_1_1IlluminanceTSL2561.html',1,'ustd::IlluminanceTSL2561']]]
+  ['illuminancetsl2561_15',['IlluminanceTSL2561',['../classustd_1_1IlluminanceTSL2561.html#a1c83182b64cbb8bd86c184fee2388c62',1,'ustd::IlluminanceTSL2561::IlluminanceTSL2561()'],['../classustd_1_1IlluminanceTSL2561.html',1,'ustd::IlluminanceTSL2561']]]
 ];
