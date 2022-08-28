@@ -95,6 +95,13 @@ Public Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p >mupplet-sensor luminance with TSL2561 </p>
 <p >The mup_illuminance_tsl2561 mupplet measures illuminance using the TSL2561 sensor.</p>
+<p >Precision and range can be modified using the following parameters:</p>
+<ul>
+<li><code>FilterMode</code> modifies the software filter for <code>FAST</code> (no software averages), <code>MEDIUM</code>, or <code>LONGTERM</code> (more software averages)</li>
+<li><code>IntegrationMode</code> modifies the sensor's internal integration time from <code>FAST</code> (13ms), <code>MEDIUM</code> (101ms) to <code>LONGTERM</code> (402ms).</li>
+<li><code>GainMode</code> selects the sensor hardware gain amplification between <code>LOW</code> (1x) and <code>HIGH</code> (16x)</li>
+<li><code>unitilluminancesensitivity</code> is a software amplification factor that shifts the range of calculated <code>unitilluminance</code> values using a model that is perceived by humans as linear. (The value for <code>illuminance</code> is in lux, which is not perceived as linear.)</li>
+</ul>
 <p >This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.</p>
 <h4>Messages sent by illuminance_tsl2561 mupplet:</h4>
 <p >messages are prefixed by <code>omu/&lt;hostname&gt;</code>:</p>
@@ -114,7 +121,7 @@ Public Member Functions</h2></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/integration</code>   </td><td class="markdownTableBodyNone"><code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>   </td><td class="markdownTableBodyNone">Integration on sensor hardware: FAST: 13.7 ms, MEDIUM: 101ms, LONG: 402ms (default)   </td></tr>
 </table>
-<p>| <code>&lt;mupplet-name&gt;/sensor/gain</code> / <code>LOW</code> or <code>HIGH</code> | Low is 1x gain, high is 16x gain |</p>
+<p>| <code>&lt;mupplet-name&gt;/sensor/gain</code> / <code>LOW</code> or <code>HIGH</code> | Low is 1x gain, high is 16x gain | | <code>&lt;mupplet-name&gt;/sensor/unitilluminancesensitivity</code> | &lt;sensitivity&gt; | Sensitivity-factor for unitilluminance, default 0.2. |</p>
 <h4>Messages received by illuminance_tsl2561 mupplet:</h4>
 <p >Need to be prefixed by <code>&lt;hostname&gt;/</code>:</p>
 <table class="markdownTable">
@@ -139,7 +146,11 @@ Public Member Functions</h2></td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/gain/set</code>   </td><td class="markdownTableBodyNone"><code>LOW</code> or <code>HIGH</code>   </td><td class="markdownTableBodyNone">Set 1x (low, default) or 16x (high) gain    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/gain/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Causes <code>gain</code> message to be sent.   </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/gain/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Causes <code>gain</code> message to be sent.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/unitilluminancesensitivity/set</code>   </td><td class="markdownTableBodyNone">&lt;sensitivity&gt;   </td><td class="markdownTableBodyNone">Default 0.2. If decreased, lower values for unitilluminance are generated, and vice versa. Uses logarithmic model in order to match human perception.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/unitilluminancesensitivity/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Get current value   </td></tr>
 </table>
 <h4>Sample code</h4>
 <p >For a complete examples see the <code>muwerk/examples</code> project.</p>
@@ -322,7 +333,9 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p >Get normalized Illuminance sensitivity </p><dl class="section return"><dt>Returns</dt><dd>illuminance sensitivity [0(dark)..1(full light)]</dd></dl>
+<p >Get normalized Illuminance sensitivity</p>
+<p >Lower values (&lt;0.2) generate low <code>unitilluminance</code> values, higher values amplify.</p>
+<dl class="section return"><dt>Returns</dt><dd>illuminance sensitivity</dd></dl>
 
 </div>
 </div>
@@ -349,9 +362,12 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p >Set normalized Illuminance sensitivity </p><dl class="params"><dt>Parameters</dt><dd>
+<p >Set normalized Illuminance sensitivity</p>
+<p >This can be used to modify the range use by unitilluminance, which is always [0..1]. The sensitivity reduces (lower sensitivity) or amplifies (higher sensitivity) the values generated for <code>unitilluminance</code>. A logarithmic model is used to match human perception.</p>
+<p >Default is 0.2 on startup.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">sensitivity</td><td>illuminance sensitivity [0.001(no sensitiviy)..0.2(default)..(higher sensitiviy)]</td></tr>
+    <tr><td class="paramname">sensitivity</td><td>illuminance sensitivity [0.001(no sensitivity)..0.2(default)..(higher sensitivity)]</td></tr>
   </table>
   </dd>
 </dl>
