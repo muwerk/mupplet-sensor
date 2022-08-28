@@ -30,7 +30,9 @@ messages are prefixed by `omu/<hostname>`:
 | `<mupplet-name>/sensor/unitilluminance` | normalized illumance 0.0(dark)..1.0(max light)  | Float value encoded as string, sent periodically as available |
 | `<mupplet-name>/sensor/lightch0` | raw sensor value photo diode ch0 visible light  | Float value encoded as string, sent periodically as available |
 | `<mupplet-name>/sensor/irch1` | raw sensor value photo diode ch1 IR light  | Float value encoded as string, sent periodically as available |
-| `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration time for sensor values, external, additional integration |
+| `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Software filter values, external, additional software integration, in addition to hardware integration on sensor |
+| `<mupplet-name>/sensor/integration` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration on sensor hardware: FAST: 13.7 ms, MEDIUM: 101ms, LONG: 402ms (default) |
+| `<mupplet-name>/sensor/gain` / `LOW` or `HIGH` | Low is 1x gain, high is 16x gain |
 
 #### Messages received by illuminance_tsl2561 mupplet:
 
@@ -42,8 +44,12 @@ Need to be prefixed by `<hostname>/`:
 | `<mupplet-name>/sensor/unitilluminance/get` | - | Causes current value to be sent. |
 | `<mupplet-name>/sensor/lightch0/get` | - | Causes current value to be sent. |
 | `<mupplet-name>/sensor/irch1/get` | - | Causes current value to be sent. |
-| `<mupplet-name>/sensor/mode/get` | - | Returns filterMode: `FAST`, `MEDIUM`, or `LONGTERM` |
-| `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set external additional filter values |
+| `<mupplet-name>/sensor/mode/get` | - | Returns software filterMode: `FAST`, `MEDIUM`, or `LONGTERM` |
+| `<mupplet-name>/sensor/integration/get` | - | Returns hardware integration: `FAST` (13.7ms), `MEDIUM` (101ms), or `LONGTERM` (402ms) |
+| `<mupplet-name>/sensor/mode/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set softwaare filter values, a 2nd stage filter, additional to hardware integration on sensor |
+| `<mupplet-name>/sensor/integration/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set hardware integration values values, default is LONGTERM, 402ms |
+| `<mupplet-name>/sensor/gain/set` | `LOW` or `HIGH` | Set 1x (low, default) or 16x (high) gain |
+| `<mupplet-name>/sensor/gain/get` | - | Causes `gain` message to be sent. |
 
 #### Sample code
 
@@ -112,8 +118,15 @@ class IlluminanceTSL2561 {
     enum FilterMode { FAST,
                       MEDIUM,
                       LONGTERM };
+    enum IntegrationMode { FAST13ms,
+                           MEDIUM101ms,
+                           LONGTERM402ms };
+    enum GainMode { LOW1x,
+                    HIGH16x };
     String firmwareVersion;
     FilterMode filterMode;
+    IntegrationMode integrationMode;
+    GainMode gainMode;
     uint8_t i2cAddress;
 
     double illuminanceValue, unitIlluminanceValue, lightCh0Value, IRCh1Value;
@@ -124,8 +137,9 @@ class IlluminanceTSL2561 {
     ustd::sensorprocessor IRCh1Sensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
 
-    IlluminanceTSL2561(String name, FilterMode filterMode = FilterMode::FAST, uint8_t i2cAddress = 0x39)
-        : name(name), filterMode(filterMode), i2cAddress(i2cAddress) {
+    IlluminanceTSL2561(String name, FilterMode filterMode = FilterMode::FAST, IntegrationMode integrationMode = IntegrationMode::LONGTERM402ms,
+                       GainMode gainMode = GainMode::LOW1x, uint8_t i2cAddress = 0x39)
+        : name(name), filterMode(filterMode), integrationMode(integrationMode), gainMode(gainMode), i2cAddress(i2cAddress) {
         /*! Instantiate an TSL sensor mupplet
         @param name Name used for pub/sub messages
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
@@ -197,6 +211,16 @@ class IlluminanceTSL2561 {
 #ifdef USE_SERIAL_DBG
                         Serial.println("TSL2561: Powered on, revision:  " + String(rev));
 #endif
+                        if (TSLSensorGainIntegrationSet()) {
+#ifdef USE_SERIAL_DBG
+                            Serial.println("TSL2561: Integration- and Gain-Mode set.");
+#endif
+                        } else {
+#ifdef USE_SERIAL_DBG
+                            Serial.println("TSL2561: Integration- and Gain-Mode set ERROR.");
+#endif
+                            pI2C->lastError = I2CRegisters::I2C_WRITE_ERR_OTHER;
+                        }
                     } else {
 #ifdef USE_SERIAL_DBG
                         Serial.println("TSL2561: Power on failed");
@@ -252,6 +276,30 @@ class IlluminanceTSL2561 {
             publishFilterMode();
     }
 
+    void setGainIntegrationMode(GainMode gMode, IntegrationMode iMode, bool silent = false) {
+        gainMode = gMode;
+        integrationMode = iMode;
+        TSLSensorGainIntegrationSet();
+        if (!silent) {
+            publishGainMode();
+            publishIntegrationMode();
+        }
+    }
+
+    void setIntegrationMode(IntegrationMode mode, bool silent = false) {
+        integrationMode = mode;
+        TSLSensorGainIntegrationSet();
+        if (!silent)
+            publishIntegrationMode();
+    }
+
+    void setGainMode(GainMode mode, bool silent = false) {
+        gainMode = mode;
+        TSLSensorGainIntegrationSet();
+        if (!silent)
+            publishGainMode();
+    }
+
   private:
     void publishLightCh0() {
         char buf[32];
@@ -301,6 +349,31 @@ class IlluminanceTSL2561 {
         }
     }
 
+    void publishIntegrationMode() {
+        switch (integrationMode) {
+        case IntegrationMode::FAST13ms:
+            pSched->publish(name + "/sensor/integration", "FAST");
+            break;
+        case IntegrationMode::MEDIUM101ms:
+            pSched->publish(name + "/sensor/integration", "MEDIUM");
+            break;
+        case IntegrationMode::LONGTERM402ms:
+            pSched->publish(name + "/sensor/integration", "LONGTERM");
+            break;
+        }
+    }
+
+    void publishGainMode() {
+        switch (gainMode) {
+        case GainMode::LOW1x:
+            pSched->publish(name + "sensor/gain", "LOW");
+            break;
+        case GainMode::HIGH16x:
+            pSched->publish(name + "sensor/gain", "HIGH");
+            break;
+        }
+    }
+
     bool TSLSensorPower(bool powerOn) {
         if (powerOn) {
             if (!pI2C->writeRegisterByte(0x80, 0x03, true)) return false;
@@ -323,6 +396,28 @@ class IlluminanceTSL2561 {
         *pId = idbyte >> 4;
         *pRev = idbyte & 0x0f;
         return true;
+    }
+
+    bool TSLSensorGainIntegrationSet() {
+        uint8_t mx = 0;
+        switch (gainMode) {
+        case GainMode::LOW1x:
+            mx = 0x10;
+            break;
+        case GainMode::HIGH16x:
+            mx = 0x00;
+        }
+        switch (integrationMode) {
+        case IntegrationMode::FAST13ms:
+            mx |= 0x00;
+            break;
+        case IntegrationMode::MEDIUM101ms:
+            mx |= 0x01;
+            break;
+        case IntegrationMode::LONGTERM402ms:
+            mx |= 0x02;
+        }
+        return pI2C->writeRegisterByte(0x81, mx, true);
     }
 
     double calculateLux(uint16_t ch0, uint16_t ch1) {
@@ -439,6 +534,26 @@ class IlluminanceTSL2561 {
                 } else {
                     setFilterMode(FilterMode::LONGTERM);
                 }
+            }
+        } else if (topic == name + "/sensor/integration/get") {
+            publishIntegrationMode();
+        } else if (topic == name + "/sensor/integration/set") {
+            if (msg == "fast" || msg == "FAST") {
+                setIntegrationMode(IntegrationMode::FAST13ms);
+            } else {
+                if (msg == "medium" || msg == "MEDIUM") {
+                    setIntegrationMode(IntegrationMode::MEDIUM101ms);
+                } else {
+                    setIntegrationMode(IntegrationMode::LONGTERM402ms);
+                }
+            }
+        } else if (topic == name + "/sensor/gain/get") {
+            publishGainMode();
+        } else if (topic == name + "/sensor/gain/set") {
+            if (msg == "low" || msg == "LOW") {
+                setGainMode(GainMode::LOW1x);
+            } else {
+                setGainMode(GainMode::HIGH16x);
             }
         } else if (topic == name + "/sensor/unitilluminancesensitivity/set") {
             setUnitIlluminanceSensitivity(msg.toFloat());
