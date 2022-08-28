@@ -81,8 +81,8 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a1c83182b64cbb8bd86c184fee2388c62"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1IlluminanceTSL2561.html#a1c83182b64cbb8bd86c184fee2388c62">IlluminanceTSL2561</a> (String name, FilterMode filterMode=FilterMode::FAST, uint8_t i2cAddress=0x39)</td></tr>
-<tr class="separator:a1c83182b64cbb8bd86c184fee2388c62"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac7b3ddebba85e0d540e8182dd210485c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1IlluminanceTSL2561.html#ac7b3ddebba85e0d540e8182dd210485c">IlluminanceTSL2561</a> (String name, FilterMode filterMode=FilterMode::FAST, IntegrationMode integrationMode=IntegrationMode::LONGTERM402ms, GainMode gainMode=GainMode::LOW1x, uint8_t i2cAddress=0x39)</td></tr>
+<tr class="separator:ac7b3ddebba85e0d540e8182dd210485c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aef4ecd9ddb88a556806174277cac77ef"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1IlluminanceTSL2561.html#aef4ecd9ddb88a556806174277cac77ef">getIlluminance</a> ()</td></tr>
 <tr class="separator:aef4ecd9ddb88a556806174277cac77ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae77a0613206b6494b1bbc6c9fd941e7b"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classustd_1_1IlluminanceTSL2561.html#ae77a0613206b6494b1bbc6c9fd941e7b">getUnitIlluminance</a> ()</td></tr>
@@ -110,8 +110,11 @@ Public Member Functions</h2></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/irch1</code>   </td><td class="markdownTableBodyNone">raw sensor value photo diode ch1 IR light   </td><td class="markdownTableBodyNone">Float value encoded as string, sent periodically as available    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/mode</code>   </td><td class="markdownTableBodyNone"><code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>   </td><td class="markdownTableBodyNone">Integration time for sensor values, external, additional integration   </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/mode</code>   </td><td class="markdownTableBodyNone"><code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>   </td><td class="markdownTableBodyNone">Software filter values, external, additional software integration, in addition to hardware integration on sensor    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/integration</code>   </td><td class="markdownTableBodyNone"><code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>   </td><td class="markdownTableBodyNone">Integration on sensor hardware: FAST: 13.7 ms, MEDIUM: 101ms, LONG: 402ms (default)   </td></tr>
 </table>
+<p>| <code>&lt;mupplet-name&gt;/sensor/gain</code> / <code>LOW</code> or <code>HIGH</code> | Low is 1x gain, high is 16x gain |</p>
 <h4>Messages received by illuminance_tsl2561 mupplet:</h4>
 <p >Need to be prefixed by <code>&lt;hostname&gt;/</code>:</p>
 <table class="markdownTable">
@@ -126,9 +129,17 @@ Public Member Functions</h2></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/irch1/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Causes current value to be sent.    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/mode/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Returns filterMode: <code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>    </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/mode/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Returns software filterMode: <code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/mode/set</code>   </td><td class="markdownTableBodyNone"><code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>   </td><td class="markdownTableBodyNone">Set external additional filter values   </td></tr>
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/integration/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Returns hardware integration: <code>FAST</code> (13.7ms), <code>MEDIUM</code> (101ms), or <code>LONGTERM</code> (402ms)    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/mode/set</code>   </td><td class="markdownTableBodyNone"><code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>   </td><td class="markdownTableBodyNone">Set softwaare filter values, a 2nd stage filter, additional to hardware integration on sensor    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/integration/set</code>   </td><td class="markdownTableBodyNone"><code>FAST</code>, <code>MEDIUM</code>, or <code>LONGTERM</code>   </td><td class="markdownTableBodyNone">Set hardware integration values values, default is LONGTERM, 402ms    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/gain/set</code>   </td><td class="markdownTableBodyNone"><code>LOW</code> or <code>HIGH</code>   </td><td class="markdownTableBodyNone">Set 1x (low, default) or 16x (high) gain    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>&lt;mupplet-name&gt;/sensor/gain/get</code>   </td><td class="markdownTableBodyNone">-   </td><td class="markdownTableBodyNone">Causes <code>gain</code> message to be sent.   </td></tr>
 </table>
 <h4>Sample code</h4>
 <p >For a complete examples see the <code>muwerk/examples</code> project.</p>
@@ -174,8 +185,8 @@ Public Member Functions</h2></td></tr>
 <div class="line">    sched.loop();</div>
 <div class="line">}</div>
 </div><!-- fragment --> </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a1c83182b64cbb8bd86c184fee2388c62" name="a1c83182b64cbb8bd86c184fee2388c62"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1c83182b64cbb8bd86c184fee2388c62">&#9670;&nbsp;</a></span>IlluminanceTSL2561()</h2>
+<a id="ac7b3ddebba85e0d540e8182dd210485c" name="ac7b3ddebba85e0d540e8182dd210485c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac7b3ddebba85e0d540e8182dd210485c">&#9670;&nbsp;</a></span>IlluminanceTSL2561()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -194,6 +205,18 @@ Public Member Functions</h2></td></tr>
           <td></td>
           <td class="paramtype">FilterMode&#160;</td>
           <td class="paramname"><em>filterMode</em> = <code>FilterMode::FAST</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">IntegrationMode&#160;</td>
+          <td class="paramname"><em>integrationMode</em> = <code>IntegrationMode::LONGTERM402ms</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">GainMode&#160;</td>
+          <td class="paramname"><em>gainMode</em> = <code>GainMode::LOW1x</code>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
