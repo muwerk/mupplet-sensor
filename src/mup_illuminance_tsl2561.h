@@ -18,6 +18,14 @@ namespace ustd {
 
 The mup_illuminance_tsl2561 mupplet measures illuminance using the TSL2561 sensor.
 
+Precision and range can be modified using the following parameters:
+
+- `FilterMode` modifies the software filter for `FAST` (no software averages), `MEDIUM`, or `LONGTERM` (more software averages)
+- `IntegrationMode` modifies the sensor's internal integration time from `FAST` (13ms), `MEDIUM` (101ms) to `LONGTERM` (402ms).
+- `GainMode` selects the sensor hardware gain amplification between `LOW` (1x) and `HIGH` (16x)
+- `unitilluminancesensitivity` is a software amplification factor that shifts the range of calculated `unitilluminance` values using a model that is perceived by humans as linear.
+   (The value for `illuminance` is in lux, which is not perceived as linear.)
+   
 This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.
 
 #### Messages sent by illuminance_tsl2561 mupplet:
@@ -33,6 +41,7 @@ messages are prefixed by `omu/<hostname>`:
 | `<mupplet-name>/sensor/mode` | `FAST`, `MEDIUM`, or `LONGTERM` | Software filter values, external, additional software integration, in addition to hardware integration on sensor |
 | `<mupplet-name>/sensor/integration` | `FAST`, `MEDIUM`, or `LONGTERM` | Integration on sensor hardware: FAST: 13.7 ms, MEDIUM: 101ms, LONG: 402ms (default) |
 | `<mupplet-name>/sensor/gain` / `LOW` or `HIGH` | Low is 1x gain, high is 16x gain |
+| `<mupplet-name>/sensor/unitilluminancesensitivity` | <sensitivity> | Sensitivity-factor for unitilluminance, default 0.2. |
 
 #### Messages received by illuminance_tsl2561 mupplet:
 
@@ -50,6 +59,8 @@ Need to be prefixed by `<hostname>/`:
 | `<mupplet-name>/sensor/integration/set` | `FAST`, `MEDIUM`, or `LONGTERM` | Set hardware integration values values, default is LONGTERM, 402ms |
 | `<mupplet-name>/sensor/gain/set` | `LOW` or `HIGH` | Set 1x (low, default) or 16x (high) gain |
 | `<mupplet-name>/sensor/gain/get` | - | Causes `gain` message to be sent. |
+| `<mupplet-name>/sensor/unitilluminancesensitivity/set` | <sensitivity> | Default 0.2. If decreased, lower values for unitilluminance are generated, and vice versa. Uses logarithmic model in order to match human perception. |
+| `<mupplet-name>/sensor/unitilluminancesensitivity/get` | - | Get current value |
 
 #### Sample code
 
@@ -172,14 +183,24 @@ class IlluminanceTSL2561 {
 
     double getUnitIlluminanceSensitivity() {
         /*! Get normalized Illuminance sensitivity
-        @return illuminance sensitivity [0(dark)..1(full light)]
+
+        Lower values (<0.2) generate low `unitilluminance` values, higher values amplify.
+
+        @return illuminance sensitivity
         */
         return unitIlluminanceSensitivity;
     }
 
     void setUnitIlluminanceSensitivity(double sensitivity) {
         /*! Set normalized Illuminance sensitivity
-        @param sensitivity illuminance sensitivity [0.001(no sensitiviy)..0.2(default)..(higher sensitiviy)]
+
+        This can be used to modify the range use by unitilluminance, which is always [0..1]. The sensitivity
+        reduces (lower sensitivity) or amplifies (higher sensitivity) the values generated for `unitilluminance`.
+        A logarithmic model is used to match human perception.
+
+        Default is 0.2 on startup.
+
+        @param sensitivity illuminance sensitivity [0.001(no sensitivity)..0.2(default)..(higher sensitivity)]
         */
         if (sensitivity <= 0.001) sensitivity = 0.2;
         unitIlluminanceSensitivity = sensitivity;
