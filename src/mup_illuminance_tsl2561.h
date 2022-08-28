@@ -402,10 +402,10 @@ class IlluminanceTSL2561 {
         uint8_t mx = 0;
         switch (gainMode) {
         case GainMode::LOW1x:
-            mx = 0x10;
+            mx = 0x00;
             break;
         case GainMode::HIGH16x:
-            mx = 0x00;
+            mx = 0x10;
         }
         switch (integrationMode) {
         case IntegrationMode::FAST13ms:
