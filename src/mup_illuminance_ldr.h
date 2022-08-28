@@ -15,6 +15,7 @@ mupplet-sensor implements the following classes based on the cooperative schedul
 * * \ref ustd::TempHumDHT
 * * \ref ustd::GammaGDK101
 * * \ref ustd::GfxPanel
+* * \ref ustd::RainAD
 
 Helpers:
 
