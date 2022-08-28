@@ -9,7 +9,7 @@ namespace ustd {
 // clang-format off
 /*! \brief mupplet-sensor analog, digital rain sensor
 
-The rain_ad mupplet measures rain using a simple analog RainAD
+The rain_ad mupplet measures rain using a simple analog and digital MH-AD rain sensor
 (rain detector with analog and digital output)
 
 #### Messages sent by rain_ad mupplet:

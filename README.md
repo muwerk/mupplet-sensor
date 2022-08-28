@@ -51,6 +51,7 @@ Note: third-party libraries may be subject to different licensing conditions.
 | `mup_temphum_dht` | Temperature, humidity | DHT22 | none |
 | `mup_gamma_gdk101` | Gamma radiation uS/h | GDK101 | Wire |
 | `mup_gfx_panel` | Oled or TFT display for sensor values and plots | SSD1306, ST7735 | Wire, SPI, Adafruit BusIO, Adafruit GFX Library, Adafruit SSD1306, Adafruit ST7735 and ST7789 Library |
+| `mup_rain_ad` | Analog and digital rain sensor | MH-RD rain sensor (china) | none |
 
 History
 -------
