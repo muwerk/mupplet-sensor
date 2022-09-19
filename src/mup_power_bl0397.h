@@ -11,7 +11,6 @@ namespace ustd {
 #else
 #define G_INT_ATTR
 #endif
-#endif
 
 #define USTD_MAX_BLP_PIRQS (10)
 
