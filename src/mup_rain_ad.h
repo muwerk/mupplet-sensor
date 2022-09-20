@@ -153,7 +153,7 @@ class RainAD {
         } else {
             strcpy(buf, "OFF");
         }
-        pSched->publish(name + "/sensor/rain", buf);
+        pSched->publish(name + "/binary_sensor/rain", buf);
     }
 
     void publishFilterMode() {

@@ -9,7 +9,7 @@ typedef TinyWire TwoWire;
 
 #include "scheduler.h"
 #include "sensors.h"
-#include "helpers/mup_i2c_registers.h"
+#include "helper/mup_i2c_registers.h"
 
 namespace ustd {
 
