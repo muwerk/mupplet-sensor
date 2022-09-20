@@ -11,7 +11,7 @@
 typedef TinyWire TwoWire;
 #endif
 
-#include "helpers/mup_i2c_registers.h"
+#include "helper/mup_i2c_registers.h"
 
 #include "scheduler.h"
 #include "sensors.h"
