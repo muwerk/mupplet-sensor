@@ -90,7 +90,7 @@ $(function() {
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="keyword">typedef</span> TinyWire TwoWire;</div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &quot;helpers/mup_i2c_registers.h&quot;</span></div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &quot;helper/mup_i2c_registers.h&quot;</span></div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span> </div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="preprocessor">#include &quot;scheduler.h&quot;</span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="preprocessor">#include &quot;sensors.h&quot;</span></div>
@@ -104,7 +104,7 @@ $(function() {
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>    String GDK101_VERSION = <span class="stringliteral">&quot;0.1.0&quot;</span>;</div>
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    Scheduler *pSched;</div>
 <div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>    TwoWire *pWire;</div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>    <a class="code hl_class" href="classustd_1_1I2CRegisters.html">I2CRegisters</a> *pI2C;</div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>    I2CRegisters *pI2C;</div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>    <span class="keywordtype">int</span> tID;</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    String name;</div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    <span class="keywordtype">double</span> gamma10minavgValue, gamma1minavgValue;</div>
@@ -258,7 +258,7 @@ $(function() {
 <div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span> </div>
 <div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>    String getGDKFirmwareVersion() {</div>
 <div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span>        uint16_t data;</div>
-<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>        <span class="keywordflow">if</span> (!pI2C-&gt;<a class="code hl_function" href="classustd_1_1I2CRegisters.html#a6d40e97f2f7088e0e20f0aa40fd0d294">readRegisterWord</a>(0xb4, &amp;data, <span class="keyword">true</span>, disIrq)) {  <span class="comment">// version</span></div>
+<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>        <span class="keywordflow">if</span> (!pI2C-&gt;readRegisterWord(0xb4, &amp;data, <span class="keyword">true</span>, disIrq)) {  <span class="comment">// version</span></div>
 <div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span><span class="preprocessor">#ifdef USE_SERIAL_DBG</span></div>
 <div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>            Serial.print(<span class="stringliteral">&quot;Failed to read version GDK101 at address 0x&quot;</span>);</div>
 <div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>            Serial.print(i2cAddress, HEX);</div>
@@ -281,7 +281,7 @@ $(function() {
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span> </div>
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>    <span class="keywordtype">bool</span> resetGDKSensor() {</div>
 <div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>        uint16_t data;</div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>        <span class="keywordflow">if</span> (!pI2C-&gt;<a class="code hl_function" href="classustd_1_1I2CRegisters.html#a6d40e97f2f7088e0e20f0aa40fd0d294">readRegisterWord</a>(0xa0, &amp;data, <span class="keyword">true</span>, disIrq)) {  <span class="comment">// reset</span></div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>        <span class="keywordflow">if</span> (!pI2C-&gt;readRegisterWord(0xa0, &amp;data, <span class="keyword">true</span>, disIrq)) {  <span class="comment">// reset</span></div>
 <div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="preprocessor">#ifdef USE_SERIAL_DBG</span></div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>            Serial.print(<span class="stringliteral">&quot;Failed to reset GDK101 at address 0x&quot;</span>);</div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>            Serial.print(i2cAddress, HEX);</div>
@@ -318,7 +318,7 @@ $(function() {
 <div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    <span class="keywordtype">bool</span> readGDKSensorMeasurement(uint8_t reg, <span class="keywordtype">double</span> *pMeas) {</div>
 <div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>        uint16_t data;</div>
 <div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>        *pMeas = 0.0;</div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>        <span class="keywordflow">if</span> (!pI2C-&gt;<a class="code hl_function" href="classustd_1_1I2CRegisters.html#a6d40e97f2f7088e0e20f0aa40fd0d294">readRegisterWord</a>(reg, &amp;data, <span class="keyword">true</span>, disIrq)) {</div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>        <span class="keywordflow">if</span> (!pI2C-&gt;readRegisterWord(reg, &amp;data, <span class="keyword">true</span>, disIrq)) {</div>
 <div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="preprocessor">#ifdef USE_SERIAL_DBG</span></div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>            Serial.print(<span class="stringliteral">&quot;Failed to read GDK101 at address 0x&quot;</span>);</div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>            Serial.print(i2cAddress, HEX);</div>
@@ -422,8 +422,6 @@ $(function() {
 <div class="ttc" id="aclassustd_1_1GammaGDK101_html_a281c2fe4c651ed1cb5809d92dc570af4"><div class="ttname"><a href="classustd_1_1GammaGDK101.html#a281c2fe4c651ed1cb5809d92dc570af4">ustd::GammaGDK101::getGamma1minavt</a></div><div class="ttdeci">double getGamma1minavt()</div><div class="ttdef"><b>Definition:</b> mup_gamma_gdk101.h:170</div></div>
 <div class="ttc" id="aclassustd_1_1GammaGDK101_html_a90c1aacdfaa3d0dc5145ad6701c62f4f"><div class="ttname"><a href="classustd_1_1GammaGDK101.html#a90c1aacdfaa3d0dc5145ad6701c62f4f">ustd::GammaGDK101::GammaGDK101</a></div><div class="ttdeci">GammaGDK101(String name, FilterMode filterMode=FilterMode::FAST, uint8_t i2cAddress=0x18)</div><div class="ttdef"><b>Definition:</b> mup_gamma_gdk101.h:145</div></div>
 <div class="ttc" id="aclassustd_1_1GammaGDK101_html_ad5a89312cd48259481e9d7203fc301a5"><div class="ttname"><a href="classustd_1_1GammaGDK101.html#ad5a89312cd48259481e9d7203fc301a5">ustd::GammaGDK101::getGamma10minavt</a></div><div class="ttdeci">double getGamma10minavt()</div><div class="ttdef"><b>Definition:</b> mup_gamma_gdk101.h:163</div></div>
-<div class="ttc" id="aclassustd_1_1I2CRegisters_html"><div class="ttname"><a href="classustd_1_1I2CRegisters.html">ustd::I2CRegisters</a></div><div class="ttdoc">mup_i2c_registers.h implements the i2c register read/write protocols used by many sensors</div><div class="ttdef"><b>Definition:</b> mup_i2c_registers.h:21</div></div>
-<div class="ttc" id="aclassustd_1_1I2CRegisters_html_a6d40e97f2f7088e0e20f0aa40fd0d294"><div class="ttname"><a href="classustd_1_1I2CRegisters.html#a6d40e97f2f7088e0e20f0aa40fd0d294">ustd::I2CRegisters::readRegisterWord</a></div><div class="ttdeci">bool readRegisterWord(uint8_t reg, uint16_t *pData, bool releaseBus=true, bool allow_irqs=true)</div><div class="ttdef"><b>Definition:</b> mup_i2c_registers.h:133</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

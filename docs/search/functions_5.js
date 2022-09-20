@@ -1,12 +1,11 @@
 var searchData=
 [
-  ['powerbl0937_0',['PowerBl0937',['../classustd_1_1PowerBl0937.html#adfb0dd6effe6262f36cd9620ffeb589a',1,'ustd::PowerBl0937']]],
-  ['presstempbmp180_1',['PressTempBMP180',['../classustd_1_1PressTempBMP180.html#a29a32055eb5a0f692f3c37125daed165',1,'ustd::PressTempBMP180']]],
-  ['presstempbmp280_2',['PressTempBMP280',['../classustd_1_1PressTempBMP280.html#ac5fc9a01716b4297d01d2ac4ddbbce1a',1,'ustd::PressTempBMP280']]],
-  ['presstemphumbme280_3',['PressTempHumBME280',['../classustd_1_1PressTempHumBME280.html#ad5ef9efa5163138af9960b1b8c66c561',1,'ustd::PressTempHumBME280']]],
-  ['publishslotcaption_4',['publishSlotCaption',['../classustd_1_1GfxPanel.html#ad915b8b3d9a6a98f0308376ada2db2eb',1,'ustd::GfxPanel']]],
-  ['publishslotformat_5',['publishSlotFormat',['../classustd_1_1GfxPanel.html#aa0d4edbddad6f30eb5c8a317f933beec',1,'ustd::GfxPanel']]],
-  ['publishslothistorysampleratems_6',['publishSlotHistorySampleRateMs',['../classustd_1_1GfxPanel.html#a43d3046748962f10e3ec1c703da18b42',1,'ustd::GfxPanel']]],
-  ['publishslottext_7',['publishSlotText',['../classustd_1_1GfxPanel.html#a9f9c7ecade85043970fe8017044a1fce',1,'ustd::GfxPanel']]],
-  ['publishslottopic_8',['publishSlotTopic',['../classustd_1_1GfxPanel.html#ad7c17e94821e825e36753a76a2fd62d0',1,'ustd::GfxPanel']]]
+  ['setreferencealtitude_0',['setReferenceAltitude',['../classustd_1_1PressTempBMP180.html#ab28f303967524daa77e713f96474e783',1,'ustd::PressTempBMP180::setReferenceAltitude()'],['../classustd_1_1PressTempBMP280.html#adc17f798256fb336e5bcd8de27ae451b',1,'ustd::PressTempBMP280::setReferenceAltitude()'],['../classustd_1_1PressTempHumBME280.html#add1b86b46ba4a77f7c0394d6f8a65fc4',1,'ustd::PressTempHumBME280::setReferenceAltitude()']]],
+  ['setslotcaption_1',['setSlotCaption',['../classustd_1_1GfxPanel.html#a456ac5c89651b7199ca81b9fcc9e3888',1,'ustd::GfxPanel']]],
+  ['setslotformat_2',['setSlotFormat',['../classustd_1_1GfxPanel.html#a12ba38458d8dede22f253e78095f659e',1,'ustd::GfxPanel']]],
+  ['setslothistorysampleratems_3',['setSlotHistorySampleRateMs',['../classustd_1_1GfxPanel.html#a9b7dab8c87938bcf02bdd02079bebe25',1,'ustd::GfxPanel']]],
+  ['setslottext_4',['setSlotText',['../classustd_1_1GfxPanel.html#af3a570d8d3992384f5a70cbec09aa163',1,'ustd::GfxPanel']]],
+  ['setslottopic_5',['setSlotTopic',['../classustd_1_1GfxPanel.html#ad319ab83a90ac83d69f55d53f264f4db',1,'ustd::GfxPanel']]],
+  ['setunitilluminancesensitivity_6',['setUnitIlluminanceSensitivity',['../classustd_1_1IlluminanceTSL2561.html#ad6090d1ae8c4bea7d6a79436eff1d13a',1,'ustd::IlluminanceTSL2561']]],
+  ['startrelativealtitude_7',['startRelativeAltitude',['../classustd_1_1PressTempBMP180.html#a5a82c509f6eed4f945e85ce082bb0366',1,'ustd::PressTempBMP180::startRelativeAltitude()'],['../classustd_1_1PressTempBMP280.html#a77392a6c8992e5892ee2e2f4614a1c8a',1,'ustd::PressTempBMP280::startRelativeAltitude()'],['../classustd_1_1PressTempHumBME280.html#a1d02b2852651326af854426204de51b3',1,'ustd::PressTempHumBME280::startRelativeAltitude()']]]
 ];

@@ -1,9 +1,5 @@
 var searchData=
 [
-  ['rainad_0',['RainAD',['../classustd_1_1RainAD.html#a78530ee251a962fed7652440222c7fa8',1,'ustd::RainAD::RainAD()'],['../classustd_1_1RainAD.html',1,'ustd::RainAD']]],
-  ['readme_1',['README',['../md_README.html',1,'']]],
-  ['readregisterbyte_2',['readRegisterByte',['../classustd_1_1I2CRegisters.html#a941c72646a1c20a46d240fc0e0107541',1,'ustd::I2CRegisters']]],
-  ['readregistertripple_3',['readRegisterTripple',['../classustd_1_1I2CRegisters.html#a5f40d44c50b118a9ab434d2223eefeac',1,'ustd::I2CRegisters']]],
-  ['readregisterword_4',['readRegisterWord',['../classustd_1_1I2CRegisters.html#a6d40e97f2f7088e0e20f0aa40fd0d294',1,'ustd::I2CRegisters']]],
-  ['readregisterwordle_5',['readRegisterWordLE',['../classustd_1_1I2CRegisters.html#a7653bb2ae98ed47d22f1bfbe4da3062c',1,'ustd::I2CRegisters']]]
+  ['ultra_5fhigh_5fresolution_0',['ULTRA_HIGH_RESOLUTION',['../classustd_1_1GammaGDK101.html#a1754bd61ba3d68b819f6d0451458f43fad8cdddd6cd2aac30ab7079a8afe5bf65',1,'ustd::GammaGDK101::ULTRA_HIGH_RESOLUTION()'],['../classustd_1_1PressTempBMP180.html#a732c2d9886254f6b8d38fb2b83e52bdca6a12e3366d8062d1d61081b0a298fb28',1,'ustd::PressTempBMP180::ULTRA_HIGH_RESOLUTION()'],['../classustd_1_1PressTempBMP280.html#a51e0d414796b5b9676ef2af665441cf7a13d41f4e93c33f438496d50ed6642c56',1,'ustd::PressTempBMP280::ULTRA_HIGH_RESOLUTION()'],['../classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecaae21b1804b39de8904626e4f817b4730',1,'ustd::PressTempHumBME280::ULTRA_HIGH_RESOLUTION()']]],
+  ['ultra_5flow_5fpower_1',['ULTRA_LOW_POWER',['../classustd_1_1GammaGDK101.html#a1754bd61ba3d68b819f6d0451458f43fa38f25c71035a796d0702d8c94cee3374',1,'ustd::GammaGDK101::ULTRA_LOW_POWER()'],['../classustd_1_1PressTempBMP180.html#a732c2d9886254f6b8d38fb2b83e52bdca224deaa79f89e81f5582fb72a540dbad',1,'ustd::PressTempBMP180::ULTRA_LOW_POWER()'],['../classustd_1_1PressTempBMP280.html#a51e0d414796b5b9676ef2af665441cf7a602bf112e4e50869d858e6c2352ec531',1,'ustd::PressTempBMP280::ULTRA_LOW_POWER()'],['../classustd_1_1PressTempHumBME280.html#a68897a113f2258992c1f3fc4a1a4c6ecaa1eb5d084c289467032821827d124644',1,'ustd::PressTempHumBME280::ULTRA_LOW_POWER()']]]
 ];

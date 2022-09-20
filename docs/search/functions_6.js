@@ -1,8 +1,4 @@
 var searchData=
 [
-  ['rainad_0',['RainAD',['../classustd_1_1RainAD.html#a78530ee251a962fed7652440222c7fa8',1,'ustd::RainAD']]],
-  ['readregisterbyte_1',['readRegisterByte',['../classustd_1_1I2CRegisters.html#a941c72646a1c20a46d240fc0e0107541',1,'ustd::I2CRegisters']]],
-  ['readregistertripple_2',['readRegisterTripple',['../classustd_1_1I2CRegisters.html#a5f40d44c50b118a9ab434d2223eefeac',1,'ustd::I2CRegisters']]],
-  ['readregisterword_3',['readRegisterWord',['../classustd_1_1I2CRegisters.html#a6d40e97f2f7088e0e20f0aa40fd0d294',1,'ustd::I2CRegisters']]],
-  ['readregisterwordle_4',['readRegisterWordLE',['../classustd_1_1I2CRegisters.html#a7653bb2ae98ed47d22f1bfbe4da3062c',1,'ustd::I2CRegisters']]]
+  ['temphumdht_0',['TempHumDHT',['../classustd_1_1TempHumDHT.html#a0a6fbf13ac9dd7a61b0dc112bd5327f3',1,'ustd::TempHumDHT']]]
 ];
