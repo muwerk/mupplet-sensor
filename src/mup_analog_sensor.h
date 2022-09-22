@@ -63,6 +63,7 @@ class AnalogSensor {
     uint32_t pollRateMs = 2000;
     uint32_t lastPollMs = 0;
     bool bActive = false;
+    bool initialPublish = false;
 #ifdef __ESP32__
     double adRange = 4096.0;  // 12 bit default
 #else
@@ -76,13 +77,13 @@ class AnalogSensor {
     FilterMode filterMode;
     ustd::sensorprocessor analogSensor = ustd::sensorprocessor(4, 600, 0.005);
 
-    AnalogSensor(String name, uint8_t analogPort, String topicName = "", FilterMode filterMode = FilterMode::MEDIUM)
+    AnalogSensor(String name, uint8_t analogPort, FilterMode filterMode = FilterMode::MEDIUM, String topicName = "")
         : name(name), analogPort(analogPort), topicName(topicName), filterMode(filterMode) {
         /*! Instantiate an AnalogSensor sensor mupplet
         @param name Name used for pub/sub messages
         @param analogPort GPIO port with A/D converter capabilities.
-        @param topicName optional additional mqtt topic name, generating additional mqtt messages
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values of analog port
+        @param topicName optional additional mqtt topic name, generating additional mqtt messages
         */
         setFilterMode(filterMode, true);
     }
@@ -97,7 +98,7 @@ class AnalogSensor {
         return AnalogSensorValue;
     }
 
-    void begin(Scheduler *_pSched, double _linTransA = 1.0, double _linTransB = 0.0, uint32_t _pollRateMs = 2000) {
+    void begin(Scheduler *_pSched, uint32_t _pollRateMs = 2000, double _linTransA = 1.0, double _linTransB = 0.0) {
         /*! Start processing of A/D input from AnalogSensor
 
         The analog sensor mupplet by default measures the analog port, and maps values always into the range
@@ -109,14 +110,15 @@ class AnalogSensor {
         Note: if you are not using the linear transformation feature, make sure that _linTransA is set to 1.0 and _linTransB is set to 0.0!
 
         @param _pSched pointer to muwerk scheduler object
+        @param _pollRateMs Optional measurement pollrate in ms, default 2000, a measurement every 2 secs.
         @param _linTransA Optional transformation factor a, default 1.0, values v read from analog sensor are transformed with a*v+b.
         @param _linTransB Optional transformation factor b, default 0.0, values v read from analog sensor are transformed with a*v+b.
-        @param _pollRateMs Optional measurement pollrate in ms, default 2000, a measurement every 2 secs.
         */
         pSched = _pSched;
         pollRateMs = _pollRateMs;
         linTransA = _linTransA;
         linTransB = _linTransB;
+        initialPublish = false;
 
         auto ft = [=]() { this->loop(); };
         tID = pSched->add(ft, name, basePollRate);
@@ -174,18 +176,21 @@ class AnalogSensor {
 
     void loop() {
         if (bActive) {
-            if (timeDiff(lastPollMs, millis()) >= pollRateMs) {
+            if (timeDiff(lastPollMs, millis()) >= pollRateMs || !initialPublish) {
                 bool hasChanged = false;
                 lastPollMs = millis();
                 double val = 1.0 - (analogRead(analogPort) / (adRange - 1.0));
                 if (linTransA != 1 || linTransB != 0) {
                     val = linTransA * val + linTransB;
                 }
-                if (analogSensor.filter(&val)) {
+                if (analogSensor.filter(&val) || !initialPublish) {
                     AnalogSensorValue = val;
                     hasChanged = true;
                 }
-                if (hasChanged) publishAnalogSensor();
+                if (hasChanged) {
+                    publishAnalogSensor();
+                    initialPublish = true;
+                }
             }
         }
     }

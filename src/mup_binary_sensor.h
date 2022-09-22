@@ -68,6 +68,7 @@ class BinarySensor {
     uint32_t pollRateMs = 2000;
     uint32_t lastPollMs = 0;
     bool bActive = false;
+    bool initialPublish = false;
 
   public:
     BinarySensor(String name, uint8_t digitalPort, bool inverseLogic = false, String topicName = "state")
@@ -125,7 +126,8 @@ class BinarySensor {
         tID = pSched->add(ft, name, basePollRate);
 
         pinMode(digitalPort, INPUT_PULLUP);
-        logicalState = !getBinarySensorLogicalState();  // we initialise with the opposite value to cause an initial publish...
+        logicalState = getBinarySensorLogicalState();
+        initialPublish = false;
 
         auto fnall = [=](String topic, String msg, String originator) {
             this->subsMsg(topic, msg, originator);
@@ -169,6 +171,11 @@ class BinarySensor {
                     hasChanged = true;
                 }
                 if (hasChanged) publishBinarySensor();
+            } else {
+                if (!initialPublish) {
+                    initialPublish = true;
+                    publishBinarySensor();
+                }
             }
         }
     }
