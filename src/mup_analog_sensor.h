@@ -56,7 +56,7 @@ class AnalogSensor {
     String name;
     uint8_t analogPort;
     String topicName;
-    double AnalogSensorValue;
+    double analogSensorValue;
     double linTransA = 1.0;  // a*x+b linear transformation of measured values, default no change.
     double linTransB = 0.0;
     unsigned long basePollRate = 500000L;
@@ -92,10 +92,10 @@ class AnalogSensor {
     }
 
     double getUnitAnalogSensor() {
-        /*! Get current unit illumance
+        /*! Get current analog sensor value
         @return Unit-analogsensor [0.0 - 1.0], if a linear transformation is used, the range is [b - a+b]
         */
-        return AnalogSensorValue;
+        return analogSensorValue;
     }
 
     void begin(Scheduler *_pSched, uint32_t _pollRateMs = 2000, double _linTransA = 1.0, double _linTransB = 0.0) {
@@ -127,6 +127,7 @@ class AnalogSensor {
             this->subsMsg(topic, msg, originator);
         };
         pSched->subscribe(tID, name + "/sensor/#", fnall);
+        pSched->subscribe(tID, name + "/mqtt/state", fnall);
         bActive = true;
     }
 
@@ -153,7 +154,7 @@ class AnalogSensor {
   private:
     void publishAnalogSensor() {
         char buf[32];
-        sprintf(buf, "%5.3f", AnalogSensorValue);
+        sprintf(buf, "%5.3f", analogSensorValue);
         pSched->publish(name + "/sensor/unitanalogsensor", buf);
         if (topicName != "unitanalogsensor" && topicName != "") {
             pSched->publish(name + "/sensor/" + topicName, buf);
@@ -179,12 +180,14 @@ class AnalogSensor {
             if (timeDiff(lastPollMs, millis()) >= pollRateMs || !initialPublish) {
                 bool hasChanged = false;
                 lastPollMs = millis();
-                double val = 1.0 - (analogRead(analogPort) / (adRange - 1.0));
-                if (linTransA != 1 || linTransB != 0) {
+                double val = analogRead(analogPort) / (adRange - 1.0);
+                if (val < 0.0) val = 0.0;
+                if (val > 1.0) val = 1.0;
+                if (linTransA != 1.0 || linTransB != 0.0) {
                     val = linTransA * val + linTransB;
                 }
                 if (analogSensor.filter(&val) || !initialPublish) {
-                    AnalogSensorValue = val;
+                    analogSensorValue = val;
                     hasChanged = true;
                 }
                 if (hasChanged) {
@@ -209,6 +212,10 @@ class AnalogSensor {
                 } else {
                     setFilterMode(FilterMode::LONGTERM);
                 }
+            }
+        } else if (topic == name + "mqtt/state") {
+            if (msg == "connected") {
+                initialPublish = false;  // republish for mqtt.
             }
         }
     };

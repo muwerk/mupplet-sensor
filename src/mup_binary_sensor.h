@@ -134,6 +134,7 @@ class BinarySensor {
         };
         pSched->subscribe(tID, name + "/sensor/#", fnall);
         pSched->subscribe(tID, name + "/binary_sensor/#", fnall);
+        pSched->subscribe(tID, name + "/mqtt/state", fnall);
         bActive = true;
     }
 
@@ -162,19 +163,17 @@ class BinarySensor {
 
     void loop() {
         if (bActive) {
-            if (timeDiff(lastPollMs, millis()) >= pollRateMs) {
+            if (timeDiff(lastPollMs, millis()) >= pollRateMs || !initialPublish) {
                 bool hasChanged = false;
                 lastPollMs = millis();
                 bool oldLogicalState = logicalState;
                 bool st = getBinarySensorLogicalState();
-                if (st != oldLogicalState) {
+                if (st != oldLogicalState || !initialPublish) {
                     hasChanged = true;
                 }
-                if (hasChanged) publishBinarySensor();
-            } else {
-                if (!initialPublish) {
-                    initialPublish = true;
+                if (hasChanged) {
                     publishBinarySensor();
+                    initialPublish = true;
                 }
             }
         }
@@ -183,9 +182,12 @@ class BinarySensor {
     void subsMsg(String topic, String msg, String originator) {
         if (topic == name + "/sensor/" + topicName + "/get" || topic == name + "/binary_sensor/" + topicName + "/get") {
             publishBinarySensor();
-        }
-        if (topic == name + "/sensor/physical/" + topicName + "/get" || topic == name + "/binary_sensor/physical/" + topicName + "/get") {
+        } else if (topic == name + "/sensor/physical/" + topicName + "/get" || topic == name + "/binary_sensor/physical/" + topicName + "/get") {
             publishBinarySensor();
+        } else if (topic == name + "mqtt/state") {
+            if (msg == "connected") {
+                initialPublish = false;  // republish for mqtt.
+            }
         }
     }
 };  // rainAD
