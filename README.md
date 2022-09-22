@@ -21,14 +21,6 @@ The `mupplet-sensor` library consists of the following modules:
 
 * [mup_temphum_dht][TempHum_DOC] A mupplet for DHT22 temperature and humidity. See [DHT22 Applications Notes][TempHum_NOTES].
 
-<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/oled.png" align="right" width="7%" height="7%">
-
-* [mup_gfx_panel][Gfx_panel_DOC] The `GfxPanel` mupplet allows to display multiple sensor values on an Oled or TFT displays as
-  text or graphical plot. The values displayed can either be generated locally or imported via MQTT. A JSON file discribes
-  format and data sources. See [GFX Panel Application Notes][Gfx_panel_NOTES].
-
-<img src="https://github.com/muwerk/mupplet-sensor/blob/master/extras/tft.gif" align="right" width="20%" height="20%">
-
 Dependencies
 ------------
 
@@ -50,12 +42,12 @@ Note: third-party libraries may be subject to different licensing conditions.
 | `mup_presstemp_bme280.h` | Pressure, temperature, humidity | Bosch BME280 | Wire |
 | `mup_temphum_dht` | Temperature, humidity | DHT22 | none |
 | `mup_gamma_gdk101` | Gamma radiation uS/h | GDK101 | Wire |
-| `mup_gfx_panel` | Oled or TFT display for sensor values and plots | SSD1306, ST7735 | Wire, SPI, Adafruit BusIO, Adafruit GFX Library, Adafruit SSD1306, Adafruit ST7735 and ST7789 Library |
+
 | `mup_rain_ad` | Analog and digital rain sensor | MH-RD rain sensor (china) | none |
 
 History
 -------
-- 0.1.4 ongoing...
+- 0.1.4 (2022-09-22) GfxPanel moved to mupplet-display
 - 0.1.3 (2022-07-28) Oled and doc upgrades.
 - 0.1.2 (2022-07-27) DHT and Oled added.
 - 0.1.0 (2021-02-XX) (Not yet Released) Illuminance LDR Sensor, BMP180 pressure sensor
@@ -83,8 +75,7 @@ References
 [IlluminanceLdr_NOTES]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/illuminance-ldr-notes.md
 [TempHum_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1TempHumDHT.html
 [TempHum_Notes]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/temphum-dht-notes.md
-[Gfx_panel_DOC]: https://muwerk.github.io/mupplet-sensor/docs/classustd_1_1GfxPanel.html
-[Gfx_panel_NOTES]: https://github.com/muwerk/mupplet-sensor/blob/master/extras/gfx-panel-notes.md
+
 
 [gh_ustd]: https://github.com/muwerk/ustd
 [gh_muwerk]: https://github.com/muwerk/muwerk
