@@ -13,6 +13,5 @@ var searchData=
   ['getunitanalogsensor_10',['getUnitAnalogSensor',['../classustd_1_1AnalogSensor.html#a0b697392dee500d9a45e9efef996ed99',1,'ustd::AnalogSensor']]],
   ['getunitilluminance_11',['getUnitIlluminance',['../classustd_1_1IlluminanceLdr.html#a3d0241c360159a8de4fc2dadcd31bfd5',1,'ustd::IlluminanceLdr::getUnitIlluminance()'],['../classustd_1_1IlluminanceTSL2561.html#ae77a0613206b6494b1bbc6c9fd941e7b',1,'ustd::IlluminanceTSL2561::getUnitIlluminance()']]],
   ['getunitilluminancesensitivity_12',['getUnitIlluminanceSensitivity',['../classustd_1_1IlluminanceTSL2561.html#a5a31eef751cbf3a44e8c38e02147f395',1,'ustd::IlluminanceTSL2561']]],
-  ['getunitrain_13',['getUnitRain',['../classustd_1_1RainAD.html#af01d5c1baa1739e40b702e9296c0e4d8',1,'ustd::RainAD']]],
-  ['gfxpanel_14',['GfxPanel',['../classustd_1_1GfxPanel.html#ad287168d3576ac19c6c7735d3b0ce8c6',1,'ustd::GfxPanel::GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t i2cAddress, TwoWire *pWire=&amp;Wire, String locale=&quot;C&quot;)'],['../classustd_1_1GfxPanel.html#a6e52ae31c05665678a85d2ed4e12b668',1,'ustd::GfxPanel::GfxPanel(String name, GfxDrivers::DisplayType displayType, uint16_t resX, uint16_t resY, uint8_t csPin, uint8_t dcPin, uint8_t rstPin=-1, String locale=&quot;C&quot;)']]]
+  ['getunitrain_13',['getUnitRain',['../classustd_1_1RainAD.html#af01d5c1baa1739e40b702e9296c0e4d8',1,'ustd::RainAD']]]
 ];
