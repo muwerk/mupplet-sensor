@@ -7,6 +7,8 @@
 
 mupplet-sensor implements the following classes based on the cooperative scheduler muwerk:
 
+* * \ref ustd::BinarySensor
+* * \ref ustd::AnalogSensor
 * * \ref ustd::IlluminanceLdr
 * * \ref ustd::IlluminanceTSL2561
 * * \ref ustd::PressTempBMP180
