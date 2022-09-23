@@ -47,7 +47,7 @@ Note: third-party libraries may be subject to different licensing conditions.
 
 History
 -------
-- 0.1.4 (2022-09-22) GfxPanel moved to mupplet-display
+- 0.2.0 (2022-09-23) GfxPanel moved to mupplet-display, multiple sensors added, documentation still incomplete and ongoing.
 - 0.1.3 (2022-07-28) Oled and doc upgrades.
 - 0.1.2 (2022-07-27) DHT and Oled added.
 - 0.1.0 (2021-02-XX) (Not yet Released) Illuminance LDR Sensor, BMP180 pressure sensor
