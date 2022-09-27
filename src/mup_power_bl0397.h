@@ -2,7 +2,6 @@
 #pragma once
 
 #include "scheduler.h"
-#include "home_assistant.h"
 
 namespace ustd {
 
@@ -97,30 +96,29 @@ bool changeBlpSELi(bool bsel, uint8_t pin_sel, uint8_t irqno) {
     return bsel;
 }
 
-/ clang - format off
-    /*! \brief Power, Voltage and Current sensor BL0397
+/*! \brief Power, Voltage and Current sensor BL0397
 
-    The power_bl0397 mupplet measures current voltage (V), current (A) and power
-    consumption (W) using a chinese BL0397 sensor as used in Gosund SP-1 switches.
+The power_bl0397 mupplet measures current voltage (V), current (A) and power
+consumption (W) using a chinese BL0397 sensor as used in Gosund SP-1 switches.
 
-    #### Messages sent by illuminance_ldr mupplet:
+#### Messages sent by illuminance_ldr mupplet:
 
-    | topic | message body | comment |
-    | ----- | ------------ | ------- |
-    | `<mupplet-name>/sensor/voltage` | <current-voltage> | Current voltage (V) as string. |
-    |  `<mupplet-name>/sensor/current` | <current-current> | Current current (A) as string. |
-    |  `<mupplet-name>/sensor/power` | <current-power> | Current power usage (W) as string. |
+| topic | message body | comment |
+| ----- | ------------ | ------- |
+| `<mupplet-name>/sensor/voltage` | <current-voltage> | Current voltage (V) as string. |
+|  `<mupplet-name>/sensor/current` | <current-current> | Current current (A) as string. |
+|  `<mupplet-name>/sensor/power` | <current-power> | Current power usage (W) as string. |
 
-    #### Messages received by illuminance_ldr mupplet:
+#### Messages received by illuminance_ldr mupplet:
 
-    | topic | message body | comment |
-    | ----- | ------------ | ------- |
-    | `<mupplet-name>/sensor/state/get` | - | Causes current voltage, current, and power messages to be sent. |
-    | `<mupplet-name>/sensor/voltage/get` | - | Causes current voltage message to be sent. |
-    | `<mupplet-name>/sensor/current/get` | - | Causes current current message to be sent. |
-    | `<mupplet-name>/sensor/power/get` | - | Causes current power message to be sent. |
-    */
-    class PowerBl0937 {
+| topic | message body | comment |
+| ----- | ------------ | ------- |
+| `<mupplet-name>/sensor/state/get` | - | Causes current voltage, current, and power messages to be sent. |
+| `<mupplet-name>/sensor/voltage/get` | - | Causes current voltage message to be sent. |
+| `<mupplet-name>/sensor/current/get` | - | Causes current current message to be sent. |
+| `<mupplet-name>/sensor/power/get` | - | Causes current power message to be sent. |
+*/
+class PowerBl0937 {
   public:
     String POWER_BL0937_VERSION = "0.1.0";
     Scheduler *pSched;
@@ -150,10 +148,6 @@ bool changeBlpSELi(bool bsel, uint8_t pin_sel, uint8_t irqno) {
     double userCalibrationCurrentFactor = 1.0;
 
     uint8_t ipin = 255;
-
-#ifdef __ESP__
-    HomeAssistant *pHA;
-#endif
 
     PowerBl0937(String name, uint8_t pin_CF, uint8_t pin_CF1, uint8_t pin_SELi,
                 int8_t interruptIndex_CF, uint8_t interruptIndex_CF1)
@@ -217,19 +211,6 @@ bool changeBlpSELi(bool bsel, uint8_t pin_sel, uint8_t irqno) {
         pSched->subscribe(tID, name + "/power_bl0937/#", fnall);
         return true;
     }
-
-#ifdef __OBSOLETE__
-    void registerHomeAssistant(String homeAssistantFriendlyName, String projectName = "",
-                               String homeAssistantDiscoveryPrefix = "homeassistant") {
-        pHA = new HomeAssistant(name, tID, homeAssistantFriendlyName, projectName,
-                                POWER_BL0937_VERSION, homeAssistantDiscoveryPrefix);
-        pHA->addSensor("power", "Power", "W", "power", "mdi:gauge");
-        pHA->addSensor("voltage", "Voltage", "V", "None", "mdi:gauge");
-        pHA->addSensor("current", "Current", "A", "None", "mdi:gauge");
-        pHA->begin(pSched);
-        publish();
-    }
-#endif
 
     void setUserCalibrationFactors(double powerFactor = 1.0, double voltageFactor = 1.0,
                                    double currentFactor = 1.0) {
@@ -314,14 +295,11 @@ bool changeBlpSELi(bool bsel, uint8_t pin_sel, uint8_t irqno) {
     void subsMsg(String topic, String msg, String originator) {
         if (topic == name + "/sensor/state/get") {
             publish();
-        }
-        if (topic == name + "/sensor/power/get") {
+        } else if (topic == name + "/sensor/power/get") {
             publish_CF();
-        }
-        if (topic == name + "/sensor/voltage/get") {
+        } else if (topic == name + "/sensor/voltage/get") {
             publish_CF1_V();
-        }
-        if (topic == name + "/sensor/current/get") {
+        } else if (topic == name + "/sensor/current/get") {
             publish_CF1_I();
         }
     };
