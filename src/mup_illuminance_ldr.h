@@ -121,14 +121,16 @@ class IlluminanceLdr {
                       MEDIUM,
                       LONGTERM };
     FilterMode filterMode;
+    bool inverseLogic;
     ustd::sensorprocessor illuminanceSensor = ustd::sensorprocessor(4, 600, 0.005);
 
-    IlluminanceLdr(String name, uint8_t port, FilterMode filterMode = FilterMode::MEDIUM)
-        : name(name), port(port), filterMode(filterMode) {
+    IlluminanceLdr(String name, uint8_t port, FilterMode filterMode = FilterMode::MEDIUM, bool inverseLogic = false)
+        : name(name), port(port), filterMode(filterMode), inverseLogic(inverseLogic) {
         /*! Instantiate an LDR sensor mupplet
         @param name Name used for pub/sub messages
         @param port GPIO port with A/D converter capabilities.
         @param filterMode FAST, MEDIUM or LONGTERM filtering of sensor values
+        @param inverseLogic on false, low AD reading is reported as min (0), on true, low AD reading is reported as max (1 for unitilluminance).
         */
         setFilterMode(filterMode, true);
     }
@@ -203,7 +205,12 @@ class IlluminanceLdr {
         if (bActive) {
             if (timeDiff(lastPollMs, millis()) >= pollRateMs) {
                 lastPollMs = millis();
-                double val = 1.0 - (analogRead(port) / (adRange - 1.0));
+                double val;
+                if (inverseLogic) {
+                    val = 1.0 - (analogRead(port) / (adRange - 1.0));
+                } else {
+                    val = (analogRead(port) / (adRange - 1.0));
+                }
                 if (illuminanceSensor.filter(&val)) {
                     ldrvalue = val;
                     publishIlluminance();

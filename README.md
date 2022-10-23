@@ -47,6 +47,7 @@ Note: third-party libraries may be subject to different licensing conditions.
 
 History
 -------
+- 0.2.2 (unpublished) New mode `inverseLogic` for `IlluminanceLdr`.
 - 0.2.1 (2022-09-27) Fixes for sensor BL0397 power measurement for Gosund SP1 tests. 
 - 0.2.0 (2022-09-23) GfxPanel moved to mupplet-display, multiple sensors added, documentation still incomplete and ongoing.
 - 0.1.3 (2022-07-28) Oled and doc upgrades.
