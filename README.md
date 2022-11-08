@@ -42,12 +42,12 @@ Note: third-party libraries may be subject to different licensing conditions.
 | `mup_presstemp_bme280.h` | Pressure, temperature, humidity | Bosch BME280 | Wire |
 | `mup_temphum_dht` | Temperature, humidity | DHT22 | none |
 | `mup_gamma_gdk101` | Gamma radiation uS/h | GDK101 | Wire |
-
+| `mup_co2_ccs811` | CO2, VOC | CCS811 | Wire |
 | `mup_rain_ad` | Analog and digital rain sensor | MH-RD rain sensor (china) | none |
 
 History
 -------
-- 0.2.2 (unpublished) New mode `inverseLogic` for `IlluminanceLdr`.
+- 0.2.2 (unpublished) New mode `inverseLogic` for `IlluminanceLdr`, new sensor CO2/VOC CCS811.
 - 0.2.1 (2022-09-27) Fixes for sensor BL0397 power measurement for Gosund SP1 tests. 
 - 0.2.0 (2022-09-23) GfxPanel moved to mupplet-display, multiple sensors added, documentation still incomplete and ongoing.
 - 0.1.3 (2022-07-28) Oled and doc upgrades.
