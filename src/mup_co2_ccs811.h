@@ -184,26 +184,19 @@ class CO2CCS811 {
         pI2C->lastError = pI2C->checkAddress(i2cAddress);
         if (pI2C->lastError == I2CRegisters::I2CError::OK) {
             uint8_t id, rev;
-            if (CCSSensorGetRevID(&id, &rev)) {
-                if (id == 5 || id == 1) {  // CCS811 id should be either 5 (reality) or 1 (datasheet)
-                    if (CCSSensorPower(true)) {
-                        bActive = true;
+            uint16_t fw_boot, fw_app;
+            if (CCSSensorGetRevID(&id, &rev, &fw_boot, &fw_app)) {
+                if (id == 0x81) {  // CCS811 id should be either 5 (reality) or 1 (datasheet)
+                    if (CCSSensorMode())) {
+                            bActive = true;
 #ifdef USE_SERIAL_DBG
-                        Serial.println("CCS811: Powered on, revision:  " + String(rev));
+                            Serial.println("CCS811: Powered on continously, HW revision:  " + String(rev) + ", FW boot: " +
+                                           String(fw_boot) + ", FW app: " + String(fw_app));
 #endif
-                        if (CCSSensorGainIntegrationSet()) {
-#ifdef USE_SERIAL_DBG
-                            Serial.println("CCS811: Integration- and Gain-Mode set.");
-#endif
-                        } else {
-#ifdef USE_SERIAL_DBG
-                            Serial.println("CCS811: Integration- and Gain-Mode set ERROR.");
-#endif
-                            pI2C->lastError = I2CRegisters::I2C_WRITE_ERR_OTHER;
                         }
-                    } else {
+                    else {
 #ifdef USE_SERIAL_DBG
-                        Serial.println("CCS811: Power on failed");
+                        Serial.println("CCS811: Continous mode on setting failed");
 #endif
                         pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
                     }
@@ -287,16 +280,60 @@ class CO2CCS811 {
         }
     }
 
-    bool CCSSensorPower(bool powerOn) {
-        if (powerOn) {
-            if (!pI2C->writeRegisterByte(0x80, 0x03, true)) return false;
-        } else {
-            if (!pI2C->writeRegisterByte(0x80, 0x00, true)) return false;
+    bool CCSSensorMode(uint8_t mode = 0b00010000) {  // measure every sec. by default.
+        /*! set continuous measurment mode as default (1sec intervals), no IRQs*/
+        if (!pI2C->writeRegisterByte(0x01, mode)) {
+            pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
+            return false;
         }
         return true;
     }
 
-    bool CCSSensorGetRevID(uint8_t *pId, uint8_t *pRev) {
+    bool CSSSensorGetStatus(uint8_t *pStatus, uint8_t *pError) {
+        /*! Bits in status reply:
+        Bit 0: 0: no error, 1: error, check pError
+        */
+        *pError = 0;
+        if (!pI2C->readRegisterByte(0x00, pStatus)) {
+            pI2C->lastError = I2CRegisters::I2CError::I2C_READ_ERR_OTHER;
+            return false;
+        }
+        if (*pStatus & 0x01) {
+            if (!pI2C->readRegisterByte(0xE0, pError)) {
+                pI2C->lastError = I2CRegisters::I2CError::I2C_READ_ERR_OTHER;
+                return false;
+            }
+        }
+        if (*pStatus & 0x01 || !(pStatus & 0x80) || !(pStatus & 0x10)) {
+            pI2C->lastError = I2CRegisters::I2CError::I2C_HW_ERROR;
+            return false;
+        }
+        return true;
+    }
+
+    bool CSSSensorSWReset() {
+        /*! Software-Reset the sensor */
+        const uint8_t reset[4] = {0x11, 0xE5, 0x72, 0x8A};
+        if (!pI2C->writeRegisterNBytes(0xFF, reset, 4)) {
+            pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
+            return false;
+        }
+        return true;
+    }
+
+    bool CSSSensorDataReady() {
+        uint8_t status = 0;
+        uint8_t error = 0;
+        if (!CSSSensorGetStatus(&status, &error)) {
+            return false;
+        }
+        if (status & 0x08) {
+            return true;
+        }
+        return false;
+    }
+
+    bool CCSSensorGetRevID(uint8_t *pId, uint8_t *pRev, uint16_t *pBootVer, uint16_t *pAppVer) {
         /*! Get CCS811 ID and Revision
          * @param pId Pointer to ID byte, should be 1 for CCS811
          * @param pRev Pointer to Revision byte
@@ -304,28 +341,42 @@ class CO2CCS811 {
          */
         *pId = 0;
         *pRev = 0;
-        uint8_t idbyte = 0;
-        if (!pI2C->readRegisterByte(0x8a, &idbyte)) return false;
-        *pId = idbyte >> 4;
-        *pRev = idbyte & 0x0f;
+        if (!pI2C->readRegisterByte(0x20, pId)) return false;
+        if (!pI2C->readRegisterByte(0x21, pRev)) return false;
+        if (!pI2C->readRegisterWord(0x23, pBootVer)) return false;
+        if (!pI2C->readRegisterWord(0x24, pAppVer)) return false;
         return true;
     }
 
-    bool readCCSSensorMeasurement(uint8_t reg, double *pMeas) {
-        uint16_t data;
-        *pMeas = 0.0;
-        // if (!pI2C->readRegisterWordLE(reg, &data, true)) {
-        return false;
-        //} else {
-        //    *pMeas = (double)data;
-        //    return true;
-        //}
+    bool readCCSSensor(double *pco2Val, double *pvocVal) {
+        *pco2Val = 0;
+        *pvocVal = 0;
+        uint8_t pData[8];           // up to 8 data bytes can be read
+        const uint8_t readLen = 4;  // ignore status and so on for now
+        if (!pI2C->readRegisterNBytes(0x02, pData, readLen)) {
+            pI2C->lastError = I2CRegisters::I2CError::I2C_READ_ERR_OTHER;
+            return false;
+        }
+        *pco2Val = (double)((pData[0] << 8) | pData[1]);
+        *pvocVal = (double)((pData[2] << 8) | pData[3]);
+        // XXX: status, error_id, raw_data ffr.
+        return true;
     }
 
-    bool readCCSSensor(double *pco2Val, double *pvocVal) {
-        // if (!readCCSSensorMeasurement()) return false;
-        // if (!readCCSSensorMeasurement()) return false;
-        return false;
+    bool CCSSensorEnvData(double temperature, double humidity) {
+        /*! Set temperature and humidity compensation data
+         * @param temperature Temperature in degrees C, e.g. 20.3
+         * @param humidity Relative humidity in %RH, e.g. 51.0
+         * @return True if successful
+         */
+        uint16_t temp = (uint16_t)((temperature + 25.0) * 512);  // offset by 25C
+        uint16_t hum = (uint16_t)(humidity * 512);
+        uint8_t data[4] = {(uint8_t)(hum >> 8), (uint8_t)(hum & 0xFF), (uint8_t)(temp >> 8), (uint8_t)(temp & 0xFF)};
+        if (!pI2C->writeRegisterNBytes(0x05, data, 4)) {
+            pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
+            return false;
+        }
+        return true;
     }
 
     void loop() {
@@ -333,14 +384,16 @@ class CO2CCS811 {
         if (timeDiff(lastPollMs, millis()) > pollRateMs) {
             lastPollMs = millis();
             if (bActive) {
-                if (readCCSSensor(&co2Val, &vocVal)) {
-                    if (co2Sensor.filter(&co2Val)) {
-                        co2Value = co2Val;
-                        publishCO2();
-                    }
-                    if (vocSensor.filter(&vocVal)) {
-                        vocValue = bocVal;
-                        publishUnitVOC();
+                if (CSSSensorDataRead()) {
+                    if (readCCSSensor(&co2Val, &vocVal)) {
+                        if (co2Sensor.filter(&co2Val)) {
+                            co2Value = co2Val;
+                            publishCO2();
+                        }
+                        if (vocSensor.filter(&vocVal)) {
+                            vocValue = bocVal;
+                            publishUnitVOC();
+                        }
                     }
                 }
             }
