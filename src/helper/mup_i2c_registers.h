@@ -307,15 +307,17 @@ class I2CRegisters {
         */
         if (!allow_irqs) noInterrupts();
         pWire->beginTransmission(i2cAddress);
-        if (pWire->write(&reg, len) != len) {
+        if (pWire->write(&reg, 1) != 1) {
             if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (pWire->write(pData, len) != len) {
-            if (!allow_irqs) interrupts();
-            lastError = I2CError::I2C_VALUE_WRITE_ERROR;
-            return false;
+        if (len > 0) {
+            if (pWire->write(pData, len) != len) {
+                if (!allow_irqs) interrupts();
+                lastError = I2CError::I2C_VALUE_WRITE_ERROR;
+                return false;
+            }
         }
         auto ret = endTransmission(releaseBus);
         if (!allow_irqs) interrupts();

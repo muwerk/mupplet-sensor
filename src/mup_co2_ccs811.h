@@ -181,42 +181,79 @@ class CO2CCS811 {
             pSched->subscribe(tID, humidityTopic, fnall);
         }
 
+        /*
         pI2C->lastError = pI2C->checkAddress(i2cAddress);
-        if (pI2C->lastError == I2CRegisters::I2CError::OK) {
-            uint8_t id, rev;
-            uint16_t fw_boot, fw_app;
-            if (CCSSensorGetRevID(&id, &rev, &fw_boot, &fw_app)) {
-                if (id == 0x81) {  // CCS811 id should be either 5 (reality) or 1 (datasheet)
-                    if (CCSSensorMode()) {
-                        bActive = true;
-#ifdef USE_SERIAL_DBG
-                        Serial.println("CCS811: Powered on continously, HW revision:  " + String(rev) + ", FW boot: " +
-                                       String(fw_boot) + ", FW app: " + String(fw_app));
-#endif
-                    } else {
-#ifdef USE_SERIAL_DBG
-                        Serial.println("CCS811: Continous mode on setting failed");
-#endif
-                        pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
-                    }
-                } else {
-#ifdef USE_SERIAL_DBG
-                    Serial.println("CCS811: Bad sensor ID: " + String(id) + ", expected: 1, revision:  " + String(rev));
-#endif
-                    pI2C->lastError = I2CRegisters::I2CError::I2C_WRONG_HARDWARE_AT_ADDRESS;
-                }
-            } else {
-#ifdef USE_SERIAL_DBG
-                Serial.println("CCS811: Failed to get sensor ID, wrong hardware?");
-#endif
-                pI2C->lastError = I2CRegisters::I2CError::I2C_WRONG_HARDWARE_AT_ADDRESS;
-            }
-        } else {
+        if (pI2C->lastError != I2CRegisters::I2CError::OK) {
 #ifdef USE_SERIAL_DBG
             Serial.println("CCS811: Failed to check I2C address, wrong address?");
 #endif
             pI2C->lastError = I2CRegisters::I2CError::I2C_DEVICE_NOT_AT_ADDRESS;
+            return;
         }
+        */
+        uint8_t id, rev;
+        uint16_t fw_boot, fw_app;
+
+#ifdef __ESP__
+        pWire->setClockStretchLimit(500);
+#endif
+        CCSSensorSWReset();
+        delay(100);
+
+        if (!CCSSensorGetRevID(&id, &rev, &fw_boot, &fw_app)) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: Failed to get sensor ID, wrong hardware?");
+#endif
+            pI2C->lastError = I2CRegisters::I2CError::I2C_WRONG_HARDWARE_AT_ADDRESS;
+            return;
+        }
+        if (id != 0x81) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: Bad sensor ID: " + String(id) + ", expected: 1, revision:  " + String(rev));
+#endif
+            pI2C->lastError = I2CRegisters::I2CError::I2C_WRONG_HARDWARE_AT_ADDRESS;
+            return;
+        }
+        uint8_t status, error;
+        status = 0;
+        error = 0;
+        if (!CCSSensorGetStatus(&status, &error)) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: sensor status: ");
+            Serial.println(status);
+            Serial.println("CCS811: sensor error: ");
+            Serial.println(error);
+#endif
+        }
+        if (!(status & 0x80)) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: Sensor not in application mode, starting app-mode:");
+#endif
+
+            if (!CCSSensorAppStart()) {
+#ifdef USE_SERIAL_DBG
+                Serial.println("CCS811: Failed to start sensor in application mode");
+#endif
+            } else {
+                delay(100);
+#ifdef USE_SERIAL_DBG
+                Serial.println("CCS811: Sensor started in application mode");
+#endif
+            }
+        }
+        if (CCSSensorMode()) {
+            bActive = true;
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: Powered on continously, HW revision:  " + String(rev) + ", FW boot: " +
+                           String(fw_boot) + ", FW app: " + String(fw_app));
+#endif
+        } else {
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: Continous mode on setting failed");
+#endif
+            pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
+        }
+        CCSSensorGetStatus(&status, &error);
     }
 
     void setFilterMode(FilterMode mode, bool silent = false) {
@@ -272,38 +309,54 @@ class CO2CCS811 {
         }
     }
 
-    bool CCSSensorMode(uint8_t mode = 0b00010000) {  // measure every sec. by default.
+    bool CCSSensorMode(uint8_t mode = 0x10) {  // measure every sec. by default.
         /*! set continuous measurment mode as default (1sec intervals), no IRQs*/
         if (!pI2C->writeRegisterByte(0x01, mode)) {
             pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: Failed to set mode");
+#endif
             return false;
         }
         return true;
     }
 
-    bool CSSSensorGetStatus(uint8_t *pStatus, uint8_t *pError) {
+    bool CCSSensorGetStatus(uint8_t *pStatus, uint8_t *pError) {
         /*! Bits in status reply:
         Bit 0: 0: no error, 1: error, check pError
         */
         *pError = 0;
         if (!pI2C->readRegisterByte(0x00, pStatus)) {
             pI2C->lastError = I2CRegisters::I2CError::I2C_READ_ERR_OTHER;
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: Failed to get status");
+#endif
             return false;
         }
         if (*pStatus & 0x01) {
             if (!pI2C->readRegisterByte(0xE0, pError)) {
                 pI2C->lastError = I2CRegisters::I2CError::I2C_READ_ERR_OTHER;
+#ifdef USE_SERIAL_DBG
+                Serial.println("CCS811: GetStatus: Failed to get error");
+#endif
                 return false;
             }
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: GetStatus: Sensor-Error: " + String(*pError));
+#endif
         }
-        if ((*pStatus & 0x01) || !(*pStatus & (uint8_t)0x80) || !(*pStatus & (uint8_t)0x10)) {
+        if ((*pStatus & 0x01) || !(*pStatus & (uint8_t)0x80)) {
             pI2C->lastError = I2CRegisters::I2CError::I2C_HW_ERROR;
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: GetStatus: HW error ");
+            Serial.println(*pStatus);
+#endif
             return false;
         }
         return true;
     }
 
-    bool CSSSensorSWReset() {
+    bool CCSSensorSWReset() {
         /*! Software-Reset the sensor */
         const uint8_t reset[4] = {0x11, 0xE5, 0x72, 0x8A};
         if (!pI2C->writeRegisterNBytes(0xFF, reset, 4)) {
@@ -313,15 +366,18 @@ class CO2CCS811 {
         return true;
     }
 
-    bool CSSSensorDataReady() {
+    bool CCSSensorDataReady() {
         uint8_t status = 0;
         uint8_t error = 0;
-        if (!CSSSensorGetStatus(&status, &error)) {
-            return false;
-        }
+        CCSSensorGetStatus(&status, &error);  //) {
+        //    return false;
+        //}
         if (status & 0x08) {
             return true;
         }
+#ifdef USE_SERIAL_DBG
+        Serial.println("CCS811: Data not ready");
+#endif
         return false;
     }
 
@@ -340,13 +396,27 @@ class CO2CCS811 {
         return true;
     }
 
+    bool CCSSensorAppStart() {
+        /*! Start application mode of CCS811 */
+        // const uint8_t appStart[4] = {0x00, 0x00, 0x00, 0x00};
+        if (!pI2C->writeRegisterNBytes(0xF4, nullptr, 0)) {
+            pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
+            return false;
+        }
+        return true;
+    }
+
     bool readCCSSensor(double *pco2Val, double *pvocVal) {
         *pco2Val = 0;
         *pvocVal = 0;
-        uint8_t pData[8];           // up to 8 data bytes can be read
-        const uint8_t readLen = 4;  // ignore status and so on for now
+        uint8_t pData[8];  // up to 8 data bytes can be read
+        const uint8_t readLen = 8;
+
         if (!pI2C->readRegisterNBytes(0x02, pData, readLen)) {
             pI2C->lastError = I2CRegisters::I2CError::I2C_READ_ERR_OTHER;
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: Failed to read sensor data");
+#endif
             return false;
         }
         *pco2Val = (double)((pData[0] << 8) | pData[1]);
@@ -376,7 +446,7 @@ class CO2CCS811 {
         if (timeDiff(lastPollMs, millis()) > pollRateMs) {
             lastPollMs = millis();
             if (bActive) {
-                if (CSSSensorDataReady()) {
+                if (CCSSensorDataReady()) {
                     if (readCCSSensor(&co2Val, &vocVal)) {
                         if (co2Sensor.filter(&co2Val)) {
                             co2Value = co2Val;
@@ -421,7 +491,6 @@ class CO2CCS811 {
             }
         }
     }
-
 };  // CO2CCS811
 
 }  // namespace ustd

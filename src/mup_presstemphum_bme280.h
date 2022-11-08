@@ -543,12 +543,12 @@ class PressTempHumBME280 {
                     sensorState = BMESensorState::WAIT_NEXT_MEASUREMENT;
                     stateMachineClock = micros();
 #ifdef USE_SERIAL_DBG
-                    Serial.print("BME raw T=");
-                    Serial.print(rawTemperature);
-                    Serial.print(" P=");
-                    Serial.print(rawPressure);
-                    Serial.print(" H=");
-                    Serial.println(rawHumidity);
+//                    Serial.print("BME raw T=");
+//                    Serial.print(rawTemperature);
+//                    Serial.print(" P=");
+//                    Serial.print(rawPressure);
+//                    Serial.print(" H=");
+//                    Serial.println(rawHumidity);
 #endif
                     ++oks;
                     newData = true;
