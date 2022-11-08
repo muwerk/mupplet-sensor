@@ -34,7 +34,8 @@ class I2CRegisters {
                     I2C_WRITE_ERR_OTHER,            ///< Write error other than NACK on data or address
                     I2C_WRITE_TIMEOUT,              ///< Write timeout
                     I2C_WRITE_INVALID_CODE,         ///< Write invalid code
-                    I2C_READ_REQUEST_FAILED         ///< Read request failed
+                    I2C_READ_REQUEST_FAILED,        ///< Read request failed
+                    I2C_READ_ERR_OTHER              ///< Copilot invited this error.
     };
     I2CError lastError;
     TwoWire *pWire;
@@ -236,7 +237,7 @@ class I2CRegisters {
         return true;
     }
 
-    bool readRegisterNBytes(uint8_t reg, uint32_t *pData, uint8_t len, bool releaseBus = true, bool allow_irqs = true) {
+    bool readRegisterNBytes(uint8_t reg, uint8_t *pData, uint8_t len, bool releaseBus = true, bool allow_irqs = true) {
         /*! Read N bytes from a register on the i2c bus
         This function reads N bytes from the i2c bus into a buffer pData that must have at least N bytes allocated.
         @param reg The register to read from
@@ -259,7 +260,7 @@ class I2CRegisters {
             if (!allow_irqs) interrupts();
             return false;
         }
-        uint8_t read_cnt = pWire->requestFrom(i2cAddress, (uint8_t)le n, (uint8_t) true);
+        uint8_t read_cnt = pWire->requestFrom(i2cAddress, (uint8_t)len, (uint8_t) true);
         if (read_cnt != len) {
             if (!allow_irqs) interrupts();
             lastError = I2C_READ_REQUEST_FAILED;
@@ -296,7 +297,7 @@ class I2CRegisters {
         return ret;
     }
 
-    bool writeRegisterNBytes(uint8_t reg, uint8_t *pData, uint8_t len, bool releaseBus = true, bool allow_irqs = true) {
+    bool writeRegisterNBytes(uint8_t reg, const uint8_t *pData, uint8_t len, bool releaseBus = true, bool allow_irqs = true) {
         /*! Write N bytes to a register on the i2c bus
         @param reg The register to write to
         @param pData Pointer to the data to write, length len
@@ -311,7 +312,7 @@ class I2CRegisters {
             lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
             return false;
         }
-        if (pWire->write(&val, len) != len) {
+        if (pWire->write(pData, len) != len) {
             if (!allow_irqs) interrupts();
             lastError = I2CError::I2C_VALUE_WRITE_ERROR;
             return false;

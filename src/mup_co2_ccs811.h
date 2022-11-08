@@ -187,14 +187,13 @@ class CO2CCS811 {
             uint16_t fw_boot, fw_app;
             if (CCSSensorGetRevID(&id, &rev, &fw_boot, &fw_app)) {
                 if (id == 0x81) {  // CCS811 id should be either 5 (reality) or 1 (datasheet)
-                    if (CCSSensorMode())) {
-                            bActive = true;
+                    if (CCSSensorMode()) {
+                        bActive = true;
 #ifdef USE_SERIAL_DBG
-                            Serial.println("CCS811: Powered on continously, HW revision:  " + String(rev) + ", FW boot: " +
-                                           String(fw_boot) + ", FW app: " + String(fw_app));
+                        Serial.println("CCS811: Powered on continously, HW revision:  " + String(rev) + ", FW boot: " +
+                                       String(fw_boot) + ", FW app: " + String(fw_app));
 #endif
-                        }
-                    else {
+                    } else {
 #ifdef USE_SERIAL_DBG
                         Serial.println("CCS811: Continous mode on setting failed");
 #endif
@@ -225,25 +224,18 @@ class CO2CCS811 {
         case FAST:
             filterMode = FAST;
             co2Sensor.update(1, 2, 0.05);  // requires muwerk 0.6.3 API
-            unitCO2Sensor.update(1, 2, 0.1);
-            lightCh0Sensor.update(1, 2, 0.1);
-            IRCh1Sensor.update(1, 2, 0.1);
+            vocSensor.update(1, 2, 0.1);
             break;
         case MEDIUM:
             filterMode = MEDIUM;
             co2Sensor.update(4, 30, 0.1);
-            unitCO2Sensor.update(4, 30, 0.5);
-            lightCh0Sensor.update(4, 30, 0.5);
-            IRCh1Sensor.update(4, 30, 0.5);
+            vocSensor.update(4, 30, 0.5);
             break;
         case LONGTERM:
         default:
             filterMode = LONGTERM;
             co2Sensor.update(10, 600, 0.1);
-            unitCO2Sensor.update(50, 600, 0.5);
-            lightCh0Sensor.update(50, 600, 0.5);
-            IRCh1Sensor.update(50, 600, 0.5);
-            break;
+            vocSensor.update(50, 600, 0.5);
         }
         if (!silent)
             publishFilterMode();
@@ -304,7 +296,7 @@ class CO2CCS811 {
                 return false;
             }
         }
-        if (*pStatus & 0x01 || !(pStatus & 0x80) || !(pStatus & 0x10)) {
+        if ((*pStatus & 0x01) || !(*pStatus & (uint8_t)0x80) || !(*pStatus & (uint8_t)0x10)) {
             pI2C->lastError = I2CRegisters::I2CError::I2C_HW_ERROR;
             return false;
         }
@@ -384,15 +376,15 @@ class CO2CCS811 {
         if (timeDiff(lastPollMs, millis()) > pollRateMs) {
             lastPollMs = millis();
             if (bActive) {
-                if (CSSSensorDataRead()) {
+                if (CSSSensorDataReady()) {
                     if (readCCSSensor(&co2Val, &vocVal)) {
                         if (co2Sensor.filter(&co2Val)) {
                             co2Value = co2Val;
                             publishCO2();
                         }
                         if (vocSensor.filter(&vocVal)) {
-                            vocValue = bocVal;
-                            publishUnitVOC();
+                            vocValue = vocVal;
+                            publishVOC();
                         }
                     }
                 }
@@ -403,8 +395,14 @@ class CO2CCS811 {
     void subsMsg(String topic, String msg, String originator) {
         if (topic == temperatureTopic) {
             temperature = msg.toFloat();
+            if (humidity != -99.0) {
+                CCSSensorEnvData(temperature, humidity);
+            }
         } else if (topic == humidityTopic) {
             humidity = msg.toFloat();
+            if (temperature != -99.0) {
+                CCSSensorEnvData(temperature, humidity);
+            }
         } else if (topic == name + "/sensor/co2/get") {
             publishCO2();
         } else if (topic == name + "/sensor/voc/get") {
