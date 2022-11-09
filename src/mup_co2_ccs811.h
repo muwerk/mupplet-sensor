@@ -107,6 +107,20 @@ class CO2CCS811 {
     unsigned long basePollRateUs = 50000;  // 50ms;
     uint32_t pollRateMs = 2000;            // 2000ms;
     uint32_t lastPollMs = 0;
+    enum InitState {
+        INIT_STATE_DISABLED = 0,
+        INIT_STATE_START,
+        INIT_STATE_WAIT_RESET,
+        INIT_STATE_WAIT_APP_START,
+        INIT_STATE_APP_STARTED,
+        INIT_STATE_APP_RUNNING,
+        INIT_STATE_ERROR_WAIT
+    };
+    InitState initState = INIT_STATE_DISABLED;
+    uint32_t stateMachineTicks = 0;
+    uint32_t stateMachineErrors = 0;
+    uint32_t stateMachineMaxErrors = 10;
+
     enum FilterMode { FAST,
                       MEDIUM,
                       LONGTERM };
@@ -180,80 +194,7 @@ class CO2CCS811 {
         if (humidityTopic.length() > 0) {
             pSched->subscribe(tID, humidityTopic, fnall);
         }
-
-        /*
-        pI2C->lastError = pI2C->checkAddress(i2cAddress);
-        if (pI2C->lastError != I2CRegisters::I2CError::OK) {
-#ifdef USE_SERIAL_DBG
-            Serial.println("CCS811: Failed to check I2C address, wrong address?");
-#endif
-            pI2C->lastError = I2CRegisters::I2CError::I2C_DEVICE_NOT_AT_ADDRESS;
-            return;
-        }
-        */
-        uint8_t id, rev;
-        uint16_t fw_boot, fw_app;
-
-#ifdef __ESP__
-        pWire->setClockStretchLimit(500);
-#endif
-        CCSSensorSWReset();
-        delay(100);
-
-        if (!CCSSensorGetRevID(&id, &rev, &fw_boot, &fw_app)) {
-#ifdef USE_SERIAL_DBG
-            Serial.println("CCS811: Failed to get sensor ID, wrong hardware?");
-#endif
-            pI2C->lastError = I2CRegisters::I2CError::I2C_WRONG_HARDWARE_AT_ADDRESS;
-            return;
-        }
-        if (id != 0x81) {
-#ifdef USE_SERIAL_DBG
-            Serial.println("CCS811: Bad sensor ID: " + String(id) + ", expected: 1, revision:  " + String(rev));
-#endif
-            pI2C->lastError = I2CRegisters::I2CError::I2C_WRONG_HARDWARE_AT_ADDRESS;
-            return;
-        }
-        uint8_t status, error;
-        status = 0;
-        error = 0;
-        if (!CCSSensorGetStatus(&status, &error)) {
-#ifdef USE_SERIAL_DBG
-            Serial.println("CCS811: sensor status: ");
-            Serial.println(status);
-            Serial.println("CCS811: sensor error: ");
-            Serial.println(error);
-#endif
-        }
-        if (!(status & 0x80)) {
-#ifdef USE_SERIAL_DBG
-            Serial.println("CCS811: Sensor not in application mode, starting app-mode:");
-#endif
-
-            if (!CCSSensorAppStart()) {
-#ifdef USE_SERIAL_DBG
-                Serial.println("CCS811: Failed to start sensor in application mode");
-#endif
-            } else {
-                delay(100);
-#ifdef USE_SERIAL_DBG
-                Serial.println("CCS811: Sensor started in application mode");
-#endif
-            }
-        }
-        if (CCSSensorMode()) {
-            bActive = true;
-#ifdef USE_SERIAL_DBG
-            Serial.println("CCS811: Powered on continously, HW revision:  " + String(rev) + ", FW boot: " +
-                           String(fw_boot) + ", FW app: " + String(fw_app));
-#endif
-        } else {
-#ifdef USE_SERIAL_DBG
-            Serial.println("CCS811: Continous mode on setting failed");
-#endif
-            pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
-        }
-        CCSSensorGetStatus(&status, &error);
+        initState = INIT_STATE_START;
     }
 
     void setFilterMode(FilterMode mode, bool silent = false) {
@@ -321,7 +262,7 @@ class CO2CCS811 {
         return true;
     }
 
-    bool CCSSensorGetStatus(uint8_t *pStatus, uint8_t *pError) {
+    bool CCSSensorGetStatus(uint8_t *pStatus, uint8_t *pError, bool appTest = false) {
         /*! Bits in status reply:
         Bit 0: 0: no error, 1: error, check pError
         */
@@ -331,6 +272,7 @@ class CO2CCS811 {
 #ifdef USE_SERIAL_DBG
             Serial.println("CCS811: Failed to get status");
 #endif
+            stateMachineRegisterError();
             return false;
         }
         if (*pStatus & 0x01) {
@@ -339,18 +281,20 @@ class CO2CCS811 {
 #ifdef USE_SERIAL_DBG
                 Serial.println("CCS811: GetStatus: Failed to get error");
 #endif
+                stateMachineRegisterError();
                 return false;
             }
 #ifdef USE_SERIAL_DBG
             Serial.println("CCS811: GetStatus: Sensor-Error: " + String(*pError));
 #endif
         }
-        if ((*pStatus & 0x01) || !(*pStatus & (uint8_t)0x80)) {
+        if ((*pStatus & 0x01) || (!(*pStatus & (uint8_t)0x80) && !appTest)) {
             pI2C->lastError = I2CRegisters::I2CError::I2C_HW_ERROR;
 #ifdef USE_SERIAL_DBG
             Serial.println("CCS811: GetStatus: HW error ");
             Serial.println(*pStatus);
 #endif
+            stateMachineRegisterError();
             return false;
         }
         return true;
@@ -406,6 +350,14 @@ class CO2CCS811 {
         return true;
     }
 
+    void stateMachineRegisterError() {
+        ++stateMachineErrors;
+        if (stateMachineErrors > stateMachineMaxErrors) {
+            stateMachineErrors = 0;
+            initState = INIT_STATE_ERROR_WAIT;
+        }
+    }
+
     bool readCCSSensor(double *pco2Val, double *pvocVal) {
         *pco2Val = 0;
         *pvocVal = 0;
@@ -417,10 +369,12 @@ class CO2CCS811 {
 #ifdef USE_SERIAL_DBG
             Serial.println("CCS811: Failed to read sensor data");
 #endif
+            stateMachineRegisterError();
             return false;
         }
         *pco2Val = (double)((pData[0] << 8) | pData[1]);
         *pvocVal = (double)((pData[2] << 8) | pData[3]);
+        stateMachineErrors = 0;
         // XXX: status, error_id, raw_data ffr.
         return true;
     }
@@ -441,11 +395,133 @@ class CO2CCS811 {
         return true;
     }
 
+    void initStateMachine() {
+        switch (initState) {
+            uint8_t id, rev;
+            uint16_t fw_boot, fw_app;
+            uint8_t status, error;
+        case INIT_STATE_DISABLED:
+            return;
+        case INIT_STATE_START:
+            // #ifdef __ESP__
+            //            pWire->setClockStretchLimit(500);
+            // #endif
+            CCSSensorSWReset();
+            stateMachineTicks = millis();
+            stateMachineErrors = 0;
+            initState = INIT_STATE_WAIT_RESET;
+#ifdef USE_SERIAL_DBG
+            Serial.println("CCS811: Reset");
+#endif
+            return;
+        case INIT_STATE_WAIT_RESET:
+            if (timeDiff(stateMachineTicks, millis()) > 100) {
+                if (!CCSSensorGetRevID(&id, &rev, &fw_boot, &fw_app)) {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("CCS811: Failed to get sensor ID, wrong hardware?");
+#endif
+                    pI2C->lastError = I2CRegisters::I2CError::I2C_WRONG_HARDWARE_AT_ADDRESS;
+                    stateMachineTicks = millis();
+                    initState = INIT_STATE_ERROR_WAIT;
+                    return;
+                }
+                if (id != 0x81) {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("CCS811: Bad sensor ID: " + String(id) + ", expected: 1, revision:  " + String(rev));
+#endif
+                    pI2C->lastError = I2CRegisters::I2CError::I2C_WRONG_HARDWARE_AT_ADDRESS;
+                    stateMachineTicks = millis();
+                    initState = INIT_STATE_ERROR_WAIT;
+                    return;
+                }
+                status = 0;
+                error = 0;
+                if (!CCSSensorGetStatus(&status, &error, true)) {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("CCS811: sensor status: ");
+                    Serial.println(status);
+                    Serial.println("CCS811: sensor error: ");
+                    Serial.println(error);
+#endif
+                    stateMachineTicks = millis();
+                    initState = INIT_STATE_ERROR_WAIT;
+                    return;
+                }
+                if (!(status & 0x80)) {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("CCS811: Sensor not in application mode, starting app-mode:");
+#endif
+
+                    if (!CCSSensorAppStart()) {
+#ifdef USE_SERIAL_DBG
+                        Serial.println("CCS811: Failed to start sensor in application mode");
+#endif
+                        stateMachineTicks = millis();
+                        initState = INIT_STATE_ERROR_WAIT;
+                        return;
+                    } else {
+                        stateMachineTicks = millis();
+                        initState = INIT_STATE_WAIT_APP_START;
+#ifdef USE_SERIAL_DBG
+                        Serial.println("CCS811: Sensor started in application mode");
+#endif
+                        return;
+                    }
+                } else {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("CCS811: Sensor already in application mode");
+#endif
+                    initState = INIT_STATE_APP_STARTED;
+                    return;
+                }
+                return;
+            case INIT_STATE_WAIT_APP_START:
+                if (timeDiff(stateMachineTicks, millis()) > 500) {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("CCS811: Sensor started in application mode");
+#endif
+                    initState = INIT_STATE_APP_STARTED;
+                    return;
+                }
+                return;
+            case INIT_STATE_APP_STARTED:
+                if (CCSSensorMode()) {
+                    bActive = true;
+#ifdef USE_SERIAL_DBG
+                    Serial.println("CCS811: Powered on continously, HW revision:  " + String(rev) + ", FW boot: " +
+                                   String(fw_boot) + ", FW app: " + String(fw_app));
+#endif
+                } else {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("CCS811: Continous mode on setting failed");
+#endif
+                    pI2C->lastError = I2CRegisters::I2CError::I2C_WRITE_ERR_OTHER;
+                    stateMachineTicks = millis();
+                    initState = INIT_STATE_ERROR_WAIT;
+                    return;
+                }
+                initState = INIT_STATE_APP_RUNNING;
+                stateMachineErrors = 0;
+                CCSSensorGetStatus(&status, &error, false);  // trigger calculation
+                return;
+            case INIT_STATE_APP_RUNNING:
+                stateMachineTicks = millis();
+                return;
+            case INIT_STATE_ERROR_WAIT:
+                if (timeDiff(stateMachineTicks, millis()) > 5000) {
+                    initState = INIT_STATE_START;
+                }
+                return;
+            }
+        }
+    }
+
     void loop() {
         double co2Val, vocVal;
+        initStateMachine();
         if (timeDiff(lastPollMs, millis()) > pollRateMs) {
             lastPollMs = millis();
-            if (bActive) {
+            if (initState == INIT_STATE_APP_RUNNING) {
                 if (CCSSensorDataReady()) {
                     if (readCCSSensor(&co2Val, &vocVal)) {
                         if (co2Sensor.filter(&co2Val)) {
