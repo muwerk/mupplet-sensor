@@ -273,6 +273,51 @@ class I2CRegisters {
         return true;
     }
 
+    bool readRegisterMCmdNBytes(uint8_t reg, uint8_t *pCmd, uint8_t cmdLen, uint8_t *pData, uint8_t len, bool releaseBus = true, bool allow_irqs = true) {
+        /*! Send cmd and read N bytes from a register on the i2c bus
+        This function writes M bytes from buffer pCmd and reads N bytes from the i2c bus into a buffer pData that must have at least N bytes allocated.
+        @param reg The register to read from
+        @param pCmd Pointer to the command to write before reading
+        @param cmdLen Number of bytes in the command (M)
+        @param pData Pointer to the dword to read into
+        @param len Number of bytes to read, pData must point to a buffer with at least len bytes allocated (N)
+        @param releaseBus If true, release the i2c bus
+        @param allow_irqs If true, allow interrupts during the read (default, should only be set to false if very high IRQ load is expected)
+        */
+        for (uint8_t i = 0; i < len; i++) {
+            ((uint8_t *)pData)[i] = 0xFF;
+        }
+        if (!allow_irqs) noInterrupts();
+        pWire->beginTransmission(i2cAddress);
+        if (pWire->write(&reg, 1) != 1) {
+            if (!allow_irqs) interrupts();
+            lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
+            return false;
+        }
+        if (cmdLen > 0) {
+            if (pWire->write(pCmd, cmdLen) != cmdLen) {
+                if (!allow_irqs) interrupts();
+                lastError = I2CError::I2C_REGISTER_WRITE_ERROR;
+                return false;
+            }
+        }
+        if (endTransmission(releaseBus) == false) {
+            if (!allow_irqs) interrupts();
+            return false;
+        }
+        uint8_t read_cnt = pWire->requestFrom(i2cAddress, (uint8_t)len, (uint8_t) true);
+        if (read_cnt != len) {
+            if (!allow_irqs) interrupts();
+            lastError = I2C_READ_REQUEST_FAILED;
+            return false;
+        }
+        for (uint8_t i = 0; i < len; i++) {
+            ((uint8_t *)pData)[i] = pWire->read();
+        }
+        if (!allow_irqs) interrupts();
+        return true;
+    }
+
     bool writeRegisterByte(uint8_t reg, uint8_t val, bool releaseBus = true, bool allow_irqs = true) {
         /*! Write a single byte to a register on the i2c bus
         @param reg The register to write to
