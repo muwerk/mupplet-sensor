@@ -174,10 +174,9 @@ class MagneticFieldHMC5883L {
         //! @param samples Number of samples to average (1..8)
 
         oversampleMode = samples;
-        uint8_t reg_a[2];
-        reg_a[0] = 0x00;
-        reg_a[1] = oversampleMode | measurementMode | dataOutputRate;
-        if (!pI2C->writeRegisterNBytes(0x3c, reg_a, 2)) {
+        uint8_t reg;
+        reg = oversampleMode | measurementMode | dataOutputRate;
+        if (!pI2C->writeRegisterByte(0, reg)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Failed to set HMC5883L samples.");
 #endif
@@ -191,10 +190,9 @@ class MagneticFieldHMC5883L {
         //! @param mode Measurement mode
 
         measurementMode = mode;
-        uint8_t reg_a[2];
-        reg_a[0] = 0x00;
-        reg_a[1] = oversampleMode | measurementMode | dataOutputRate;
-        if (!pI2C->writeRegisterNBytes(0x3c, reg_a, 2)) {
+        uint8_t reg;
+        reg = oversampleMode | measurementMode | dataOutputRate;
+        if (!pI2C->writeRegisterByte(0, reg)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Failed to set HMC5883L measurement mode.");
 #endif
@@ -208,10 +206,9 @@ class MagneticFieldHMC5883L {
         //! @param rate Data output rate
 
         dataOutputRate = rate;
-        uint8_t reg_a[2];
-        reg_a[0] = 0x00;
-        reg_a[1] = oversampleMode | measurementMode | dataOutputRate;
-        if (!pI2C->writeRegisterNBytes(0x3c, reg_a, 2)) {
+        uint8_t reg;
+        reg = oversampleMode | measurementMode | dataOutputRate;
+        if (!pI2C->writeRegisterByte(0, reg)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Failed to set HMC5883L data output rate.");
 #endif
@@ -224,10 +221,9 @@ class MagneticFieldHMC5883L {
         //! Set HMC5883L sensor gain
         //! @param gain Gain value
 
-        uint8_t reg_b[2];
-        reg_b[0] = 0x01;
-        reg_b[1] = gain;
-        if (!pI2C->writeRegisterNBytes(0x3c, reg_b, 2)) {
+        uint8_t reg;
+        reg = gain;
+        if (!pI2C->writeRegisterByte(0x01, reg)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Failed to set HMC5883L gain.");
 #endif
@@ -256,13 +252,12 @@ class MagneticFieldHMC5883L {
     }
 
     bool initSingleMeasurement() {
-        uint8_t reg_mode[2];
-        reg_mode[0] = 0x02;
-        reg_mode[1] = HMC5883LMode::MODE_SINGLE;
+        uint8_t reg;
+        reg = HMC5883LMode::MODE_SINGLE;
         if (highSpeedI2CEnabled) {
-            reg_mode[1] |= highSpeedI2C;
+            reg |= highSpeedI2C;
         }
-        if (!pI2C->writeRegisterNBytes(0x3c, reg_mode, 2)) {
+        if (!pI2C->writeRegisterByte(0x02, reg)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Failed to set HMC5883L mode for single measurement.");
 #endif
@@ -273,9 +268,8 @@ class MagneticFieldHMC5883L {
     }
 
     bool readSingleMeasurement(double *pX, double *pY, double *pZ) {
-        uint8_t pCmd[1] = {0x06};
         uint8_t buf[6];
-        if (!pI2C->readRegisterMCmdNBytes(0x3d, pCmd, 1, buf, 6)) {
+        if (!pI2C->readRegisterNBytes(0x06, buf, 6)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Failed to read HMC5883L single measurement.");
 #endif
@@ -299,14 +293,14 @@ class MagneticFieldHMC5883L {
 
     bool getSensorIdentification() {
         char buf[3];
-        uint8_t pCmd = {0x0a};
-        if (!pI2C->readRegisterMCmdNBytes(0x3d, &pCmd, 1, (uint8_t *)&buf, 3)) {
+
+        if (!pI2C->readRegisterTripple(0x0a, (uint32_t *)buf)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Failed to read sensor identification.");
 #endif
             return false;
         }
-        if (!strncmp(buf, "H43", 3)) {
+        if (!strncmp(buf, "34H", 3)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Sensor identification: H43");
 #endif
@@ -328,6 +322,10 @@ class MagneticFieldHMC5883L {
         pSched = _pSched;
         pWire = _pWire;
         uint8_t data;
+
+#ifdef SDA_PIN
+        pWire->begin(SDA_PIN, SCL_PIN);
+#endif
 
         pollRateMs = _pollRateMs;
         pI2C = new I2CRegisters(pWire, i2cAddress);

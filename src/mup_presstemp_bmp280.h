@@ -266,6 +266,9 @@ class PressTempBMP280 {
         pWire = _pWire;
         uint8_t data;
 
+#ifdef SDA_PIN
+        pWire->begin(SDA_PIN, SCL_PIN);
+#endif
         pollRateMs = _pollRateMs;
         pI2C = new I2CRegisters(pWire, i2cAddress);
         setSampleMode(_sampleMode);
