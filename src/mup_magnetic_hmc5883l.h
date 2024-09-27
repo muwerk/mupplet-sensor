@@ -12,12 +12,35 @@ typedef TinyWire TwoWire;
 
 #include "helper/mup_i2c_registers.h"
 
+/* Magnetic field sensor overview
+
+Source: https://hackaday.io/project/11865-3d-magnetic-field-scanner/log/39485-magnetometer-sensor-survey
+(plus manual addons)
+
+| Part #   | Manufacturer        | Noise (resolution) (μT) | Max. FS (μT) |
+| -------- | ------------------- | ----------------------: | -----------: |
+| LIS3MDL  | ST Microelectronics |                   0.32  |         1600 |
+| AK8963   | AsahiKASEI          |                  (0.15) |         4900 |
+| MAG3110  | Freescale/NXP       |                   0.25  |         1000 |
+| HMC5883L | Honeywell           |                    0.2  |          800 |
+| MLX90393 | Melexis             |                    0.5  |        50000 |
+| TLV493D  | Infineon            |                   98.0  |       130000 |
+
+So the HMC5883L is a good choice for a high-resolution measurement of earth's magnetic field.
+*/
+
 namespace ustd {
 
 // clang-format off
 /*! \brief mupplet-sensor for magnetic field (compass) based on HMC5883L sensor
 
 The mup_mag_hmc5883l mupplet reads the magnetic field from a HMC5883L sensor and sends the values for x, y, z
+
+Warning: HMC5883L is no longer produced, and Arduino sensors sold as 'HMC5883L sensors' are often QMC5883L sensors.
+QMC5883L is not register-compatible with HMC5883L, so this mupplet will not work with QMC5883L sensors. 
+Use mup_mag_qmc5883l instead, if your sensor is not recognized by this mupplet. Additionally, the i2c addresses
+differ: HMC5883L uses 0x1e, QMC5883L uses 0x0d. It does not work to simply change the i2c address in the mupplet,
+since the register layout is different, ChipID will give an error (0,0,1) instead of 'H34'.
 
 This mupplet is a fully asynchronous state-machine with no delay()s, so it never blocks.
 
@@ -112,6 +135,7 @@ class MagneticFieldHMC5883L {
     HMC5883LSamples oversampleMode = HMC5883LSamples::SAMPLE_AVERAGE_1;
     HMC5883LMeasurementMode measurementMode = HMC5883LMeasurementMode::MEASUREMENT_MODE_NORMAL;
     HMC5883LDataOutputRate dataOutputRate = HMC5883LDataOutputRate::DATA_OUTPUT_RATE_15;
+    HMC5883LGain gain = HMC5883LGain::GAIN_1_3;
 
     enum FilterMode { FAST,
                       MEDIUM,
@@ -123,6 +147,7 @@ class MagneticFieldHMC5883L {
     ustd::sensorprocessor magYSensor = ustd::sensorprocessor(4, 600, 0.005);
     ustd::sensorprocessor magZSensor = ustd::sensorprocessor(4, 600, 0.005);
     bool bActive = false;
+    int measurement_delay = 6;  // 6ms for measurement
 
     MagneticFieldHMC5883L(String name, FilterMode filterMode = FilterMode::MEDIUM, uint8_t i2cAddress = 0x1e, bool highSpeedI2CEnabled = false)
         : name(name), filterMode(filterMode), i2cAddress(i2cAddress), highSpeedI2CEnabled(highSpeedI2CEnabled) {
@@ -232,17 +257,14 @@ class MagneticFieldHMC5883L {
         return true;
     }
 
-    bool setHMC5883LMode(HMC5883LSamples samples = HMC5883LSamples::SAMPLE_AVERAGE_1,
-                         HMC5883LMeasurementMode mode = HMC5883LMeasurementMode::MEASUREMENT_MODE_NORMAL,
-                         HMC5883LDataOutputRate rate = HMC5883LDataOutputRate::DATA_OUTPUT_RATE_15,
-                         HMC5883LGain gain = HMC5883LGain::GAIN_1_3) {
-        if (!setHMC5883LSamples(samples)) {
+    bool setHMC5883LMode() {
+        if (!setHMC5883LSamples(oversampleMode)) {
             return false;
         }
-        if (!setHMC5883LMeasurementMode(mode)) {
+        if (!setHMC5883LMeasurementMode(measurementMode)) {
             return false;
         }
-        if (!setHMC5883LDataOutputRate(rate)) {
+        if (!setHMC5883LDataOutputRate(dataOutputRate)) {
             return false;
         }
         if (!setHMC5883LGain(gain)) {
@@ -293,7 +315,6 @@ class MagneticFieldHMC5883L {
 
     bool getSensorIdentification() {
         char buf[3];
-
         if (!pI2C->readRegisterTripple(0x0a, (uint32_t *)buf)) {
 #ifdef USE_SERIAL_DBG
             Serial.println("Failed to read sensor identification.");
@@ -316,9 +337,34 @@ class MagneticFieldHMC5883L {
         return false;
     }
 
+    bool checkDataReady() {
+        uint8_t status;
+        if (!pI2C->readRegisterByte(0x09, &status)) {
+#ifdef USE_SERIAL_DBG
+            Serial.println("Failed to read HMC5883L status.");
+#endif
+            return false;
+        } else {
+            if (status & 0x01) {
+                return true;
+            } else {
+#ifdef USE_SERIAL_DBG
+                Serial.print("HMC5883L data not ready: 0x");
+                Serial.println(status, HEX);
+#endif
+                if (status & 0x02) {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("HMC5883L LOCK is set");
+#endif
+                }
+                return false;
+            }
+        }
+    }
+
     void begin(Scheduler *_pSched, TwoWire *_pWire = &Wire, uint32_t _pollRateMs = 2000, HMC5883LSamples _sampleMode = HMC5883LSamples::SAMPLE_AVERAGE_1,
                HMC5883LMeasurementMode _measurementMode = HMC5883LMeasurementMode::MEASUREMENT_MODE_NORMAL,
-               HMC5883LDataOutputRate _dataOutputRate = HMC5883LDataOutputRate::DATA_OUTPUT_RATE_0_75, uint8_t _i2cAddress = 0x1e) {
+               HMC5883LDataOutputRate _dataOutputRate = HMC5883LDataOutputRate::DATA_OUTPUT_RATE_0_75, HMC5883LGain _gain = HMC5883LGain::GAIN_1_3) {
         pSched = _pSched;
         pWire = _pWire;
         uint8_t data;
@@ -342,9 +388,18 @@ class MagneticFieldHMC5883L {
         if (pI2C->lastError == I2CRegisters::I2CError::OK) {
             if (!getSensorIdentification()) {
                 bActive = false;
+                if (i2cAddress == 0x0d) {
+#ifdef USE_SERIAL_DBG
+                    Serial.println("You are probably trying to use a QMC5883L sensor with this driver. This driver is not compatible. Use mup_mag_qmc5883l instead.");
+#endif
+                }
             } else {
                 sensorState = HMC5883LSensorState::IDLE;
-                if (!setHMC5883LMode(_sampleMode, _measurementMode, _dataOutputRate)) {
+                oversampleMode = _sampleMode;
+                measurementMode = _measurementMode;
+                dataOutputRate = _dataOutputRate;
+                gain = _gain;
+                if (!setHMC5883LMode()) {
 #ifdef USE_SERIAL_DBG
                     Serial.println("Failed to set HMC5883L mode, deactivating sensor.");
 #endif
@@ -358,8 +413,8 @@ class MagneticFieldHMC5883L {
             }
         } else {
 #ifdef USE_SERIAL_DBG
-            Serial.print("No HMC5883L sensor found at address (dec)");
-            Serial.println(i2cAddress);
+            Serial.print("No HMC5883L sensor found at address 0x");
+            Serial.println(i2cAddress, HEX);
 #endif
             bActive = false;
         }
@@ -414,6 +469,10 @@ class MagneticFieldHMC5883L {
         char buf[32];
         sprintf(buf, "%6.3f", getMagneticFieldStrength());
         pSched->publish(name + "/sensor/magnetic_field_strength", buf);
+#ifdef USE_SERIAL_DBG
+        Serial.print("Magnetic field strength: ");
+        Serial.println(buf);
+#endif
     }
 
     void publishError(String errMsg) {
@@ -453,17 +512,21 @@ class MagneticFieldHMC5883L {
             }
             break;
         case HMC5883LSensorState::MEASUREMENT_WAIT:
-            if (timeDiff(stateMachineClock, micros()) > 6) {  // 6ms for measurement
-                if (readSingleMeasurement(&x, &y, &z)) {
-                    magXRawValue = x;
-                    magYRawValue = y;
-                    magZRawValue = z;
-                    sensorState = HMC5883LSensorState::WAIT_NEXT_MEASUREMENT;
-                    lastPollMs = millis();
-                    newData = true;
+            if (timeDiff(stateMachineClock, micros()) > measurement_delay) {  // measurement_dealy ms for measurement
+                if (checkDataReady()) {
+                    if (readSingleMeasurement(&x, &y, &z)) {
+                        magXRawValue = x;
+                        magYRawValue = y;
+                        magZRawValue = z;
+                        sensorState = HMC5883LSensorState::WAIT_NEXT_MEASUREMENT;
+                        lastPollMs = millis();
+                        newData = true;
+                    } else {
+                        sensorState = HMC5883LSensorState::WAIT_NEXT_MEASUREMENT;
+                        lastPollMs = millis();
+                    }
                 } else {
-                    sensorState = HMC5883LSensorState::WAIT_NEXT_MEASUREMENT;
-                    lastPollMs = millis();
+                    stateMachineClock = micros();
                 }
             }
             break;
